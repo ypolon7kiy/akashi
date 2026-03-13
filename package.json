@@ -1,0 +1,76 @@
+{
+  "name": "akashi",
+  "displayName": "Akashi",
+  "description": "Akashi extension.",
+  "version": "0.0.1",
+  "publisher": "your-name-or-org",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:dddExample.example.showPanel",
+    "onView:akashi.sidebar"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "akashi",
+          "title": "Akashi",
+          "icon": "$(layout-sidebar-left)"
+        }
+      ]
+    },
+    "views": {
+      "akashi": [
+        {
+          "type": "webview",
+          "id": "akashi.sidebar",
+          "name": "Sidebar"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dddExample.example.showPanel",
+        "title": "Akashi: Show Panel",
+        "category": "Akashi"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"*.mjs\"",
+    "fix": "npm run lint:fix && npm run format",
+    "test": "echo \"No tests configured yet\"",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^15.0.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.15.0",
+    "vsce": "^2.15.0"
+  }
+}
+

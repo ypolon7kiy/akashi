@@ -1,0 +1,11 @@
+node_modules/**
+dist/webview/**/*.map
+src/**
+webview-src/**
+esbuild.config.mjs
+tsconfig.json
+.gitignore
+.vscode/**
+**/*.test.ts
+**/*.spec.ts
+

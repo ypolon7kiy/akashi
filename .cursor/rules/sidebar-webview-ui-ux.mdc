@@ -1,0 +1,27 @@
+---
+description: UI/UX standards for Akashi webview sidebar
+globs: **/webview/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Akashi Sidebar UI/UX Rule
+
+Use a solid, modern, Cursor-inspired look: compact layout, calm neutral surfaces, subtle borders, and one clear accent.
+
+- Build UI with semantic tokens first (`--akashi-*` mapped to `--vscode-*` vars); avoid hardcoded hex colors when a VS Code variable exists.
+- Keep spacing on an 8px rhythm (`4/8/12/16/20` allowed where needed for density).
+- Prioritize hierarchy: overline/title/status, then key metric card, then actions, then helper text.
+- Use consistent component states: idle, loading, success, error. Status labels must be explicit and short.
+- Button hierarchy: one primary action per section, secondary actions visually quieter.
+- During async work, disable conflicting controls and show clear progress text.
+- Preserve accessibility: visible `:focus-visible`, semantic labels, high-contrast support, and reduced-motion fallback.
+- Prefer CSS in dedicated files; do not add inline styles/scripts to webview HTML unless unavoidable.
+- Keep sidebars uncluttered; avoid adding controls that are better represented as commands.
+- Verify dark, light, and high-contrast themes before finalizing UI changes.
+
+## Do / Don’t
+
+- Do: use `var(--vscode-...)` tokens and semantic class names.
+- Do: keep cards and actions visually grouped with clear separators.
+- Don’t: introduce multiple accent colors in the same panel.
+- Don’t: hide critical state in color only; pair color with text.
