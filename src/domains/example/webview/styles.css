@@ -1,0 +1,50 @@
+/**
+ * Example panel webview — editor-area surface so it matches the active theme
+ * like other document-style webviews (not the activity-bar sidebar).
+ */
+@import '../../../webview-shared/vscode-tokens.css';
+@import '../../../webview-shared/webview-controls.css';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: var(--akashi-space-3);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: var(--vscode-font-weight, normal);
+  line-height: 1.4;
+}
+
+#root {
+  width: 100%;
+}
+
+.ex-example {
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-3);
+  max-width: 36rem;
+}
+
+.ex-example__title {
+  margin: 0;
+  font-size: var(--vscode-font-size);
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.ex-example__lead {
+  margin: 0;
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-descriptionForeground);
+}
+
+.ex-example__button {
+  width: auto;
+  align-self: flex-start;
+}

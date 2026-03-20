@@ -46,19 +46,18 @@ export class ExamplePanel {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'example', 'example-main.js')
     );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'example', 'example-main.css')
+    );
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource};">
   <title>DDD Example</title>
-  <style>
-    body { font-family: var(--vscode-font-family); padding: 1rem; }
-    h1 { font-size: 1.2rem; }
-    button { padding: 0.5rem 1rem; cursor: pointer; }
-  </style>
+  <link rel="stylesheet" href="${styleUri.toString()}">
 </head>
 <body>
   <div id="root"></div>

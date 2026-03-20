@@ -7,5 +7,5 @@ The `example` domain is a **minimal reference** for structuring a domain in this
 **Files**
 
 - `ui/register.ts` – registers the show-panel command.
-- `ui/webview/ExamplePanel.ts` – webview panel lifecycle and message handling.
+- `ui/webview/ExamplePanel.ts` – webview panel lifecycle and message handling; HTML links bundled `example-main.css` (theme-aligned styles from `webview/styles.css` + shared tokens).
 - `webview/` – React app and message types; talks to host via `src/webview-shared/`.

@@ -10,6 +10,10 @@ import {
   type SourcesResponseMessage,
 } from '../bridge/messages';
 
+function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
+  return vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist');
+}
+
 function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar', 'sidebar-main.js')
@@ -18,14 +22,18 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const styleUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar', 'sidebar-main.css')
   );
+  const codiconCssUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(codiconsDistRoot(extensionUri), 'codicon.css')
+  );
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource};">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource}; font-src ${webview.cspSource};">
   <title>Akashi Sidebar</title>
+  <link rel="stylesheet" href="${codiconCssUri.toString()}">
   <link rel="stylesheet" href="${styleUri.toString()}">
 </head>
 <body>
@@ -50,7 +58,10 @@ export function createSidebarViewProvider(
       const extensionUri = context.extensionUri;
       webviewView.webview.options = {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar')],
+        localResourceRoots: [
+          vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar'),
+          codiconsDistRoot(extensionUri),
+        ],
       };
 
       webviewView.webview.html = getHtml(webviewView.webview, extensionUri);

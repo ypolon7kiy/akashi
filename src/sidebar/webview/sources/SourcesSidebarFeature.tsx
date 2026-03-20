@@ -52,7 +52,13 @@ export function SourcesSidebarFeature(): JSX.Element {
 
       <section className="akashi-tree-panel" aria-label="Indexed sources">
         <h2 className="akashi-tree-panel__title">Indexed sources</h2>
-        <SourceTreeView records={records} workspaceFolders={workspaceFolders} isBusy={isIndexing} />
+        <div className="akashi-tree-panel__scroll">
+          <SourceTreeView
+            records={records}
+            workspaceFolders={workspaceFolders}
+            isBusy={isIndexing}
+          />
+        </div>
       </section>
 
       <section className="akashi-actions" aria-busy={isIndexing}>

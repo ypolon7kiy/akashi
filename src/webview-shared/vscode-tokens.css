@@ -1,0 +1,26 @@
+/**
+ * Theme aliases for Akashi webviews. Values come from the active VS Code theme
+ * (including user-installed themes); do not hardcode colors here.
+ */
+:root {
+  --akashi-surface-0: var(--vscode-sideBar-background);
+  --akashi-surface-1: var(--vscode-editorWidget-background);
+  --akashi-surface-2: var(--vscode-input-background);
+  --akashi-border: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  --akashi-text: var(--vscode-foreground);
+  --akashi-text-muted: var(--vscode-descriptionForeground);
+  --akashi-accent: var(--vscode-button-background);
+  --akashi-accent-hover: var(--vscode-button-hoverBackground);
+  --akashi-accent-text: var(--vscode-button-foreground);
+  --akashi-focus: var(--vscode-focusBorder);
+  --akashi-danger: var(--vscode-errorForeground);
+  --akashi-success: var(--vscode-testing-iconPassed);
+  --akashi-info: var(--vscode-symbolIcon-interfaceForeground, var(--vscode-textLink-foreground));
+  --akashi-radius-sm: 2px;
+  --akashi-radius-md: 4px;
+  --akashi-space-1: 4px;
+  --akashi-space-2: 8px;
+  --akashi-space-3: 12px;
+  --akashi-space-4: 16px;
+  --akashi-space-5: 20px;
+}

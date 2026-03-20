@@ -6,9 +6,10 @@ import { buildSourceTree, type TreeNode } from './sourceTree';
 
 function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
   return (
-    <span className="akashi-tree__chevron" aria-hidden>
-      {expanded ? '▼' : '▶'}
-    </span>
+    <span
+      className={`codicon codicon-chevron-right akashi-tree__chevron${expanded ? ' akashi-tree__chevron--expanded' : ''}`}
+      aria-hidden
+    />
   );
 }
 
@@ -17,21 +18,26 @@ interface TreeRowProps {
   depth: number;
   expandedIds: ReadonlySet<string>;
   onToggle: (id: string) => void;
+  selectedFileId: string | null;
+  onSelectFile: (id: string) => void;
 }
 
 function TreeRows(props: TreeRowProps): JSX.Element {
-  const { node, depth, expandedIds, onToggle } = props;
+  const { node, depth, expandedIds, onToggle, selectedFileId, onSelectFile } = props;
 
   if (node.type === 'file') {
     const title = `${node.path}\n${node.kind} · ${node.blockCount} block(s)`;
+    const pad = `calc(var(--akashi-tree-indent-base) + ${depth} * var(--akashi-tree-indent-step))`;
+    const isSelected = selectedFileId === node.id;
     return (
       <li className="akashi-tree__item" role="none">
         <button
           type="button"
-          className="akashi-tree__row akashi-tree__row--file"
-          style={{ paddingLeft: `${8 + depth * 12}px` }}
+          className={`akashi-tree__row akashi-tree__row--file${isSelected ? ' akashi-tree__row--selected' : ''}`}
+          style={{ paddingLeft: pad }}
           title={title}
           onClick={() => {
+            onSelectFile(node.id);
             const vscode = getVscodeApi();
             vscode?.postMessage({
               type: SidebarMessageType.SourcesOpenPath,
@@ -48,12 +54,13 @@ function TreeRows(props: TreeRowProps): JSX.Element {
   }
 
   const expanded = expandedIds.has(node.id);
+  const pad = `calc(var(--akashi-tree-indent-base) + ${depth} * var(--akashi-tree-indent-step))`;
   return (
     <li className="akashi-tree__item" role="none">
       <button
         type="button"
         className="akashi-tree__row akashi-tree__row--folder"
-        style={{ paddingLeft: `${8 + depth * 12}px` }}
+        style={{ paddingLeft: pad }}
         aria-expanded={expanded}
         onClick={() => {
           onToggle(node.id);
@@ -71,6 +78,8 @@ function TreeRows(props: TreeRowProps): JSX.Element {
               depth={depth + 1}
               expandedIds={expandedIds}
               onToggle={onToggle}
+              selectedFileId={selectedFileId}
+              onSelectFile={onSelectFile}
             />
           ))}
         </ul>
@@ -94,6 +103,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
   );
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
 
   useEffect(() => {
     if (roots.length === 0) {
@@ -125,6 +135,10 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     });
   }, []);
 
+  const onSelectFile = useCallback((id: string) => {
+    setSelectedFileId(id);
+  }, []);
+
   if (records.length === 0) {
     return (
       <div className="akashi-tree akashi-tree--empty">
@@ -146,6 +160,8 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
             depth={0}
             expandedIds={expandedIds}
             onToggle={onToggle}
+            selectedFileId={selectedFileId}
+            onSelectFile={onSelectFile}
           />
         ))}
       </ul>
