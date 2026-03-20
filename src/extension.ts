@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { registerExampleUi } from './domains/example/ui/register';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
 import { appendLine, initLog } from './log';
-import { createSidebarViewProvider } from './sidebar/SidebarViewProvider';
+import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
   initLog(context);

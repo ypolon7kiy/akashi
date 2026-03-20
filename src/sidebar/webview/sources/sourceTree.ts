@@ -1,4 +1,4 @@
-import type { SourceDescriptor, WorkspaceFolderInfo } from '../sourceDescriptor';
+import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
 
 export type TreeNode =
   | { type: 'folder'; id: string; label: string; children: TreeNode[] }

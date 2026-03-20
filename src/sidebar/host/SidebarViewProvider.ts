@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
-import type { SourcesService } from '../domains/sources/application/SourcesService';
-import { ExamplePanel } from '../domains/example/ui/webview/ExamplePanel';
-import type { SourceRecord } from '../domains/sources/domain/model';
-import { appendLine } from '../log';
-import type { SourceDescriptor, WorkspaceFolderInfo } from './sourceDescriptor';
+import type { SourcesService } from '../../domains/sources/application/SourcesService';
+import { ExamplePanel } from '../../domains/example/ui/webview/ExamplePanel';
+import type { SourceRecord } from '../../domains/sources/domain/model';
+import { appendLine } from '../../log';
+import type { SourceDescriptor, WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
 import {
   SidebarMessageType,
   type SidebarRequestMessage,
   type SourcesResponseMessage,
-} from './messages';
+} from '../bridge/messages';
 
 function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const scriptUri = webview.asWebviewUri(

@@ -1,5 +1,5 @@
 /**
- * Sidebar → extension host message types.
+ * Sidebar ↔ extension host message types.
  * Single source of truth for the sidebar webview and SidebarViewProvider.
  */
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getVscodeApi } from '../../webview-shared/api';
-import type { SourceDescriptor, WorkspaceFolderInfo } from '../sourceDescriptor';
-import { SidebarMessageType } from '../messages';
+import { getVscodeApi } from '../../../webview-shared/api';
+import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
+import { SidebarMessageType } from '../../bridge/messages';
 import { buildSourceTree, type TreeNode } from './sourceTree';
 
 function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
