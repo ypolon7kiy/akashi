@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getVscodeApi, postRequest } from '../../webview-shared/api';
+import {
+  isSourcesSnapshotPayload,
+  type SourceDescriptor,
+  type WorkspaceFolderInfo,
+} from '../sourceDescriptor';
 import { SidebarMessageType, type SourcesResponseMessage } from '../messages';
+import { SourceTreeView } from './SourceTreeView';
 
 interface SidebarPersistedState {
   includeHomeConfig?: boolean;
@@ -17,6 +23,17 @@ function readPersistedState(): SidebarPersistedState {
   return raw ?? {};
 }
 
+function formatSnapshotHint(iso: string | null): string | null {
+  if (!iso) {
+    return null;
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+  return d.toLocaleString();
+}
+
 export function SidebarApp(): JSX.Element {
   const persisted = readPersistedState();
   const initialIncludeHomeConfig = persisted.includeHomeConfig ?? false;
@@ -24,6 +41,31 @@ export function SidebarApp(): JSX.Element {
   const [lastUpdated, setLastUpdated] = useState<string | null>(persisted.lastUpdated ?? null);
   const [includeHomeConfig, setIncludeHomeConfig] = useState<boolean>(initialIncludeHomeConfig);
   const [isIndexing, setIsIndexing] = useState<boolean>(false);
+  const [records, setRecords] = useState<SourceDescriptor[]>([]);
+  const [workspaceFolders, setWorkspaceFolders] = useState<WorkspaceFolderInfo[]>([]);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+
+  const applySnapshotPayload = (payload: unknown, options: { touchLastUpdated: boolean }): void => {
+    if (payload == null) {
+      setRecords([]);
+      setWorkspaceFolders([]);
+      setSourceCount(0);
+      setGeneratedAt(null);
+      if (options.touchLastUpdated) {
+        setLastUpdated(new Date().toLocaleTimeString());
+      }
+      return;
+    }
+    if (isSourcesSnapshotPayload(payload)) {
+      setRecords([...payload.records]);
+      setWorkspaceFolders([...payload.workspaceFolders]);
+      setSourceCount(payload.sourceCount);
+      setGeneratedAt(payload.generatedAt);
+      if (options.touchLastUpdated) {
+        setLastUpdated(new Date().toLocaleTimeString());
+      }
+    }
+  };
 
   const handleShowExample = (): void => {
     const vscode = getVscodeApi();
@@ -55,9 +97,7 @@ export function SidebarApp(): JSX.Element {
       if (!response.ok) {
         return;
       }
-      const payload = response.payload as { sourceCount?: number } | undefined;
-      setSourceCount(payload?.sourceCount ?? 0);
-      setLastUpdated(new Date().toLocaleTimeString());
+      applySnapshotPayload(response.payload, { touchLastUpdated: true });
     } catch {
       // Keep existing values on transient indexing failures.
     } finally {
@@ -91,10 +131,7 @@ export function SidebarApp(): JSX.Element {
           SidebarMessageType.SourcesResponse
         );
         if (snapshotResponse.ok) {
-          const payload = snapshotResponse.payload as { sourceCount?: number } | null;
-          if (payload) {
-            setSourceCount(payload.sourceCount ?? 0);
-          }
+          applySnapshotPayload(snapshotResponse.payload, { touchLastUpdated: false });
         }
       } catch {
         // Keep existing UI state and continue with background refresh.
@@ -115,9 +152,7 @@ export function SidebarApp(): JSX.Element {
         if (!refreshResponse.ok) {
           return;
         }
-        const refreshPayload = refreshResponse.payload as { sourceCount?: number } | undefined;
-        setSourceCount(refreshPayload?.sourceCount ?? 0);
-        setLastUpdated(new Date().toLocaleTimeString());
+        applySnapshotPayload(refreshResponse.payload, { touchLastUpdated: true });
       } catch {
         // Keep existing values on transient indexing failures.
       } finally {
@@ -127,6 +162,8 @@ export function SidebarApp(): JSX.Element {
 
     void hydrateAndRefresh();
   }, []);
+
+  const snapshotHint = formatSnapshotHint(generatedAt);
 
   return (
     <div className="akashi-shell">
@@ -152,7 +189,16 @@ export function SidebarApp(): JSX.Element {
           />
           <span>Include home configs</span>
         </label>
-        {lastUpdated ? <p className="akashi-muted">Last indexed at {lastUpdated}</p> : null}
+        {lastUpdated ? (
+          <p className="akashi-muted">Last indexed at {lastUpdated}</p>
+        ) : snapshotHint ? (
+          <p className="akashi-muted">Saved snapshot · {snapshotHint}</p>
+        ) : null}
+      </section>
+
+      <section className="akashi-tree-panel" aria-label="Indexed sources">
+        <h2 className="akashi-tree-panel__title">Indexed sources</h2>
+        <SourceTreeView records={records} workspaceFolders={workspaceFolders} isBusy={isIndexing} />
       </section>
 
       <section className="akashi-actions" aria-busy={isIndexing}>
@@ -189,7 +235,8 @@ export function SidebarApp(): JSX.Element {
       </section>
 
       <p className="akashi-help">
-        Run indexing after config changes to keep retrieval results fresh.
+        Run indexing after config changes to keep retrieval results fresh. Click a file in the tree
+        to open it.
       </p>
     </div>
   );

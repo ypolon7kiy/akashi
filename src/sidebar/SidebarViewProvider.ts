@@ -3,6 +3,7 @@ import type { SourcesService } from '../domains/sources/application/SourcesServi
 import { ExamplePanel } from '../domains/example/ui/webview/ExamplePanel';
 import type { SourceRecord } from '../domains/sources/domain/model';
 import { appendLine } from '../log';
+import type { SourceDescriptor, WorkspaceFolderInfo } from './sourceDescriptor';
 import {
   SidebarMessageType,
   type SidebarRequestMessage,
@@ -63,6 +64,22 @@ export function createSidebarViewProvider(
           return;
         }
 
+        if (typedMessage?.type === SidebarMessageType.SourcesOpenPath) {
+          const filePath = typedMessage.payload?.path;
+          if (typeof filePath === 'string' && filePath.length > 0) {
+            try {
+              const uri = vscode.Uri.file(filePath);
+              const doc = await vscode.workspace.openTextDocument(uri);
+              await vscode.window.showTextDocument(doc);
+            } catch (error) {
+              appendLine(
+                `[Akashi] Sidebar: openPath failed path=${filePath} ${error instanceof Error ? error.message : String(error)}`
+              );
+            }
+          }
+          return;
+        }
+
         const requestId = (typedMessage as { requestId?: string }).requestId;
         if (!requestId) {
           return;
@@ -81,6 +98,7 @@ export function createSidebarViewProvider(
                     generatedAt: result.generatedAt,
                     sourceCount: result.sourceCount,
                     records: result.records.map(toSourceDescriptor),
+                    workspaceFolders: snapshotWorkspaceFolders(),
                   }
                 : null,
             };
@@ -107,6 +125,7 @@ export function createSidebarViewProvider(
                 generatedAt: result.generatedAt,
                 sourceCount: result.sourceCount,
                 records: result.records.map(toSourceDescriptor),
+                workspaceFolders: snapshotWorkspaceFolders(),
               },
             };
             await postSourcesResponse(webviewView.webview, response);
@@ -184,15 +203,16 @@ function logSourcesResponse(response: SourcesResponseMessage, summary?: string):
   );
 }
 
-function toSourceDescriptor(record: SourceRecord): {
-  id: string;
-  path: string;
-  kind: SourceRecord['document']['kind'];
-  scope: SourceRecord['document']['scope'];
-  origin: SourceRecord['document']['origin'];
-  metadata: SourceRecord['metadata'];
-  blockCount: number;
-} {
+function snapshotWorkspaceFolders(): WorkspaceFolderInfo[] {
+  return (
+    vscode.workspace.workspaceFolders?.map((f) => ({
+      name: f.name,
+      path: f.uri.fsPath,
+    })) ?? []
+  );
+}
+
+function toSourceDescriptor(record: SourceRecord): SourceDescriptor {
   return {
     id: record.document.id,
     path: record.document.path,

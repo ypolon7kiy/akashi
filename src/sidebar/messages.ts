@@ -5,6 +5,7 @@
 
 export const SidebarMessageType = {
   ShowExamplePanel: 'showExamplePanel',
+  SourcesOpenPath: 'sources/openPath',
   SourcesIndexWorkspaceRequest: 'sources/indexWorkspace',
   SourcesGetSnapshotRequest: 'sources/getSnapshot',
   SourcesListRequest: 'sources/list',
@@ -45,6 +46,14 @@ export interface SourcesGetSnapshotRequestMessage {
   requestId: string;
 }
 
+/** Open a source file in the editor (internal webview → host; not a contributed command). */
+export interface SourcesOpenPathMessage {
+  type: typeof SidebarMessageType.SourcesOpenPath;
+  payload: {
+    path: string;
+  };
+}
+
 export interface SourcesResponseMessage {
   type: typeof SidebarMessageType.SourcesResponse;
   /** Echo of the request’s UUID v4. */
@@ -59,4 +68,5 @@ export type SidebarRequestMessage =
   | SourcesGetSnapshotRequestMessage
   | SourcesListRequestMessage
   | SourcesGetByIdRequestMessage
+  | SourcesOpenPathMessage
   | { type: typeof SidebarMessageType.ShowExamplePanel };
