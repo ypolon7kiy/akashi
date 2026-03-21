@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getVscodeApi } from '../../../webview-shared/api';
 import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
 import { SidebarMessageType } from '../../bridge/messages';
+import { sidebarCategoryLabel } from './categorySidebarLabel';
 import { buildSourceTree, type TreeNode } from './sourceTree';
 
 function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
@@ -27,7 +28,10 @@ function TreeRows(props: TreeRowProps): JSX.Element {
 
   if (node.type === 'file') {
     const presetLine = node.presets.length > 0 ? `\nPresets: ${node.presets.join(', ')}` : '';
-    const title = `${node.path}\n${node.kind}${presetLine}`;
+    const categoryDisplay = sidebarCategoryLabel(node.categoryValue);
+    const categoryHint =
+      categoryDisplay !== node.categoryValue ? `\nCategory: ${node.categoryValue}` : '';
+    const title = `${node.path}\n${node.kind}${categoryHint}${presetLine}`;
     const pad = `calc(var(--akashi-tree-indent-base) + ${depth} * var(--akashi-tree-indent-step))`;
     const isSelected = selectedFileId === node.id;
     return (
@@ -48,7 +52,7 @@ function TreeRows(props: TreeRowProps): JSX.Element {
         >
           <span className="akashi-tree__chevron-spacer" aria-hidden />
           <span className="akashi-tree__label">{node.label}</span>
-          <span className="akashi-tree__meta">{node.kind}</span>
+          <span className="akashi-tree__meta">{categoryDisplay}</span>
         </button>
       </li>
     );

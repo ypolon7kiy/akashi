@@ -1,4 +1,11 @@
+import type { SourceFacetTag } from '../../../domains/sources/domain/model';
+import { SourceTagType } from '../../../domains/sources/domain/model';
 import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
+
+function categoryValueFromTags(tags: readonly SourceFacetTag[]): string | undefined {
+  const t = tags.find((x) => x.type === SourceTagType.Category);
+  return t?.value;
+}
 
 export type TreeNode =
   | { type: 'folder'; id: string; label: string; children: TreeNode[] }
@@ -8,6 +15,8 @@ export type TreeNode =
       label: string;
       path: string;
       kind: string;
+      /** Category facet value for display; falls back to `kind` when missing. */
+      categoryValue: string;
       presets: readonly string[];
     };
 
@@ -129,6 +138,7 @@ function trieToTreeNodes(map: TrieMap, idPrefix: string): TreeNode[] {
         label: name,
         path: d.path,
         kind: d.kind,
+        categoryValue: categoryValueFromTags(d.tags) ?? d.kind,
         presets: d.presets,
       });
     } else {

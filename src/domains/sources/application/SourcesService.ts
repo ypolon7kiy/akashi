@@ -76,6 +76,7 @@ export class SourcesService {
           kind: item.kind,
           scope: item.scope,
           origin: item.origin,
+          tags: item.tags,
           metadata,
         };
         return entry;

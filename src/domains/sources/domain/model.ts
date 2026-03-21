@@ -71,6 +71,19 @@ export const SourceScope = {
 
 export type SourceScope = (typeof SourceScope)[keyof typeof SourceScope];
 
+export const SourceTagType = {
+  Preset: 'preset',
+  Category: 'category',
+  Locality: 'locality',
+} as const;
+
+export type SourceTagType = (typeof SourceTagType)[keyof typeof SourceTagType];
+
+export interface SourceFacetTag {
+  readonly type: SourceTagType;
+  readonly value: string;
+}
+
 /** One indexed source path: catalog entry only (no file body read into the index). */
 export interface IndexedSourceEntry {
   id: string;
@@ -78,6 +91,8 @@ export interface IndexedSourceEntry {
   kind: SourceKind;
   scope: SourceScope;
   origin: 'workspace' | 'user';
+  /** Facet tags: locality, category, and preset ids (see `sourceTags.ts`). */
+  tags: readonly SourceFacetTag[];
   metadata: {
     byteLength: number;
     updatedAt: string;

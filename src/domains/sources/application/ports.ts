@@ -1,4 +1,9 @@
-import type { SourceIndexSnapshot, SourceKind, SourceScope } from '../domain/model';
+import type {
+  SourceFacetTag,
+  SourceIndexSnapshot,
+  SourceKind,
+  SourceScope,
+} from '../domain/model';
 
 export interface DiscoveredSource {
   id: string;
@@ -6,6 +11,8 @@ export interface DiscoveredSource {
   kind: SourceKind;
   scope: SourceScope;
   origin: 'workspace' | 'user';
+  /** Facet tags built at scan time; propagated to index rows and snapshots unchanged. */
+  tags: readonly SourceFacetTag[];
 }
 
 export interface SourceScanOptions {

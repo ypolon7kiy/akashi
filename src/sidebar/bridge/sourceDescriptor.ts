@@ -2,6 +2,8 @@
  * Shape of each indexed source and snapshot payload fields shared by host and sidebar webview.
  */
 
+import type { SourceFacetTag } from '../../domains/sources/domain/model';
+
 export interface WorkspaceFolderInfo {
   readonly name: string;
   readonly path: string;
@@ -15,6 +17,8 @@ export interface SourceDescriptor {
   readonly presets: readonly string[];
   readonly scope: string;
   readonly origin: 'workspace' | 'user';
+  /** Facet tags: locality, category, presets (mirrors `IndexedSourceEntry.tags`). */
+  readonly tags: readonly SourceFacetTag[];
   readonly metadata: { byteLength: number; updatedAt: string };
 }
 
@@ -26,6 +30,7 @@ export interface SourcesSnapshotPayload {
   readonly workspaceFolders: WorkspaceFolderInfo[];
 }
 
+/** Loose guard for webview `postMessage` payloads from our host (same bundle). Trusts record shape to TypeScript at the producer. */
 export function isSourcesSnapshotPayload(value: unknown): value is SourcesSnapshotPayload {
   if (!value || typeof value !== 'object') {
     return false;

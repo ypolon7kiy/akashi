@@ -7,6 +7,7 @@ import type {
   WorkspaceSourceScannerPort,
 } from '../application/ports';
 import { SourceKind, SourceScope } from '../domain/model';
+import { buildSourceFacetTags } from '../domain/sourceTags';
 import type { ToolUserRoots } from '../domain/toolUserRoots';
 import { inferUserSourceKind, inferWorkspaceSourceKind } from './classifySourcePath';
 import { collectHomeSourcePaths, selectWorkspaceGlobs } from './sourceDiscoveryPlan';
@@ -76,6 +77,7 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
       kind,
       scope: origin === 'user' ? SourceScope.User : SourceScope.File,
       origin,
+      tags: buildSourceFacetTags(kind, origin),
     };
   }
 }

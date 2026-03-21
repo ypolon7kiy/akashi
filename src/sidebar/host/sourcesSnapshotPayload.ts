@@ -36,6 +36,7 @@ function toSourceDescriptor(record: IndexedSourceEntry): SourceDescriptor {
     presets: presetsContainingKind(record.kind),
     scope: record.scope,
     origin: record.origin,
+    tags: [...record.tags],
     metadata: record.metadata,
   };
 }

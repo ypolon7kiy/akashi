@@ -18,6 +18,12 @@ import {
 } from '../../domains/sources/domain/sourcePresets';
 import { isSourcesSnapshotPayload, type WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
 import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
+import {
+  buildSourceFacetTags,
+  SourceCategoryId,
+  SourceLocalityTagValue,
+} from '../../domains/sources/domain/sourceTags';
+import { SourceTagType } from '../../domains/sources/domain/model';
 
 const STAT = { byteLength: 10, updatedAt: '2025-01-01T00:00:00.000Z' };
 
@@ -36,6 +42,7 @@ function discovered(
     kind,
     scope: origin === 'user' ? SourceScope.User : SourceScope.File,
     origin,
+    tags: buildSourceFacetTags(kind, origin),
   };
 }
 
@@ -282,6 +289,50 @@ describe('sources indexing pipeline (edge cases)', () => {
         workspaceFolders: [],
       })
     ).toBe(false);
+  });
+
+  it('persists facet tags on snapshot and payload (locality, category, presets)', async () => {
+    const mockDiscovered: DiscoveredSource[] = [
+      discovered('/ws/.claude/hooks/run.sh', SourceKind.ClaudeHookFile, 'workspace'),
+      discovered('/home/.cursor/mcp.json', SourceKind.CursorMcpJson, 'user'),
+    ];
+    const { service, payloadFor } = createPipeline({
+      activePresets: new Set<SourcePresetId>(['claude', 'cursor']),
+      mockDiscovered,
+      workspaceFolders: [],
+    });
+
+    const snap = await service.indexWorkspace({ includeHomeConfig: true });
+
+    const hook = snap.records.find((r) => r.path === '/ws/.claude/hooks/run.sh');
+    expect(hook).toBeDefined();
+    expect(hook!.tags).toContainEqual({
+      type: SourceTagType.Locality,
+      value: SourceLocalityTagValue.Project,
+    });
+    expect(hook!.tags).toContainEqual({
+      type: SourceTagType.Category,
+      value: SourceCategoryId.Hook,
+    });
+    expect(hook!.tags.some((t) => t.type === SourceTagType.Preset && t.value === 'claude')).toBe(
+      true
+    );
+
+    const mcp = snap.records.find((r) => r.path === '/home/.cursor/mcp.json');
+    expect(mcp).toBeDefined();
+    expect(mcp!.tags).toContainEqual({
+      type: SourceTagType.Locality,
+      value: SourceLocalityTagValue.Global,
+    });
+    expect(mcp!.tags).toContainEqual({
+      type: SourceTagType.Category,
+      value: SourceCategoryId.Mcp,
+    });
+
+    const payload = payloadFor(snap);
+    expect(payload).not.toBeNull();
+    const ph = payload!.records.find((r) => r.path === '/ws/.claude/hooks/run.sh');
+    expect(ph!.tags).toEqual(hook!.tags);
   });
 
   it('reuses in-flight indexWorkspace promise for concurrent callers', async () => {

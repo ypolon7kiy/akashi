@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SourceKind, SourceScope } from '../domain/model';
 import { sourceKindsForPresets } from '../domain/sourcePresets';
+import { buildSourceFacetTags } from '../domain/sourceTags';
 
 const findFilesMock = vi.hoisted(() =>
   vi.fn<(glob: string, exclude?: string) => Promise<{ fsPath: string }[]>>()
@@ -69,6 +70,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
       kind: SourceKind.AgentsMd,
       scope: SourceScope.File,
       origin: 'workspace',
+      tags: buildSourceFacetTags(SourceKind.AgentsMd, 'workspace'),
     });
   });
 
@@ -115,6 +117,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
       kind: SourceKind.CursorMcpJson,
       origin: 'user',
       scope: SourceScope.User,
+      tags: buildSourceFacetTags(SourceKind.CursorMcpJson, 'user'),
     });
   });
 });
