@@ -3,8 +3,8 @@ import { fileColorsObjectToCssLines } from './sidebarFileColorsToCss';
 
 /** `<style>` block for `<head>` (after bundled sidebar CSS). */
 export function buildSidebarCategoryColorStyleBlock(): string {
-  const cfg = vscode.workspace.getConfiguration('akashi.sources.sidebar');
-  const lines = fileColorsObjectToCssLines(cfg.get('fileColors'));
+  const cfg = vscode.workspace.getConfiguration('akashi');
+  const lines = fileColorsObjectToCssLines(cfg.get('sidebar.fileColors'));
   if (lines.length === 0) {
     return '';
   }
@@ -14,5 +14,5 @@ export function buildSidebarCategoryColorStyleBlock(): string {
 export function configurationAffectsSidebarCategoryColors(
   e: vscode.ConfigurationChangeEvent
 ): boolean {
-  return e.affectsConfiguration('akashi.sources.sidebar');
+  return e.affectsConfiguration('akashi.sidebar');
 }

@@ -23,19 +23,19 @@ describe('VS Code sources config readers (mocked)', () => {
   });
 
   it('readActiveSourcePresets falls back to all when array is empty', () => {
-    config.set('akashi\0sources.presets', []);
+    config.set('akashi\0presets', []);
     const s = readActiveSourcePresets();
     expect(s.size).toBe(ALL_SOURCE_PRESET_IDS.length);
     expect(new Set(s)).toEqual(new Set(ALL_SOURCE_PRESET_IDS));
   });
 
   it('readActiveSourcePresets uses valid entries when set', () => {
-    config.set('akashi\0sources.presets', ['cursor', 'claude']);
+    config.set('akashi\0presets', ['cursor', 'claude']);
     expect(readActiveSourcePresets()).toEqual(new Set(['cursor', 'claude']));
   });
 
   it('readActiveSourcePresets drops invalid strings and falls back when none left', () => {
-    config.set('akashi\0sources.presets', ['not-a-preset', '']);
+    config.set('akashi\0presets', ['not-a-preset', '']);
     const s = readActiveSourcePresets();
     expect(s.size).toBe(ALL_SOURCE_PRESET_IDS.length);
   });
@@ -45,9 +45,9 @@ describe('VS Code sources config readers (mocked)', () => {
   });
 
   it('readIncludeHomeConfig returns configured value', () => {
-    config.set('akashi.sources\0includeHomeConfig', false);
+    config.set('akashi\0includeHomeConfig', false);
     expect(readIncludeHomeConfig()).toBe(false);
-    config.set('akashi.sources\0includeHomeConfig', true);
+    config.set('akashi\0includeHomeConfig', true);
     expect(readIncludeHomeConfig()).toBe(true);
   });
 });

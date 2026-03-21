@@ -1,6 +1,6 @@
 # Sources presets and indexing
 
-Onboarding notes for how **tool presets** (`akashi.sources.presets`), **discovery**, and the **sidebar Source Index** fit together.
+Onboarding notes for how **tool presets** (`akashi.presets`), **discovery**, and the **sidebar Source Index** fit together.
 
 ## Presets vs kinds (conceptual)
 
@@ -35,7 +35,7 @@ flowchart LR
 
 ## Preset matrix
 
-Each cell is **included** when that preset is enabled in settings. Settings key: `akashi.sources.presets` (array of `claude`, `cursor`, `antigravity`, `codex`). The table matches [`SOURCE_KINDS_BY_PRESET`](../src/domains/sources/domain/sourcePresets.ts) (derived from [`SOURCE_PRESET_DEFINITIONS`](../src/domains/sources/registerSourcePresets.ts)); if code and this doc diverge, **trust the code**.
+Each cell is **included** when that preset is enabled in settings. Settings key: `akashi.presets` (array of `claude`, `cursor`, `antigravity`, `codex`). The table matches [`SOURCE_KINDS_BY_PRESET`](../src/domains/sources/domain/sourcePresets.ts) (derived from [`SOURCE_PRESET_DEFINITIONS`](../src/domains/sources/registerSourcePresets.ts)); if code and this doc diverge, **trust the code**.
 
 | `SourceKind` | Typical role | claude | cursor | antigravity | codex |
 |--------------|--------------|:------:|:------:|:-----------:|:-----:|
@@ -76,8 +76,8 @@ Each built-in tool preset is defined under [`src/domains/sources/presets/`](../s
 1. Add **`src/domains/sources/presets/<id>/`** implementing a [`SourcePresetDefinition`](../src/domains/sources/domain/sourcePresetDefinition.ts) (`preset.ts`, `homePathTasks.ts`, and shared pieces under `_shared/` when appropriate).
 2. Import the definition into [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts) and append it to **`SOURCE_PRESET_DEFINITIONS`** (order matters for classifier fall-through). Its **`homePathTasks`** are picked up automatically into **`HOME_PATH_TASKS`**; only **shared** user-home work (e.g. Copilot, home `AGENTS.md`) is still listed explicitly next to `HOME_PATH_TASKS`.
 3. Extend **`SourcePresetId`** and the **`SourcePresetId`** const object in [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts) if you introduce a new id string.
-4. Add the same id to the **`akashi.sources.presets`** `enum` in [`package.json`](../package.json) (VS Code contribution metadata cannot import TypeScript).
-5. If the tool uses a custom user config directory, extend [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts), and `akashi.sources.homePathOverrides` in [`package.json`](../package.json) as needed.
+4. Add the same id to the **`akashi.presets`** `enum` in [`package.json`](../package.json) (VS Code contribution metadata cannot import TypeScript).
+5. If the tool uses a custom user config directory, extend [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts), and `akashi.homePathOverrides` in [`package.json`](../package.json) as needed.
 6. Add new **`SourceKind`** values in [`model.ts`](../src/domains/sources/domain/model.ts) only when the artifact type is new; extend [`classifyPaths.test.ts`](../src/domains/sources/classifyPaths.test.ts) for classification order (especially `SKILL.md`).
 
 ### Catalog index (no file body in the snapshot)
@@ -97,7 +97,7 @@ When **Sources: Include Home Config** is on, the scanner resolves **user-scope**
 | `cursor` | Single Cursor user root (`mcp.json`, `rules`, `skills`) | *(none)* | `~/.cursor` |
 | `codex` | Single Codex CLI user root (`config.toml`, `rules`, home `skills`, etc.) | `CODEX_HOME` (absolute) | `~/.codex` |
 
-Configure these under **`akashi.sources.homePathOverrides`** in Settings.
+Configure these under **`akashi.homePathOverrides`** in Settings.
 
 **Claude**, **Gemini**, **Cursor**, and **Codex** each use **one effective root** (override → env where applicable → default under OS user home).
 
@@ -107,5 +107,5 @@ Implementation: [`providerUserRoots.ts`](../src/domains/sources/infrastructure/p
 
 - Preset registry: [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts), per-preset folders under [`presets/`](../src/domains/sources/presets/)
 - Presets from VS Code: [`vscodeSourcePresetConfig.ts`](../src/domains/sources/infrastructure/vscodeSourcePresetConfig.ts) (`ALL_SOURCE_PRESET_IDS` / `isSourcePresetId` follow the registry via [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts))
-- Globs and home paths: [`sourceDiscoveryPlan.ts`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts); optional `akashi.sources.homePathOverrides`: [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts) + [`userConfigDirPath.ts`](../src/domains/sources/infrastructure/userConfigDirPath.ts).
+- Globs and home paths: [`sourceDiscoveryPlan.ts`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts); optional `akashi.homePathOverrides`: [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts) + [`userConfigDirPath.ts`](../src/domains/sources/infrastructure/userConfigDirPath.ts).
 - Service wiring: [`createSourcesService.ts`](../src/domains/sources/infrastructure/createSourcesService.ts)

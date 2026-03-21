@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 
 /**
- * Resolves an optional `akashi.sources.*` directory setting to a single absolute path, or `null` if unset/invalid.
+ * Resolves an optional `akashi.homePathOverrides.*` directory setting to a single absolute path, or `null` if unset/invalid.
  * Accepts absolute paths or `~/…` / `~` relative to {@link homeDir}.
  */
 export function resolveOptionalUserConfigDir(

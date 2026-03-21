@@ -1,7 +1,7 @@
 import { SIDEBAR_SOURCE_CATEGORY_KEYS } from '../bridge/sourceCategoryKeys';
 import { sanitizeSidebarCategoryColorValue } from './sidebarCategoryColorSanitize';
 
-/** Pure: `akashi.sources.sidebar.fileColors` → CSS declaration lines. */
+/** Pure: `akashi.sidebar.fileColors` → CSS declaration lines. */
 export function fileColorsObjectToCssLines(obj: unknown): string[] {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
     return [];

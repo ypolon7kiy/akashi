@@ -45,7 +45,7 @@
     "configuration": {
       "title": "Akashi",
       "properties": {
-        "akashi.sources.presets": {
+        "akashi.presets": {
           "type": "array",
           "order": 10,
           "items": {
@@ -66,13 +66,13 @@
           "uniqueItems": true,
           "description": "Which tool families appear in the Source Index."
         },
-        "akashi.sources.includeHomeConfig": {
+        "akashi.includeHomeConfig": {
           "type": "boolean",
           "order": 20,
           "default": true,
           "description": "Include user-home tool configs in the index."
         },
-        "akashi.sources.homePathOverrides": {
+        "akashi.homePathOverrides": {
           "type": "object",
           "order": 30,
           "title": "Home path overrides",
@@ -103,7 +103,7 @@
             "gemini": ""
           }
         },
-        "akashi.sources.sidebar.fileColors": {
+        "akashi.sidebar.fileColors": {
           "type": "object",
           "order": 70,
           "title": "File colors",

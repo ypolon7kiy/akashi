@@ -184,7 +184,7 @@
 
 /*
  * Category badge defaults (theme tokens). Optional overrides: settings
- * `akashi.sources.sidebar.categoryColor*` inject --akashi-source-cat-* on :root from the host.
+ * `akashi.sidebar.fileColors` (host injects --akashi-source-cat-* on :root).
  */
 :root {
   --akashi-default-cat-context-rule: var(

@@ -6,11 +6,11 @@ import {
 } from '../domain/sourcePresets';
 
 /**
- * Active presets from `akashi.sources.presets`. Invalid entries are dropped.
+ * Active presets from `akashi.presets`. Invalid entries are dropped.
  * Empty after validation falls back to all presets so the sidebar stays usable.
  */
 export function readActiveSourcePresets(): ReadonlySet<SourcePresetId> {
-  const raw = vscode.workspace.getConfiguration('akashi').get<unknown>('sources.presets');
+  const raw = vscode.workspace.getConfiguration('akashi').get<unknown>('presets');
   const set = new Set<SourcePresetId>();
   if (Array.isArray(raw)) {
     for (const entry of raw) {

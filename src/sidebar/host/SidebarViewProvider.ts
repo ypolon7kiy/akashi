@@ -104,21 +104,22 @@ export function createSidebarViewProvider(
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration('akashi.sources')) {
+      const affectsIndexing =
+        e.affectsConfiguration('akashi.presets') ||
+        e.affectsConfiguration('akashi.includeHomeConfig') ||
+        e.affectsConfiguration('akashi.homePathOverrides');
+      const affectsSidebarColors = configurationAffectsSidebarCategoryColors(e);
+      if (!affectsIndexing && !affectsSidebarColors) {
         return;
       }
       const w = activeView?.webview;
       if (!w) {
         return;
       }
-      if (configurationAffectsSidebarCategoryColors(e)) {
+      if (affectsSidebarColors) {
         w.html = getHtml(w, context.extensionUri);
       }
-      const indexingKeysChanged =
-        e.affectsConfiguration('akashi.sources.presets') ||
-        e.affectsConfiguration('akashi.sources.includeHomeConfig') ||
-        e.affectsConfiguration('akashi.sources.homePathOverrides');
-      if (!indexingKeysChanged) {
+      if (!affectsIndexing) {
         return;
       }
       void (async () => {

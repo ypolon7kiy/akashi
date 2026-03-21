@@ -47,7 +47,7 @@ describe('readToolUserRoots', () => {
     });
   });
 
-  it('uses akashi.sources.homePathOverrides when set (absolute paths)', async () => {
+  it('uses akashi.homePathOverrides when set (absolute paths)', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'akashi-roots-'));
     const c = path.join(tmp, 'my-claude');
     const cu = path.join(tmp, 'my-cursor');
@@ -58,7 +58,7 @@ describe('readToolUserRoots', () => {
     await fs.mkdir(g, { recursive: true });
     await fs.mkdir(x, { recursive: true });
 
-    config.set('akashi.sources\0homePathOverrides', {
+    config.set('akashi\0homePathOverrides', {
       claude: c,
       cursor: cu,
       gemini: g,
@@ -78,7 +78,7 @@ describe('readToolUserRoots', () => {
 
   it('expands tilde in homePathOverrides relative to homeDir', () => {
     const homeDir = '/Users/me';
-    config.set('akashi.sources\0homePathOverrides', {
+    config.set('akashi\0homePathOverrides', {
       claude: '~/Library/Claude',
       codex: '',
       cursor: '',
@@ -110,7 +110,7 @@ describe('readToolUserRoots', () => {
   it('homePathOverrides wins over CLAUDE_CONFIG_DIR env', () => {
     const fromSetting = path.join(os.tmpdir(), 'from-setting');
     process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'from-env');
-    config.set('akashi.sources\0homePathOverrides', {
+    config.set('akashi\0homePathOverrides', {
       claude: fromSetting,
       codex: '',
       cursor: '',
