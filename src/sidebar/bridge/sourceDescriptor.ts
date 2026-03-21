@@ -11,7 +11,7 @@ export interface SourceDescriptor {
   readonly id: string;
   readonly path: string;
   readonly kind: string;
-  /** Presets whose kind list includes this file (see `SOURCE_KINDS_BY_PRESET` on the host). */
+  /** Presets whose kind list includes this file (derived from `SOURCE_PRESET_DEFINITIONS` / `SOURCE_KINDS_BY_PRESET` on the host). */
   readonly presets: readonly string[];
   readonly scope: string;
   readonly origin: 'workspace' | 'user';

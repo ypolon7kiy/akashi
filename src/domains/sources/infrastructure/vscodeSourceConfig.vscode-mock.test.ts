@@ -1,0 +1,53 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ALL_SOURCE_PRESET_IDS } from '../domain/sourcePresets';
+import { readActiveSourcePresets } from './vscodeSourcePresetConfig';
+import { readIncludeHomeConfig } from './vscodeSourcesIncludeHome';
+
+const config = new Map<string, unknown>();
+
+vi.mock('vscode', () => ({
+  workspace: {
+    getConfiguration: (section: string) => ({
+      get: (key: string) => config.get(`${section}\0${key}`),
+    }),
+  },
+}));
+
+describe('VS Code sources config readers (mocked)', () => {
+  beforeEach(() => {
+    config.clear();
+  });
+
+  afterEach(() => {
+    config.clear();
+  });
+
+  it('readActiveSourcePresets falls back to all when array is empty', () => {
+    config.set('akashi\0sources.presets', []);
+    const s = readActiveSourcePresets();
+    expect(s.size).toBe(ALL_SOURCE_PRESET_IDS.length);
+    expect(new Set(s)).toEqual(new Set(ALL_SOURCE_PRESET_IDS));
+  });
+
+  it('readActiveSourcePresets uses valid entries when set', () => {
+    config.set('akashi\0sources.presets', ['cursor', 'claude']);
+    expect(readActiveSourcePresets()).toEqual(new Set(['cursor', 'claude']));
+  });
+
+  it('readActiveSourcePresets drops invalid strings and falls back when none left', () => {
+    config.set('akashi\0sources.presets', ['not-a-preset', '']);
+    const s = readActiveSourcePresets();
+    expect(s.size).toBe(ALL_SOURCE_PRESET_IDS.length);
+  });
+
+  it('readIncludeHomeConfig defaults to true when undefined', () => {
+    expect(readIncludeHomeConfig()).toBe(true);
+  });
+
+  it('readIncludeHomeConfig returns configured value', () => {
+    config.set('akashi.sources\0includeHomeConfig', false);
+    expect(readIncludeHomeConfig()).toBe(false);
+    config.set('akashi.sources\0includeHomeConfig', true);
+    expect(readIncludeHomeConfig()).toBe(true);
+  });
+});

@@ -18,7 +18,7 @@
     "types": ["node", "vscode"],
     "rootDir": "."
   },
-  "include": ["src", "webview-src"],
+  "include": ["src", "webview-src", "vitest.config.ts"],
   "exclude": ["dist", "node_modules", ".vscode-test"]
 }
 

@@ -1,77 +1,33 @@
 import type { IndexedSourceEntry, SourceKind } from './model';
-import { SourceKind as K } from './model';
+import {
+  ALL_SOURCE_PRESET_IDS as ALL_SOURCE_PRESET_IDS_FROM_REGISTRY,
+  SOURCE_PRESET_DEFINITIONS,
+} from '../registerSourcePresets';
+import type { SourcePresetId as SourcePresetIdType } from './sourcePresetDefinition';
+
+export type SourcePresetId = SourcePresetIdType;
 
 /**
- * Sidebar / settings preset ids (no `vscode` here). Each preset owns an explicit list of {@link SourceKind}
- * values — this object is the single source of truth for “which kinds belong to which preset”.
+ * Sidebar / settings preset ids (no `vscode` here). Kept in sync with {@link SOURCE_PRESET_DEFINITIONS}.
  */
 export const SourcePresetId = {
   Claude: 'claude',
   Cursor: 'cursor',
   Antigravity: 'antigravity',
   Codex: 'codex',
-} as const;
-
-export type SourcePresetId = (typeof SourcePresetId)[keyof typeof SourcePresetId];
+} as const satisfies Record<string, SourcePresetId>;
 
 /** Injected at the extension composition root (reads VS Code settings). */
 export type ActiveSourcePresetsGetter = () => ReadonlySet<SourcePresetId>;
 
-export const ALL_SOURCE_PRESET_IDS: readonly SourcePresetId[] = [
-  SourcePresetId.Claude,
-  SourcePresetId.Cursor,
-  SourcePresetId.Antigravity,
-  SourcePresetId.Codex,
-];
+export const ALL_SOURCE_PRESET_IDS: readonly SourcePresetId[] = ALL_SOURCE_PRESET_IDS_FROM_REGISTRY;
 
-/** For each preset, which indexed source kinds it includes. */
-export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly SourceKind[]>> = {
-  [SourcePresetId.Claude]: [
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.ClaudeMd,
-    K.ClaudeSettingsJson,
-    K.ClaudeRulesMd,
-    K.ClaudeHookFile,
-    K.AgentsSkillMd,
-    K.ClaudeSkillMd,
-    K.CodexSkillMd,
-  ],
-  [SourcePresetId.Cursor]: [
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.CursorLegacyRules,
-    K.CursorRulesMdc,
-    K.CursorMcpJson,
-    K.AgentsSkillMd,
-    K.CursorSkillMd,
-    K.ClaudeSkillMd,
-    K.CodexSkillMd,
-  ],
-  [SourcePresetId.Antigravity]: [
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.GeminiMd,
-    K.AgentsSkillMd,
-    K.GeminiAntigravitySkillMd,
-  ],
-  [SourcePresetId.Codex]: [
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.CodexConfigToml,
-    K.CodexAgentsOverrideMd,
-    K.CodexRulesFile,
-    K.CodexSkillMd,
-  ],
-};
+const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly SourceKind[]>> =
+  Object.fromEntries(SOURCE_PRESET_DEFINITIONS.map((p) => [p.id, p.kinds])) as Readonly<
+    Record<SourcePresetId, readonly SourceKind[]>
+  >;
+
+export { SOURCE_KINDS_BY_PRESET };
 
 export function isSourcePresetId(value: string): value is SourcePresetId {
   return (ALL_SOURCE_PRESET_IDS as readonly string[]).includes(value);

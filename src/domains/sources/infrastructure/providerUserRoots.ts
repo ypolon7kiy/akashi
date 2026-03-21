@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import type { ToolUserRoots } from '../domain/toolUserRoots';
 import {
   readClaudeConfigDirSettingPath,
   readCodexHomeSettingPath,
@@ -6,12 +7,7 @@ import {
   readGeminiConfigDirSettingPath,
 } from './vscodeSourcesDirSettings';
 
-export interface ToolUserRoots {
-  readonly claudeUserRoot: string;
-  readonly cursorUserRoot: string;
-  readonly geminiUserRoot: string;
-  readonly codexUserRoot: string;
-}
+export type { ToolUserRoots } from '../domain/toolUserRoots';
 
 /**
  * Effective user-scope config directories for tools that support non-default locations

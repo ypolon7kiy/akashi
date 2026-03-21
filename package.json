@@ -50,9 +50,19 @@
           "order": 10,
           "items": {
             "type": "string",
-            "enum": ["claude", "cursor", "antigravity", "codex"]
+            "enum": [
+              "claude",
+              "cursor",
+              "antigravity",
+              "codex"
+            ]
           },
-          "default": ["claude", "cursor", "antigravity", "codex"],
+          "default": [
+            "claude",
+            "cursor",
+            "antigravity",
+            "codex"
+          ],
           "uniqueItems": true,
           "description": "Which tool families appear in the Source Index."
         },
@@ -97,7 +107,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.mjs\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"*.mjs\"",
     "fix": "npm run lint:fix && npm run format",
-    "test": "echo \"No tests configured yet\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "package": "vsce package"
   },
   "dependencies": {
@@ -118,6 +129,7 @@
     "prettier": "^3.4.2",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.15.0",
+    "vitest": "^3.0.5",
     "vsce": "^2.15.0"
   }
 }

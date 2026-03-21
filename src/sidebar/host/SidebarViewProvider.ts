@@ -1,29 +1,16 @@
 import * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { ExamplePanel } from '../../domains/example/ui/webview/ExamplePanel';
-import type { IndexedSourceEntry, SourceIndexSnapshot } from '../../domains/sources/domain/model';
-import {
-  presetsContainingKind,
-  type ActiveSourcePresetsGetter,
-} from '../../domains/sources/domain/sourcePresets';
+import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
+import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
 import { appendLine } from '../../log';
-import type {
-  SourceDescriptor,
-  SourcesSnapshotPayload,
-  WorkspaceFolderInfo,
-} from '../bridge/sourceDescriptor';
+import type { WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
 import {
   SidebarMessageType,
   type SidebarRequestMessage,
   type SourcesResponseMessage,
 } from '../bridge/messages';
-import { filterRecordsByPresets } from './sourcesPresetFilter';
-
-function readIncludeHomeConfig(): boolean {
-  return (
-    vscode.workspace.getConfiguration('akashi.sources').get<boolean>('includeHomeConfig') ?? true
-  );
-}
+import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
 
 function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist');
@@ -278,34 +265,4 @@ function logInboundSidebarMessage(message: unknown): void {
     return;
   }
   appendLine(`[Akashi] Sidebar: received message type=${type}`);
-}
-
-function buildSourcesSnapshotPayload(
-  snapshot: SourceIndexSnapshot | null,
-  workspaceFolders: WorkspaceFolderInfo[],
-  getActiveSourcePresets: ActiveSourcePresetsGetter
-): SourcesSnapshotPayload | null {
-  if (!snapshot) {
-    return null;
-  }
-  const active = getActiveSourcePresets();
-  const filtered = filterRecordsByPresets(snapshot.records, active);
-  return {
-    generatedAt: snapshot.generatedAt,
-    sourceCount: filtered.length,
-    records: filtered.map(toSourceDescriptor),
-    workspaceFolders,
-  };
-}
-
-function toSourceDescriptor(record: IndexedSourceEntry): SourceDescriptor {
-  return {
-    id: record.id,
-    path: record.path,
-    kind: record.kind,
-    presets: presetsContainingKind(record.kind),
-    scope: record.scope,
-    origin: record.origin,
-    metadata: record.metadata,
-  };
 }

@@ -35,7 +35,7 @@ flowchart LR
 
 ## Preset matrix
 
-Each cell is **included** when that preset is enabled in settings. Settings key: `akashi.sources.presets` (array of `claude`, `cursor`, `antigravity`, `codex`). The table matches [`SOURCE_KINDS_BY_PRESET`](../src/domains/sources/domain/sourcePresets.ts); if code and this doc diverge, **trust the code**.
+Each cell is **included** when that preset is enabled in settings. Settings key: `akashi.sources.presets` (array of `claude`, `cursor`, `antigravity`, `codex`). The table matches [`SOURCE_KINDS_BY_PRESET`](../src/domains/sources/domain/sourcePresets.ts) (derived from [`SOURCE_PRESET_DEFINITIONS`](../src/domains/sources/registerSourcePresets.ts)); if code and this doc diverge, **trust the code**.
 
 | `SourceKind` | Typical role | claude | cursor | antigravity | codex |
 |--------------|--------------|:------:|:------:|:-----------:|:-----:|
@@ -69,7 +69,16 @@ Each cell is **included** when that preset is enabled in settings. Settings key:
 
 ### Single source of truth for preset membership
 
-[`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts) owns **which kinds belong to which preset** (`SOURCE_KINDS_BY_PRESET`). The bridge adds **per-file `presets`** on each [`SourceDescriptor`](../src/sidebar/bridge/sourceDescriptor.ts) via [`presetsContainingKind`](../src/domains/sources/domain/sourcePresets.ts) for **labels and tooltips** in the tree, not as a second definition of membership.
+Each built-in tool preset is defined under [`src/domains/sources/presets/`](../src/domains/sources/presets/) (kinds, workspace globs, user-home path tasks, and path classification). [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts) lists [`SOURCE_PRESET_DEFINITIONS`](../src/domains/sources/registerSourcePresets.ts) and merges workspace globs plus the flattened user-home task list (executed in parallel when collecting user-home paths). [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts) exposes **`SOURCE_KINDS_BY_PRESET`** and helpers derived from that registry. The bridge adds **per-file `presets`** on each [`SourceDescriptor`](../src/sidebar/bridge/sourceDescriptor.ts) via [`presetsContainingKind`](../src/domains/sources/domain/sourcePresets.ts) for **labels and tooltips** in the tree, not as a second definition of membership.
+
+### Adding a new preset
+
+1. Add **`src/domains/sources/presets/<id>/`** implementing a [`SourcePresetDefinition`](../src/domains/sources/domain/sourcePresetDefinition.ts) (`preset.ts`, `homePathTasks.ts`, and shared pieces under `_shared/` when appropriate).
+2. Import the definition into [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts) and append it to **`SOURCE_PRESET_DEFINITIONS`** (order matters for classifier fall-through). Its **`homePathTasks`** are picked up automatically into **`HOME_PATH_TASKS`**; only **shared** user-home work (e.g. Copilot, home `AGENTS.md`) is still listed explicitly next to `HOME_PATH_TASKS`.
+3. Extend **`SourcePresetId`** and the **`SourcePresetId`** const object in [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts) if you introduce a new id string.
+4. Add the same id to the **`akashi.sources.presets`** `enum` in [`package.json`](../package.json) (VS Code contribution metadata cannot import TypeScript).
+5. If the tool uses a custom user config directory, extend [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts), and `package.json` properties as needed.
+6. Add new **`SourceKind`** values in [`model.ts`](../src/domains/sources/domain/model.ts) only when the artifact type is new; extend [`classifyPaths.test.ts`](../src/domains/sources/classifyPaths.test.ts) for classification order (especially `SKILL.md`).
 
 ### Catalog index (no file body in the snapshot)
 
@@ -90,10 +99,11 @@ When **Sources: Include Home Config** is on, the scanner resolves **user-scope**
 
 **Claude**, **Gemini**, **Cursor**, and **Codex** each use **one effective root** (setting → env where applicable → default under OS user home).
 
-Implementation: [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`collectHomeSourcePaths`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts), and user-scope kind detection in [`VscodeWorkspaceSourceScanner.ts`](../src/domains/sources/infrastructure/VscodeWorkspaceSourceScanner.ts).
+Implementation: [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`collectHomeSourcePaths`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts) (runs [`HOME_PATH_TASKS`](../src/domains/sources/registerSourcePresets.ts) in parallel via `Promise.all`), and user/workspace path classification in [`classifySourcePath.ts`](../src/domains/sources/infrastructure/classifySourcePath.ts) (used by [`VscodeWorkspaceSourceScanner.ts`](../src/domains/sources/infrastructure/VscodeWorkspaceSourceScanner.ts)).
 
 ## Related code paths
 
-- Presets from VS Code: [`vscodeSourcePresetConfig.ts`](../src/domains/sources/infrastructure/vscodeSourcePresetConfig.ts)
+- Preset registry: [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts), per-preset folders under [`presets/`](../src/domains/sources/presets/)
+- Presets from VS Code: [`vscodeSourcePresetConfig.ts`](../src/domains/sources/infrastructure/vscodeSourcePresetConfig.ts) (`ALL_SOURCE_PRESET_IDS` / `isSourcePresetId` follow the registry via [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts))
 - Globs and home paths: [`sourceDiscoveryPlan.ts`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts); optional `akashi.sources.*` directory strings: [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts) + [`userConfigDirPath.ts`](../src/domains/sources/infrastructure/userConfigDirPath.ts).
 - Service wiring: [`createSourcesService.ts`](../src/domains/sources/infrastructure/createSourcesService.ts)

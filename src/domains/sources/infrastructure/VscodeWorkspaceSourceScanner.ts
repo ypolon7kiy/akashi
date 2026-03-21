@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
-import * as path from 'node:path';
 import { appendLine } from '../../../log';
 import type {
   DiscoveredSource,
@@ -8,8 +7,10 @@ import type {
   WorkspaceSourceScannerPort,
 } from '../application/ports';
 import { SourceKind, SourceScope } from '../domain/model';
+import type { ToolUserRoots } from '../domain/toolUserRoots';
+import { inferUserSourceKind, inferWorkspaceSourceKind } from './classifySourcePath';
 import { collectHomeSourcePaths, selectWorkspaceGlobs } from './sourceDiscoveryPlan';
-import { readToolUserRoots, type ToolUserRoots } from './providerUserRoots';
+import { readToolUserRoots } from './providerUserRoots';
 
 export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort {
   public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
@@ -68,7 +69,7 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
     const kind =
       origin === 'user' && userRoots
         ? inferUserSourceKind(filePath, userRoots)
-        : inferSourceKind(filePath);
+        : inferWorkspaceSourceKind(filePath);
     return {
       id: filePath,
       path: filePath,
@@ -84,179 +85,6 @@ function isAllowedDiscovered(
   allowedKinds: ReadonlySet<SourceKind>
 ): boolean {
   return source.kind !== SourceKind.Unknown && allowedKinds.has(source.kind);
-}
-
-function isUnderRoot(filePath: string, rootDir: string): boolean {
-  const rel = path.relative(path.normalize(rootDir), path.normalize(filePath));
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-}
-
-/** Classify user-scope paths when tool roots may differ from default `~/.tool` layouts. */
-function inferUserSourceKind(filePath: string, roots: ToolUserRoots): SourceKind {
-  const basename = path.basename(filePath);
-  const normalized = filePath.replace(/\\/g, '/');
-  const { claudeUserRoot, cursorUserRoot, geminiUserRoot, codexUserRoot } = roots;
-
-  if (basename === 'AGENTS.md' || basename === 'agents.md') {
-    return SourceKind.AgentsMd;
-  }
-  if (basename === '.agents.md') {
-    return SourceKind.DotAgentsMd;
-  }
-  if (basename === 'TEAM_GUIDE.md' || basename === 'team_guide.md') {
-    return SourceKind.TeamGuideMd;
-  }
-  if (basename === 'AGENTS.override.md') {
-    return SourceKind.CodexAgentsOverrideMd;
-  }
-  if (basename.toLowerCase() === 'skill.md') {
-    const geminiSkills = path.join(geminiUserRoot, 'antigravity', 'skills');
-    if (isUnderRoot(filePath, geminiSkills)) {
-      return SourceKind.GeminiAntigravitySkillMd;
-    }
-    if (normalized.includes('/.agent/skills/')) {
-      return SourceKind.GeminiAntigravitySkillMd;
-    }
-    if (normalized.includes('/.agents/skills/')) {
-      return SourceKind.AgentsSkillMd;
-    }
-    const cursorSkills = path.join(cursorUserRoot, 'skills');
-    if (isUnderRoot(filePath, cursorSkills)) {
-      return SourceKind.CursorSkillMd;
-    }
-    const claudeSkills = path.join(claudeUserRoot, 'skills');
-    if (isUnderRoot(filePath, claudeSkills)) {
-      return SourceKind.ClaudeSkillMd;
-    }
-    const codexSkills = path.join(codexUserRoot, 'skills');
-    if (isUnderRoot(filePath, codexSkills)) {
-      return SourceKind.CodexSkillMd;
-    }
-    return SourceKind.Unknown;
-  }
-  if (
-    (basename === 'CLAUDE.md' || basename === 'claude.md') &&
-    isUnderRoot(filePath, claudeUserRoot)
-  ) {
-    return SourceKind.ClaudeMd;
-  }
-  const claudeHooks = path.join(claudeUserRoot, 'hooks');
-  if (isUnderRoot(filePath, claudeHooks)) {
-    return SourceKind.ClaudeHookFile;
-  }
-  const claudeRules = path.join(claudeUserRoot, 'rules');
-  if (isUnderRoot(filePath, claudeRules) && basename.endsWith('.md')) {
-    return SourceKind.ClaudeRulesMd;
-  }
-  if (
-    (basename === 'settings.json' || basename === 'settings.local.json') &&
-    isUnderRoot(filePath, claudeUserRoot)
-  ) {
-    return SourceKind.ClaudeSettingsJson;
-  }
-  if (
-    (basename === 'GEMINI.md' || basename === 'gemini.md') &&
-    isUnderRoot(filePath, geminiUserRoot)
-  ) {
-    return SourceKind.GeminiMd;
-  }
-  if (basename === '.cursorrules') {
-    return SourceKind.CursorLegacyRules;
-  }
-  const cursorRules = path.join(cursorUserRoot, 'rules');
-  if (basename.endsWith('.mdc') && isUnderRoot(filePath, cursorRules)) {
-    return SourceKind.CursorRulesMdc;
-  }
-  if (basename === 'mcp.json' && isUnderRoot(filePath, cursorUserRoot)) {
-    return SourceKind.CursorMcpJson;
-  }
-  if (basename === 'config.toml' && isUnderRoot(filePath, codexUserRoot)) {
-    return SourceKind.CodexConfigToml;
-  }
-  const codexRules = path.join(codexUserRoot, 'rules');
-  if (basename.endsWith('.rules') && isUnderRoot(filePath, codexRules)) {
-    return SourceKind.CodexRulesFile;
-  }
-  if (basename === 'copilot-instructions.md' && normalized.includes('/.github/')) {
-    return SourceKind.GithubCopilotInstructionsMd;
-  }
-  return SourceKind.Unknown;
-}
-
-function inferSourceKind(filePath: string): SourceKind {
-  const basename = path.basename(filePath);
-  const normalized = filePath.replace(/\\/g, '/');
-
-  if (basename === 'AGENTS.md' || basename === 'agents.md') {
-    return SourceKind.AgentsMd;
-  }
-  if (basename === '.agents.md') {
-    return SourceKind.DotAgentsMd;
-  }
-  if (basename === 'TEAM_GUIDE.md' || basename === 'team_guide.md') {
-    return SourceKind.TeamGuideMd;
-  }
-  if (basename === 'AGENTS.override.md') {
-    return SourceKind.CodexAgentsOverrideMd;
-  }
-  if (basename.toLowerCase() === 'skill.md') {
-    if (normalized.includes('/.gemini/antigravity/skills/')) {
-      return SourceKind.GeminiAntigravitySkillMd;
-    }
-    if (normalized.includes('/.agent/skills/')) {
-      return SourceKind.GeminiAntigravitySkillMd;
-    }
-    if (normalized.includes('/.agents/skills/')) {
-      return SourceKind.AgentsSkillMd;
-    }
-    if (normalized.includes('/.cursor/skills/')) {
-      return SourceKind.CursorSkillMd;
-    }
-    if (normalized.includes('/.claude/skills/')) {
-      return SourceKind.ClaudeSkillMd;
-    }
-    if (normalized.includes('/.codex/skills/')) {
-      return SourceKind.CodexSkillMd;
-    }
-    return SourceKind.Unknown;
-  }
-  if (basename === 'CLAUDE.md' || basename === 'claude.md') {
-    return SourceKind.ClaudeMd;
-  }
-  if (normalized.includes('/.claude/hooks/')) {
-    return SourceKind.ClaudeHookFile;
-  }
-  if (normalized.includes('/.claude/rules/') && basename.endsWith('.md')) {
-    return SourceKind.ClaudeRulesMd;
-  }
-  if (
-    (basename === 'settings.json' || basename === 'settings.local.json') &&
-    normalized.includes('/.claude/')
-  ) {
-    return SourceKind.ClaudeSettingsJson;
-  }
-  if (basename === 'GEMINI.md' || basename === 'gemini.md') {
-    return SourceKind.GeminiMd;
-  }
-  if (basename === '.cursorrules') {
-    return SourceKind.CursorLegacyRules;
-  }
-  if (basename.endsWith('.mdc') && normalized.includes('/.cursor/rules/')) {
-    return SourceKind.CursorRulesMdc;
-  }
-  if (basename === 'mcp.json' && normalized.includes('/.cursor/')) {
-    return SourceKind.CursorMcpJson;
-  }
-  if (basename === 'config.toml' && normalized.includes('/.codex/')) {
-    return SourceKind.CodexConfigToml;
-  }
-  if (basename.endsWith('.rules') && normalized.includes('/.codex/rules/')) {
-    return SourceKind.CodexRulesFile;
-  }
-  if (basename === 'copilot-instructions.md' && normalized.includes('/.github/')) {
-    return SourceKind.GithubCopilotInstructionsMd;
-  }
-  return SourceKind.Unknown;
 }
 
 function dedupeByPath(sources: DiscoveredSource[]): DiscoveredSource[] {
