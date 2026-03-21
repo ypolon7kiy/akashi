@@ -315,41 +315,6 @@ body {
   position: relative;
 }
 
-/* DOM labels from @react-three/drei Html (theme-aligned; pointer-events none on inner). */
-.akashi-graph-node-label-html-root {
-  pointer-events: none;
-}
-
-.akashi-graph-node-label {
-  pointer-events: none;
-  text-align: center;
-  max-width: min(280px, 42vw);
-}
-
-.akashi-graph-node-label__primary {
-  font-family: var(--vscode-font-family);
-  font-size: calc(var(--vscode-font-size) * 0.92);
-  font-weight: 500;
-  color: var(--vscode-editor-foreground, var(--vscode-foreground));
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-shadow: 0 0 6px var(--vscode-editor-background, var(--vscode-sideBar-background));
-}
-
-.akashi-graph-node-label__secondary {
-  font-family: var(--vscode-font-family);
-  font-size: calc(var(--vscode-font-size) * 0.82);
-  color: var(--vscode-descriptionForeground);
-  line-height: 1.2;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-shadow: 0 0 6px var(--vscode-editor-background, var(--vscode-sideBar-background));
-}
-
 .akashi-graph-empty-overlay {
   position: absolute;
   inset: 0;

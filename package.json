@@ -12,6 +12,7 @@
   ],
   "activationEvents": [
     "onCommand:akashi.graph.showPanel",
+    "onCommand:akashi.graph2d.showPanel",
     "onCommand:akashi.sources.refresh",
     "onView:akashi.sidebar",
     "onStartupFinished"
@@ -48,6 +49,12 @@
         "title": "Show 3D graph",
         "category": "Akashi",
         "icon": "$(graph-line)"
+      },
+      {
+        "command": "akashi.graph2d.showPanel",
+        "title": "Show 2D graph",
+        "category": "Akashi",
+        "icon": "$(graph-scatter)"
       }
     ],
     "menus": {
@@ -61,6 +68,11 @@
           "command": "akashi.graph.showPanel",
           "when": "view == akashi.sidebar",
           "group": "navigation@1"
+        },
+        {
+          "command": "akashi.graph2d.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@2"
         }
       ]
     },
@@ -195,14 +207,23 @@
     "package": "vsce package"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@vscode/codicons": "^0.0.45",
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.158.0"
   },
   "devDependencies": {
+    "@types/d3-drag": "^3.0.7",
+    "@types/d3-force": "^3.0.10",
+    "@types/d3-selection": "^3.0.11",
+    "@types/d3-zoom": "^3.0.8",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",

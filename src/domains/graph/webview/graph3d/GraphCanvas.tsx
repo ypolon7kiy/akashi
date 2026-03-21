@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { Camera3DConfig, GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { applyPointedFocusVisibility } from '../../application/applyPointedFocusVisibility';
@@ -12,6 +12,7 @@ import { CAMERA_CONSTANTS } from './Constants';
 import { GraphMessageType } from '../messages';
 import { getVscodeApi } from '../../../../webview-shared/api';
 import { WebGLResizeSync } from './WebGLResizeSync';
+import { readGraphLabelColors, type GraphLabelColors } from './readGraphLabelColors';
 
 interface GraphCanvasProps {
   nodes: GraphNode3D[];
@@ -64,6 +65,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     y: number;
     node: GraphNode3D;
   } | null>(null);
+  const [labelColors, setLabelColors] = useState<GraphLabelColors>(() => readGraphLabelColors());
 
   const autoRotateRef = useRef(autoRotate);
   const autoRotateSpeedRef = useRef(autoRotateSpeed);
@@ -96,6 +98,17 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     const close = (): void => setContextMenu(null);
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
+  }, []);
+
+  useLayoutEffect(() => {
+    const refresh = (): void => {
+      setLabelColors(readGraphLabelColors());
+    };
+    refresh();
+    const observer = new MutationObserver(refresh);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
   }, []);
 
   /**
@@ -283,6 +296,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
             onContextMenu={handleNodeContextMenu}
             showLabels={showLabels}
             isRotating={isRotating}
+            labelPrimaryColor={labelColors.primary}
+            labelSecondaryColor={labelColors.secondary}
+            labelOutlineColor={labelColors.outline}
           />
         ))}
       </Canvas>

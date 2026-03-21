@@ -7,6 +7,10 @@ export const GEOMETRY_CONSTANTS = {
   EDGE_THICKNESS_HOVER: 0.08,
   EDGE_THICKNESS_MULTIPLIER: 0.15,
   LABEL_OFFSET_Y: 0.5,
+  /** World-space drei Text (ioodine-style). */
+  LABEL_FONT_SIZE: 0.28,
+  LABEL_SECONDARY_FONT_SCALE: 0.82,
+  LABEL_MAX_WIDTH: 2.4,
 } as const;
 
 export const VISUAL_CONSTANTS = {

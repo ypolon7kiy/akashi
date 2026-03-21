@@ -1,9 +1,11 @@
-import { Html } from '@react-three/drei';
-import { type ThreeEvent } from '@react-three/fiber';
-import React, { memo, useCallback, useEffect, useRef } from 'react';
+import { Text } from '@react-three/drei';
+import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
+import React, { memo, Suspense, useCallback, useEffect, useRef } from 'react';
+import * as THREE from 'three';
 import type { GraphNode3D } from '../../../domain/graphTypes';
 import { getHoverColor, getNodeColor, UI_COLORS } from '../colors';
 import { GEOMETRY_CONSTANTS } from '../Constants';
+import { GRAPH_LABEL_FONT_URL } from '../graphLabelFont';
 
 function labelLinesForNode(node: GraphNode3D): string[] {
   const raw =
@@ -11,39 +13,76 @@ function labelLinesForNode(node: GraphNode3D): string[] {
   return raw.map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
-/** DOM labels use VS Code theme CSS; avoids Troika/font CDN under strict webview CSP. */
-const NodeLabelHtml: React.FC<{
+const BillboardLabelText: React.FC<{
   textLines: string[];
   position: [number, number, number];
-  /** Remount Html when world layout changes so drei screen projection re-syncs. */
-  layoutSyncKey: string;
-}> = ({ textLines, position, layoutSyncKey }) => {
-  if (textLines.length === 0) {
-    return null;
-  }
+  primaryColor: string;
+  secondaryColor: string;
+  outlineColor: string;
+}> = ({ textLines, position, primaryColor, secondaryColor, outlineColor }) => {
+  const textRef = useRef<THREE.Group>(null);
+  const textPosition = useRef(new THREE.Vector3());
+  const textToCamera = useRef(new THREE.Vector3());
+  const cameraDirection = useRef(new THREE.Vector3());
+  const { camera } = useThree();
+  const fontSize = GEOMETRY_CONSTANTS.LABEL_FONT_SIZE;
+  const secondarySize = fontSize * GEOMETRY_CONSTANTS.LABEL_SECONDARY_FONT_SCALE;
+  const lineSpacing = fontSize * 1.2;
+  const maxWidth = GEOMETRY_CONSTANTS.LABEL_MAX_WIDTH;
+
+  useFrame(() => {
+    const g = textRef.current;
+    if (!g) {
+      return;
+    }
+    g.getWorldPosition(textPosition.current);
+    textToCamera.current.subVectors(camera.position, textPosition.current).normalize();
+    camera.getWorldDirection(cameraDirection.current);
+    const angle = cameraDirection.current.dot(textToCamera.current);
+    const tcx = textToCamera.current.x;
+    const tcz = textToCamera.current.z;
+    if (angle < 0) {
+      g.rotation.y = Math.atan2(-tcx, -tcz) + Math.PI;
+    } else {
+      g.rotation.y = Math.atan2(-tcx, -tcz);
+    }
+    g.rotation.z = 0;
+    g.rotation.x = 0;
+  });
+
+  const totalTextHeight =
+    textLines.length > 0 ? (textLines.length - 1) * lineSpacing + fontSize : 0;
+  const adjustedPosition: [number, number, number] = [
+    position[0],
+    position[1] + totalTextHeight,
+    position[2],
+  ];
+
   return (
-    <Html
-      key={layoutSyncKey}
-      position={position}
-      center
-      pointerEvents="none"
-      wrapperClass="akashi-graph-node-label-html-root"
-    >
-      <div className="akashi-graph-node-label">
-        {textLines.map((line, index) => (
-          <div
+    <group ref={textRef} position={adjustedPosition}>
+      {textLines.map((line, index) => {
+        const yPosition = -index * lineSpacing;
+        const isPrimary = index === 0;
+        return (
+          <Text
             key={`${index}:${line}`}
-            className={
-              index === 0
-                ? 'akashi-graph-node-label__primary'
-                : 'akashi-graph-node-label__secondary'
-            }
+            position={[0, yPosition, 0]}
+            font={GRAPH_LABEL_FONT_URL}
+            fontSize={isPrimary ? fontSize : secondarySize}
+            fontWeight={isPrimary ? 500 : 400}
+            color={isPrimary ? primaryColor : secondaryColor}
+            anchorX="center"
+            anchorY="top"
+            maxWidth={maxWidth}
+            outlineWidth={0.025}
+            outlineColor={outlineColor}
+            outlineOpacity={1}
           >
             {line}
-          </div>
-        ))}
-      </div>
-    </Html>
+          </Text>
+        );
+      })}
+    </group>
   );
 };
 
@@ -55,6 +94,9 @@ interface NodeRendererProps {
   onContextMenu?: (node: GraphNode3D, clientX: number, clientY: number) => void;
   showLabels: boolean;
   isRotating: boolean;
+  labelPrimaryColor: string;
+  labelSecondaryColor: string;
+  labelOutlineColor: string;
 }
 
 const NodeRendererComponent: React.FC<NodeRendererProps> = ({
@@ -65,6 +107,9 @@ const NodeRendererComponent: React.FC<NodeRendererProps> = ({
   onContextMenu,
   showLabels,
   isRotating,
+  labelPrimaryColor,
+  labelSecondaryColor,
+  labelOutlineColor,
 }) => {
   const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const doubleClickPendingRef = useRef(false);
@@ -146,6 +191,7 @@ const NodeRendererComponent: React.FC<NodeRendererProps> = ({
   }
 
   const nodeColor = node.isPointed ? getHoverColor(node.type) : getNodeColor(node.type);
+  const lines = labelLinesForNode(node);
 
   return (
     <group position={node.position}>
@@ -167,12 +213,16 @@ const NodeRendererComponent: React.FC<NodeRendererProps> = ({
           metalness={0.1}
         />
       </mesh>
-      {showLabels ? (
-        <NodeLabelHtml
-          layoutSyncKey={`${node.id}:${node.position[0]},${node.position[1]},${node.position[2]}`}
-          textLines={labelLinesForNode(node)}
-          position={[0, node.size + GEOMETRY_CONSTANTS.LABEL_OFFSET_Y, 0]}
-        />
+      {showLabels && lines.length > 0 ? (
+        <Suspense fallback={null}>
+          <BillboardLabelText
+            textLines={lines}
+            position={[0, node.size + GEOMETRY_CONSTANTS.LABEL_OFFSET_Y, 0]}
+            primaryColor={labelPrimaryColor}
+            secondaryColor={labelSecondaryColor}
+            outlineColor={labelOutlineColor}
+          />
+        </Suspense>
       ) : null}
     </group>
   );
@@ -198,6 +248,9 @@ export const NodeRenderer = memo(NodeRendererComponent, (prev, next) => {
     prev.node.isSelected === next.node.isSelected &&
     prev.node.label === next.node.label &&
     sameStringArray(prev.node.formattedTextLines, next.node.formattedTextLines) &&
-    prev.onContextMenu === next.onContextMenu
+    prev.onContextMenu === next.onContextMenu &&
+    prev.labelPrimaryColor === next.labelPrimaryColor &&
+    prev.labelSecondaryColor === next.labelSecondaryColor &&
+    prev.labelOutlineColor === next.labelOutlineColor
   );
 });

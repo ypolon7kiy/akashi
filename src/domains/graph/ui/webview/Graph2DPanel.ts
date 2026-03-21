@@ -1,19 +1,17 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { appendLine } from '../../../../log';
 import {
-  GRAPH_VIEW_SETTINGS_GLOBAL_STATE_KEY,
-  defaultGraphWebviewPersistedState,
-  parseGraphWebviewPersistedState,
-} from '../../webview/graphViewSettings';
-import { GraphMessageType } from '../../webview/messages';
+  GRAPH2D_VIEW_SETTINGS_GLOBAL_STATE_KEY,
+  defaultGraph2DWebviewPersistedState,
+  parseGraph2DWebviewPersistedState,
+} from '../../webview/graph2d/graph2dViewSettings';
+import { Graph2DMessageType } from '../../webview/graph2d/messages';
 import type { GraphPanelEnvironment } from '../graphPanelEnvironment';
 
-const viewType = 'akashi.graphPanel';
+const viewType = 'akashi.graph2DPanel';
 
-export class GraphPanel {
-  public static currentPanel: GraphPanel | undefined;
+export class Graph2DPanel {
+  public static currentPanel: Graph2DPanel | undefined;
 
   private snapshotEnv: GraphPanelEnvironment | null = null;
 
@@ -21,24 +19,24 @@ export class GraphPanel {
     const extensionUri = context.extensionUri;
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
-    if (GraphPanel.currentPanel) {
-      void GraphPanel.currentPanel.pushSnapshot(env);
-      GraphPanel.currentPanel.panel.reveal(column);
+    if (Graph2DPanel.currentPanel) {
+      void Graph2DPanel.currentPanel.pushSnapshot(env);
+      Graph2DPanel.currentPanel.panel.reveal(column);
       return;
     }
 
-    const panel = vscode.window.createWebviewPanel(viewType, 'Akashi 3D graph', column, {
+    const panel = vscode.window.createWebviewPanel(viewType, 'Akashi 2D graph', column, {
       enableScripts: true,
       retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'graph')],
+      localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'graph2d')],
     });
 
-    GraphPanel.currentPanel = new GraphPanel(panel, extensionUri, env, context);
+    Graph2DPanel.currentPanel = new Graph2DPanel(panel, extensionUri, env, context);
     context.subscriptions.push(panel);
   }
 
   public static async refreshIfOpen(env: GraphPanelEnvironment): Promise<void> {
-    const p = GraphPanel.currentPanel;
+    const p = Graph2DPanel.currentPanel;
     if (p) {
       await p.pushSnapshot(env);
     }
@@ -54,30 +52,30 @@ export class GraphPanel {
     this.panel.onDidDispose(() => this.onDispose());
     this.panel.webview.onDidReceiveMessage(
       async (message: { type?: string; payload?: unknown }) => {
-        if (message?.type === GraphMessageType.WebviewReady) {
-          appendLine('[Akashi][Graph] Webview ready — re-sending snapshot.');
+        if (message?.type === Graph2DMessageType.WebviewReady) {
+          appendLine('[Akashi][Graph2D] Webview ready — re-sending snapshot.');
           if (this.snapshotEnv) {
             await this.pushSnapshot(this.snapshotEnv);
           }
           this.postViewSettings();
           return;
         }
-        if (message?.type === GraphMessageType.SaveViewSettings) {
-          const parsed = parseGraphWebviewPersistedState(message.payload);
+        if (message?.type === Graph2DMessageType.SaveViewSettings) {
+          const parsed = parseGraph2DWebviewPersistedState(message.payload);
           await this.extensionContext.globalState.update(
-            GRAPH_VIEW_SETTINGS_GLOBAL_STATE_KEY,
+            GRAPH2D_VIEW_SETTINGS_GLOBAL_STATE_KEY,
             parsed
           );
           return;
         }
-        if (message?.type === GraphMessageType.OpenPath) {
+        if (message?.type === Graph2DMessageType.OpenPath) {
           const path = (message.payload as { path?: string } | undefined)?.path;
           if (typeof path === 'string' && path.length > 0) {
-            await GraphPanel.openPath(path);
+            await Graph2DPanel.openPath(path);
           }
           return;
         }
-        if (message?.type === GraphMessageType.CopyPath) {
+        if (message?.type === Graph2DMessageType.CopyPath) {
           const path = (message.payload as { path?: string } | undefined)?.path;
           if (typeof path === 'string') {
             await vscode.env.clipboard.writeText(path);
@@ -116,77 +114,51 @@ export class GraphPanel {
     const payload = await env.getGraphPayload();
     const rec = payload?.records?.length ?? 0;
     appendLine(
-      `[Akashi][Graph] postMessage snapshot payload=${payload ? 'object' : 'null'} recordCount=${rec} sourceCount=${payload?.sourceCount ?? 'n/a'}`
+      `[Akashi][Graph2D] postMessage snapshot payload=${payload ? 'object' : 'null'} recordCount=${rec} sourceCount=${payload?.sourceCount ?? 'n/a'}`
     );
     await this.panel.webview.postMessage({
-      type: GraphMessageType.Snapshot,
+      type: Graph2DMessageType.Snapshot,
       payload,
     });
   }
 
-  /** Send persisted UI settings (defaults if unset). Call after webview is listening (e.g. WebviewReady). */
   private postViewSettings(): void {
-    const raw = this.extensionContext.globalState.get(GRAPH_VIEW_SETTINGS_GLOBAL_STATE_KEY);
+    const raw = this.extensionContext.globalState.get(GRAPH2D_VIEW_SETTINGS_GLOBAL_STATE_KEY);
     const payload =
       raw !== undefined && raw !== null
-        ? parseGraphWebviewPersistedState(raw)
-        : defaultGraphWebviewPersistedState();
+        ? parseGraph2DWebviewPersistedState(raw)
+        : defaultGraph2DWebviewPersistedState();
     void this.panel.webview.postMessage({
-      type: GraphMessageType.ViewSettings,
+      type: Graph2DMessageType.ViewSettings,
       payload,
     });
   }
 
   private onDispose(): void {
-    GraphPanel.currentPanel = undefined;
+    Graph2DPanel.currentPanel = undefined;
   }
 
   private getHtml(webview: vscode.Webview): string {
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'graph', 'graph-main.js')
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'graph2d', 'graph2d-main.js')
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'graph', 'graph-main.css')
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'graph2d', 'graph2d-main.css')
     );
-    const labelFontUrl = resolveBundledGraphLabelFontWebviewUrl(webview, this.extensionUri);
-    const labelFontBootstrap =
-      labelFontUrl !== null
-        ? `<script>window.__AKASHI_GRAPH_LABEL_FONT_URL__=${JSON.stringify(labelFontUrl)};</script>\n  `
-        : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource} blob: data:; img-src ${webview.cspSource} blob: data:; connect-src ${webview.cspSource}; worker-src ${webview.cspSource} blob:;">
-  <title>Akashi Graph</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} blob: data:; connect-src ${webview.cspSource}; worker-src ${webview.cspSource} blob:;">
+  <title>Akashi 2D graph</title>
   <link rel="stylesheet" href="${styleUri.toString()}">
 </head>
 <body>
   <div id="root"></div>
-  ${labelFontBootstrap}<script src="${scriptUri.toString()}"></script>
+  <script src="${scriptUri.toString()}"></script>
 </body>
 </html>`;
   }
-}
-
-/** Troika must load a webview-absolute font URL; hashed bundle-relative paths often 404 here. */
-function resolveBundledGraphLabelFontWebviewUrl(
-  webview: vscode.Webview,
-  extensionUri: vscode.Uri
-): string | null {
-  const graphDir = path.join(extensionUri.fsPath, 'dist', 'webview', 'graph');
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(graphDir);
-  } catch {
-    return null;
-  }
-  const woff2 = entries.find((n) => n.endsWith('.woff2'));
-  if (woff2 === undefined) {
-    return null;
-  }
-  const fileUri = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'graph', woff2);
-  return webview.asWebviewUri(fileUri).toString();
 }

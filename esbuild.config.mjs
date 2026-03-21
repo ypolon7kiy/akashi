@@ -36,6 +36,8 @@ async function main() {
     loader: { '.tsx': 'tsx' },
   };
 
+  const fontLoader = { '.woff2': 'file', '.woff': 'file' };
+
   const graphWebviewOptions = {
     ...common,
     platform: 'browser',
@@ -45,20 +47,39 @@ async function main() {
     },
     outdir: join(__dirname, 'dist', 'webview', 'graph'),
     format: 'iife',
-    loader: { '.tsx': 'tsx' },
+    loader: { '.tsx': 'tsx', ...fontLoader },
+  };
+
+  const graph2dWebviewOptions = {
+    ...common,
+    platform: 'browser',
+    target: 'es2020',
+    entryPoints: {
+      'graph2d-main': join(__dirname, 'src', 'domains', 'graph', 'webview', 'graph2d', 'index.tsx'),
+    },
+    outdir: join(__dirname, 'dist', 'webview', 'graph2d'),
+    format: 'iife',
+    loader: { '.tsx': 'tsx', ...fontLoader },
   };
 
   if (isWatch) {
     const extCtx = await context(extensionOptions);
     const sidebarCtx = await context(sidebarWebviewOptions);
     const graphCtx = await context(graphWebviewOptions);
+    const graph2dCtx = await context(graph2dWebviewOptions);
 
     console.log('Watching for changes...');
-    await Promise.all([extCtx.watch(), sidebarCtx.watch(), graphCtx.watch()]);
+    await Promise.all([
+      extCtx.watch(),
+      sidebarCtx.watch(),
+      graphCtx.watch(),
+      graph2dCtx.watch(),
+    ]);
   } else {
     await build(extensionOptions);
     await build(sidebarWebviewOptions);
     await build(graphWebviewOptions);
+    await build(graph2dWebviewOptions);
   }
 }
 

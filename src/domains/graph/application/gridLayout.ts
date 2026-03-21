@@ -23,7 +23,8 @@ export function getYForDepth(depth: number, maxFolderDepth: number, layerSpacing
   return maxY - depth * spacing;
 }
 
-function inferLayoutDepth(node: GraphNode3D, all: GraphNode3D[]): number {
+/** Infer `layoutDepth` when the builder did not set it (matches 3D grid tiers). */
+export function inferLayoutDepth(node: GraphNode3D, all: readonly GraphNode3D[]): number {
   const folders = all.filter((x) => x.type === 'folder');
   let maxFolderDepth = 0;
   for (const f of folders) {

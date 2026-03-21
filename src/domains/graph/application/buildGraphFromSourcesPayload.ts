@@ -113,6 +113,11 @@ export interface BuildSourcesGraphOptions {
   gridCellSize?: number;
   /** Grid vertical spacing between depth layers (see {@link applyGridLayout} default 12). */
   gridLayerSpacing?: number;
+  /**
+   * When false, skip {@link applyGridLayout} so nodes keep placeholder positions (e.g. for 2D force layout).
+   * Default true.
+   */
+  applyGridLayout?: boolean;
 }
 
 export interface SourcesGraphModel {
@@ -331,6 +336,9 @@ export function buildGraphFromSourcesPayload(
     }
   }
 
+  if (options?.applyGridLayout === false) {
+    return { nodes, edges };
+  }
   const positioned = applyGridLayout(nodes, edges, {
     cellSize: options?.gridCellSize,
     layerSpacing: options?.gridLayerSpacing,

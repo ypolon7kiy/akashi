@@ -25,8 +25,6 @@ export const EDGE_COLORS = {
 } as const;
 
 export const UI_COLORS = {
-  TEXT_PRIMARY: '#ffffff',
-  TEXT_SECONDARY: '#6B7280',
   BACKGROUND_DARK: '#1a1a2e',
   EMISSIVE_DEFAULT: '#000000',
 } as const;
