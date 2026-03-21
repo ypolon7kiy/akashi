@@ -4,6 +4,7 @@
  *
  * Universal docs: AGENTS.md, .agents.md, TEAM_GUIDE.md
  * Tool instructions: CLAUDE.md, GEMINI.md
+ * Claude Code: .claude/settings.json, .claude/settings.local.json, .claude/rules/*.md, .claude/hooks/** (+ ~/.claude/settings.json); discovery lives in `VscodeWorkspaceSourceScanner`.
  * Cursor: .cursorrules, .cursor/rules/*.mdc, .cursor/mcp.json (+ ~/.cursor/mcp.json)
  * Copilot: .github/copilot-instructions.md
  * Codex: ~/.codex/config.toml
@@ -18,6 +19,12 @@ export const SourceKind = {
 
   /** `CLAUDE.md` — Claude Code (project or `~/.claude/CLAUDE.md`). */
   ClaudeMd: 'claude_md',
+  /** `.claude/settings.json` / `settings.local.json` (project or `~/.claude/settings.json`) — hooks and settings. */
+  ClaudeSettingsJson: 'claude_settings_json',
+  /** `.claude/rules/*.md` — project rules loaded with instructions. */
+  ClaudeRulesMd: 'claude_rules_md',
+  /** Files under `.claude/hooks/` — hook scripts referenced from settings. */
+  ClaudeHookFile: 'claude_hook_file',
   /** `GEMINI.md` — Gemini CLI (project or `~/.gemini/GEMINI.md`). */
   GeminiMd: 'gemini_md',
 
@@ -48,23 +55,13 @@ export const SourceScope = {
 
 export type SourceScope = (typeof SourceScope)[keyof typeof SourceScope];
 
-export interface SourceDocument {
+/** One indexed source path: catalog entry only (no file body read into the index). */
+export interface IndexedSourceEntry {
   id: string;
   path: string;
   kind: SourceKind;
   scope: SourceScope;
   origin: 'workspace' | 'user';
-  raw: string;
-}
-
-export interface NormalizedBlock {
-  id: string;
-  text: string;
-}
-
-export interface SourceRecord {
-  document: SourceDocument;
-  blocks: NormalizedBlock[];
   metadata: {
     byteLength: number;
     updatedAt: string;
@@ -74,5 +71,5 @@ export interface SourceRecord {
 export interface SourceIndexSnapshot {
   generatedAt: string;
   sourceCount: number;
-  records: SourceRecord[];
+  records: IndexedSourceEntry[];
 }

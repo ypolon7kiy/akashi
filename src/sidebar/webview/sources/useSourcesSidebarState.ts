@@ -5,7 +5,11 @@ import {
   type SourceDescriptor,
   type WorkspaceFolderInfo,
 } from '../../bridge/sourceDescriptor';
-import { SidebarMessageType, type SourcesResponseMessage } from '../../bridge/messages';
+import {
+  SidebarMessageType,
+  type SourcesResponseMessage,
+  type SourcesSnapshotPushMessage,
+} from '../../bridge/messages';
 import { readPersistedSourcesState, type SidebarPersistedState } from './persistedSourcesState';
 
 export interface SourcesSidebarState {
@@ -106,6 +110,20 @@ export function useSourcesSidebarState(): SourcesSidebarState {
       lastUpdated,
     } satisfies SidebarPersistedState);
   }, [includeHomeConfig, lastUpdated, sourceCount]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent): void => {
+      const data = event.data as SourcesSnapshotPushMessage | undefined;
+      if (data?.type !== SidebarMessageType.SourcesSnapshotPush) {
+        return;
+      }
+      applySnapshotPayload(data.payload, { touchLastUpdated: false });
+    };
+    window.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+    };
+  }, [applySnapshotPayload]);
 
   useEffect(() => {
     const hydrateAndRefresh = async (): Promise<void> => {

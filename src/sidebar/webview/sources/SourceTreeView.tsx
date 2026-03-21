@@ -26,7 +26,8 @@ function TreeRows(props: TreeRowProps): JSX.Element {
   const { node, depth, expandedIds, onToggle, selectedFileId, onSelectFile } = props;
 
   if (node.type === 'file') {
-    const title = `${node.path}\n${node.kind} · ${node.blockCount} block(s)`;
+    const presetLine = node.presets.length > 0 ? `\nPresets: ${node.presets.join(', ')}` : '';
+    const title = `${node.path}\n${node.kind}${presetLine}`;
     const pad = `calc(var(--akashi-tree-indent-base) + ${depth} * var(--akashi-tree-indent-step))`;
     const isSelected = selectedFileId === node.id;
     return (

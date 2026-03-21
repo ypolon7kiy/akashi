@@ -5,5 +5,5 @@ This folder contains the **extension host source code** for the Akashi VS Code e
 - Browser-side webview UI for a domain lives in that domain’s `webview/` folder (e.g. `domains/example/webview/`); it is bundled separately and runs in the webview, not in the extension host.
 - App-level UI such as the **sidebar** lives in `sidebar/` (sibling to `domains/` and `shared/`). The **webview-shared/** folder holds the bridge used by all webviews to talk to the extension host (`getVscodeApi`).
 
-See child folders (and their READMEs) for domain-specific responsibilities and boundaries.
+See child folders and their **AGENTS.md** files (e.g. under `domains/`, `sidebar/`) for area-specific responsibilities and boundaries.
 

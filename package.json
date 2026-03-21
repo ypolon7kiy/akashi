@@ -40,7 +40,22 @@
         "title": "Akashi: Show Panel",
         "category": "Akashi"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Akashi",
+      "properties": {
+        "akashi.sources.presets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["claude", "cursor", "antigravity"]
+          },
+          "default": ["claude", "cursor", "antigravity"],
+          "uniqueItems": true,
+          "description": "Tool presets for the Source Index sidebar. Only source kinds belonging to an enabled preset are shown. Cross-tool docs such as AGENTS.md are included on every preset."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.config.mjs",

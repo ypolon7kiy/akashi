@@ -3,14 +3,16 @@
  * Single source of truth for the sidebar webview and SidebarViewProvider.
  */
 
+import type { SourcesSnapshotPayload } from './sourceDescriptor';
+
 export const SidebarMessageType = {
   ShowExamplePanel: 'showExamplePanel',
   SourcesOpenPath: 'sources/openPath',
   SourcesIndexWorkspaceRequest: 'sources/indexWorkspace',
   SourcesGetSnapshotRequest: 'sources/getSnapshot',
-  SourcesListRequest: 'sources/list',
-  SourcesGetByIdRequest: 'sources/getById',
   SourcesResponse: 'sources/response',
+  /** Host → webview: filtered snapshot when presets change (no request id). */
+  SourcesSnapshotPush: 'sources/snapshotPush',
 } as const;
 
 export type SidebarMessageKind = (typeof SidebarMessageType)[keyof typeof SidebarMessageType];
@@ -22,22 +24,6 @@ export interface SourcesIndexWorkspaceRequestMessage {
   requestId: string;
   payload?: {
     includeHomeConfig?: boolean;
-  };
-}
-
-/** Returns all sources from the current index (re-indexes if needed); no filters in the message. */
-export interface SourcesListRequestMessage {
-  type: typeof SidebarMessageType.SourcesListRequest;
-  /** UUID v4; use `newRequestId()` from webview-shared if posting manually. */
-  requestId: string;
-}
-
-export interface SourcesGetByIdRequestMessage {
-  type: typeof SidebarMessageType.SourcesGetByIdRequest;
-  /** UUID v4; use `newRequestId()` from webview-shared if posting manually. */
-  requestId: string;
-  payload: {
-    sourceId: string;
   };
 }
 
@@ -63,10 +49,13 @@ export interface SourcesResponseMessage {
   error?: string;
 }
 
+export interface SourcesSnapshotPushMessage {
+  type: typeof SidebarMessageType.SourcesSnapshotPush;
+  payload: SourcesSnapshotPayload | null;
+}
+
 export type SidebarRequestMessage =
   | SourcesIndexWorkspaceRequestMessage
   | SourcesGetSnapshotRequestMessage
-  | SourcesListRequestMessage
-  | SourcesGetByIdRequestMessage
   | SourcesOpenPathMessage
   | { type: typeof SidebarMessageType.ShowExamplePanel };

@@ -1,14 +1,21 @@
 import * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { ExamplePanel } from '../../domains/example/ui/webview/ExamplePanel';
-import type { SourceRecord } from '../../domains/sources/domain/model';
+import type { IndexedSourceEntry, SourceIndexSnapshot } from '../../domains/sources/domain/model';
+import { presetsContainingKind } from '../../domains/sources/domain/sourcePresets';
+import { readActiveSourcePresets } from '../../domains/sources/infrastructure/vscodeSourcePresetConfig';
 import { appendLine } from '../../log';
-import type { SourceDescriptor, WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
+import type {
+  SourceDescriptor,
+  SourcesSnapshotPayload,
+  WorkspaceFolderInfo,
+} from '../bridge/sourceDescriptor';
 import {
   SidebarMessageType,
   type SidebarRequestMessage,
   type SourcesResponseMessage,
 } from '../bridge/messages';
+import { filterRecordsByPresets } from './sourcesPresetFilter';
 
 function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist');
@@ -47,6 +54,41 @@ export function createSidebarViewProvider(
   context: vscode.ExtensionContext,
   sourcesService: SourcesService
 ): vscode.WebviewViewProvider {
+  let activeView: vscode.WebviewView | undefined;
+  /** Last successful sidebar index request; used when re-indexing after preset changes. */
+  let lastIncludeHomeConfig = false;
+
+  async function postFilteredSnapshotPush(webview: vscode.Webview): Promise<void> {
+    const snap = await sourcesService.getLastSnapshot();
+    const payload = buildSourcesSnapshotPayload(snap, snapshotWorkspaceFolders());
+    await webview.postMessage({
+      type: SidebarMessageType.SourcesSnapshotPush,
+      payload,
+    });
+  }
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (!e.affectsConfiguration('akashi.sources.presets')) {
+        return;
+      }
+      const w = activeView?.webview;
+      if (!w) {
+        return;
+      }
+      void (async () => {
+        try {
+          await sourcesService.indexWorkspace({ includeHomeConfig: lastIncludeHomeConfig });
+        } catch (err) {
+          appendLine(
+            `[Akashi][Sources] Re-index after preset change failed: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+        await postFilteredSnapshotPush(w);
+      })();
+    })
+  );
+
   return {
     resolveWebviewView(
       webviewView: vscode.WebviewView,
@@ -56,6 +98,13 @@ export function createSidebarViewProvider(
       appendLine('[Akashi] Sidebar: view resolving.');
 
       const extensionUri = context.extensionUri;
+      activeView = webviewView;
+      webviewView.onDidDispose(() => {
+        if (activeView === webviewView) {
+          activeView = undefined;
+        }
+      });
+
       webviewView.webview.options = {
         enableScripts: true,
         localResourceRoots: [
@@ -100,77 +149,40 @@ export function createSidebarViewProvider(
           if (typedMessage.type === SidebarMessageType.SourcesGetSnapshotRequest) {
             logSourcesCommand(typedMessage.type, requestId);
             const result = await sourcesService.getLastSnapshot();
+            const payload = buildSourcesSnapshotPayload(result, snapshotWorkspaceFolders());
             const response: SourcesResponseMessage = {
               type: SidebarMessageType.SourcesResponse,
               requestId,
               ok: true,
-              payload: result
-                ? {
-                    generatedAt: result.generatedAt,
-                    sourceCount: result.sourceCount,
-                    records: result.records.map(toSourceDescriptor),
-                    workspaceFolders: snapshotWorkspaceFolders(),
-                  }
-                : null,
+              payload,
             };
             await postSourcesResponse(webviewView.webview, response);
             logSourcesResponse(
               response,
-              result ? `sourceCount=${result.sourceCount}` : 'sourceCount=0'
+              result ? `sourceCount=${payload?.sourceCount ?? 0} (filtered)` : 'sourceCount=0'
             );
             return;
           }
 
           if (typedMessage.type === SidebarMessageType.SourcesIndexWorkspaceRequest) {
+            const includeHome = typedMessage.payload?.includeHomeConfig ?? false;
+            lastIncludeHomeConfig = includeHome;
             logSourcesCommand(typedMessage.type, requestId, {
-              includeHomeConfig: typedMessage.payload?.includeHomeConfig ?? false,
+              includeHomeConfig: includeHome,
             });
             const result = await sourcesService.indexWorkspace({
-              includeHomeConfig: typedMessage.payload?.includeHomeConfig,
+              includeHomeConfig: includeHome,
             });
+            const payload = buildSourcesSnapshotPayload(result, snapshotWorkspaceFolders());
             const response: SourcesResponseMessage = {
               type: SidebarMessageType.SourcesResponse,
               requestId,
               ok: true,
-              payload: {
-                generatedAt: result.generatedAt,
-                sourceCount: result.sourceCount,
-                records: result.records.map(toSourceDescriptor),
-                workspaceFolders: snapshotWorkspaceFolders(),
-              },
+              payload,
             };
             await postSourcesResponse(webviewView.webview, response);
-            logSourcesResponse(response, `sourceCount=${result.sourceCount}`);
+            logSourcesResponse(response, `sourceCount=${payload?.sourceCount ?? 0} (filtered)`);
             return;
-          }
-
-          if (typedMessage.type === SidebarMessageType.SourcesListRequest) {
-            logSourcesCommand(typedMessage.type, requestId);
-            const result = await sourcesService.listSources();
-            const response: SourcesResponseMessage = {
-              type: SidebarMessageType.SourcesResponse,
-              requestId,
-              ok: true,
-              payload: result.map(toSourceDescriptor),
-            };
-            await postSourcesResponse(webviewView.webview, response);
-            logSourcesResponse(response, `items=${result.length}`);
-            return;
-          }
-
-          if (typedMessage.type === SidebarMessageType.SourcesGetByIdRequest) {
-            logSourcesCommand(typedMessage.type, requestId, {
-              sourceId: typedMessage.payload.sourceId,
-            });
-            const result = await sourcesService.getSourceById(typedMessage.payload.sourceId);
-            const response: SourcesResponseMessage = {
-              type: SidebarMessageType.SourcesResponse,
-              requestId,
-              ok: true,
-              payload: result ? toSourceDescriptor(result) : null,
-            };
-            await postSourcesResponse(webviewView.webview, response);
-            logSourcesResponse(response, result ? 'found=true' : 'found=false');
           }
         } catch (error) {
           const response: SourcesResponseMessage = {
@@ -223,14 +235,31 @@ function snapshotWorkspaceFolders(): WorkspaceFolderInfo[] {
   );
 }
 
-function toSourceDescriptor(record: SourceRecord): SourceDescriptor {
+function buildSourcesSnapshotPayload(
+  snapshot: SourceIndexSnapshot | null,
+  workspaceFolders: WorkspaceFolderInfo[]
+): SourcesSnapshotPayload | null {
+  if (!snapshot) {
+    return null;
+  }
+  const active = readActiveSourcePresets();
+  const filtered = filterRecordsByPresets(snapshot.records, active);
   return {
-    id: record.document.id,
-    path: record.document.path,
-    kind: record.document.kind,
-    scope: record.document.scope,
-    origin: record.document.origin,
+    generatedAt: snapshot.generatedAt,
+    sourceCount: filtered.length,
+    records: filtered.map(toSourceDescriptor),
+    workspaceFolders,
+  };
+}
+
+function toSourceDescriptor(record: IndexedSourceEntry): SourceDescriptor {
+  return {
+    id: record.id,
+    path: record.path,
+    kind: record.kind,
+    presets: presetsContainingKind(record.kind),
+    scope: record.scope,
+    origin: record.origin,
     metadata: record.metadata,
-    blockCount: record.blocks.length,
   };
 }

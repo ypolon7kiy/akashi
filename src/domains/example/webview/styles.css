@@ -45,6 +45,5 @@ body {
 }
 
 .ex-example__button {
-  width: auto;
   align-self: flex-start;
 }

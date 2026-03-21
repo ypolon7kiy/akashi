@@ -1,9 +1,18 @@
 This folder is the **root for all domains** in the extension.
 
-- Each subfolder under `domains/` represents a **single domain or feature area** (e.g. `example`, `notes`, `projects`).
+- Each subfolder under `domains/` represents a **single domain or feature area**. This repo includes **`example`** and **`sources`**; names like `notes` or `projects` in examples below are illustrative only.
 - Within each domain, code is split into core layers `domain/`, `application/`, and `infrastructure/`. Domains can add `ui/` when they register commands/views/webview host code. A domain that shows a webview panel can add a **`webview/`** folder for the browser-side UI (React, Vue, or vanilla JS); that folder is bundled separately and loaded by the panel.
 
-Create new domains by copying the `example/` structure and adapting it to your use case.
+Create new domains by copying the **`example/`** structure for a minimal command + panel slice, or mirroring **`sources/`** when you need full `domain` / `application` / `infrastructure` layers from the start.
+
+---
+
+## Domains in this repository
+
+| Domain | Layout | How it is reached |
+|--------|--------|-------------------|
+| **example** | `ui/` + `webview/` only (minimal reference slice). | Command opens `ExamplePanel`; webview posts simple messages to the panel host. |
+| **sources** | `domain/`, `application/`, `infrastructure/` (no `ui/` or `webview/` yet). | `SourcesService` is constructed in `extension.ts` and passed into `SidebarViewProvider`. The app-level sidebar webview drives indexing and snapshots via `src/sidebar/bridge/messages.ts`. Index is a **path catalog** (kinds + `stat` metadata); see `docs/sources-presets-and-indexing.md`. |
 
 ---
 
@@ -41,4 +50,3 @@ When one use case needs to trigger another across domains, do it at the **applic
 | Domains depend on `shared/` (types, interfaces, utils) | Domain A imports from `domains/B` |
 | Application layer receives interfaces (injected) implemented by another domain or shared | Application layer imports use cases or entities from another domain |
 | Composition root (`extension.ts` or a small bootstrap) wires domains via constructors/factories | Domains registering each other’s commands or UI |
-

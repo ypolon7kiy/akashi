@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import * as fs from 'node:fs/promises';
 import { appendLine } from '../../../log';
 import type {
   DiscoveredSource,
@@ -9,46 +8,44 @@ import type {
   WorkspaceSourceScannerPort,
 } from '../application/ports';
 import { SourceKind, SourceScope } from '../domain/model';
+import { collectHomeSourcePaths, selectWorkspaceGlobs } from './sourceDiscoveryPlan';
 
 export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort {
-  public async scanWorkspace(options: SourceScanOptions = {}): Promise<DiscoveredSource[]> {
-    const workspaceSources = await this.scanWorkspaceSources();
-    const homeSources = options.includeHomeConfig ? await this.scanHomeSources() : [];
+  public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
+    const allowedKinds = options.allowedKinds;
+    if (allowedKinds.size === 0) {
+      return [];
+    }
+    const workspaceSources = await this.scanWorkspaceSources(allowedKinds);
+    const homeSources = options.includeHomeConfig ? await this.scanHomeSources(allowedKinds) : [];
     return dedupeByPath([...workspaceSources, ...homeSources]);
   }
 
-  private async scanWorkspaceSources(): Promise<DiscoveredSource[]> {
-    const patterns = [
-      '**/{AGENTS.md,agents.md,.agents.md,TEAM_GUIDE.md,team_guide.md,CLAUDE.md,claude.md,GEMINI.md,gemini.md,.cursorrules}',
-      '**/.cursor/rules/*.mdc',
-      '**/.cursor/mcp.json',
-      '**/.github/copilot-instructions.md',
-    ];
+  private async scanWorkspaceSources(
+    allowedKinds: ReadonlySet<SourceKind>
+  ): Promise<DiscoveredSource[]> {
+    const patterns = selectWorkspaceGlobs(allowedKinds);
+    if (patterns.length === 0) {
+      return [];
+    }
     const exclude = '**/{node_modules,dist,.git}/**';
     const matchSets = await Promise.all(
       patterns.map((glob) => vscode.workspace.findFiles(glob, exclude))
     );
     const uris = matchSets.flat();
-    return uris.map((uri) => this.toDiscoveredSource(uri.fsPath, 'workspace'));
+    return uris
+      .map((uri) => this.toDiscoveredSource(uri.fsPath, 'workspace'))
+      .filter((s) => isAllowedDiscovered(s, allowedKinds));
   }
 
-  private async scanHomeSources(): Promise<DiscoveredSource[]> {
+  private async scanHomeSources(
+    allowedKinds: ReadonlySet<SourceKind>
+  ): Promise<DiscoveredSource[]> {
     const home = os.homedir();
-    const candidates = [
-      path.join(home, '.cursor', 'mcp.json'),
-      path.join(home, '.codex', 'config.toml'),
-      path.join(home, '.claude', 'CLAUDE.md'),
-      path.join(home, '.gemini', 'GEMINI.md'),
-    ];
-    const discovered: DiscoveredSource[] = [];
-    await Promise.all(
-      candidates.map(async (candidate) => {
-        if (await fileExists(candidate)) {
-          discovered.push(this.toDiscoveredSource(candidate, 'user'));
-        }
-      })
-    );
-    return discovered;
+    const paths = await collectHomeSourcePaths(home, allowedKinds);
+    return paths
+      .map((p) => this.toDiscoveredSource(p, 'user'))
+      .filter((s) => isAllowedDiscovered(s, allowedKinds));
   }
 
   private toDiscoveredSource(filePath: string, origin: 'workspace' | 'user'): DiscoveredSource {
@@ -66,6 +63,13 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
   }
 }
 
+function isAllowedDiscovered(
+  source: DiscoveredSource,
+  allowedKinds: ReadonlySet<SourceKind>
+): boolean {
+  return source.kind !== SourceKind.Unknown && allowedKinds.has(source.kind);
+}
+
 function inferSourceKind(filePath: string): SourceKind {
   const basename = path.basename(filePath);
   const normalized = filePath.replace(/\\/g, '/');
@@ -81,6 +85,18 @@ function inferSourceKind(filePath: string): SourceKind {
   }
   if (basename === 'CLAUDE.md' || basename === 'claude.md') {
     return SourceKind.ClaudeMd;
+  }
+  if (normalized.includes('/.claude/hooks/')) {
+    return SourceKind.ClaudeHookFile;
+  }
+  if (normalized.includes('/.claude/rules/') && basename.endsWith('.md')) {
+    return SourceKind.ClaudeRulesMd;
+  }
+  if (
+    (basename === 'settings.json' || basename === 'settings.local.json') &&
+    normalized.includes('/.claude/')
+  ) {
+    return SourceKind.ClaudeSettingsJson;
   }
   if (basename === 'GEMINI.md' || basename === 'gemini.md') {
     return SourceKind.GeminiMd;
@@ -111,13 +127,4 @@ function dedupeByPath(sources: DiscoveredSource[]): DiscoveredSource[] {
     }
   }
   return [...unique.values()];
-}
-
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(filePath);
-    return stats.isFile();
-  } catch {
-    return false;
-  }
 }

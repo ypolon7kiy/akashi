@@ -52,6 +52,9 @@ export function SourcesSidebarFeature(): JSX.Element {
 
       <section className="akashi-tree-panel" aria-label="Indexed sources">
         <h2 className="akashi-tree-panel__title">Indexed sources</h2>
+        <p className="akashi-muted akashi-tree-panel__hint">
+          Filtered by Akashi presets (Settings → search &quot;Akashi&quot; → Sources presets).
+        </p>
         <div className="akashi-tree-panel__scroll">
           <SourceTreeView
             records={records}
@@ -92,11 +95,6 @@ export function SourcesSidebarFeature(): JSX.Element {
           ) : null}
         </div>
       </section>
-
-      <p className="akashi-help">
-        Run indexing after config changes to keep retrieval results fresh. Click a file in the tree
-        to open it.
-      </p>
     </>
   );
 }

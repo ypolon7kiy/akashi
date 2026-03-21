@@ -11,10 +11,11 @@ export interface SourceDescriptor {
   readonly id: string;
   readonly path: string;
   readonly kind: string;
+  /** Presets whose kind list includes this file (see `SOURCE_KINDS_BY_PRESET` on the host). */
+  readonly presets: readonly string[];
   readonly scope: string;
   readonly origin: 'workspace' | 'user';
   readonly metadata: { byteLength: number; updatedAt: string };
-  readonly blockCount: number;
 }
 
 /** Payload for get-snapshot (non-null) and index-workspace responses. */

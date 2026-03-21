@@ -20,6 +20,8 @@ Use these AGENTS for structure and conventions in each area:
 | Sidebar (app-level webview) | `src/sidebar/AGENTS.md` |
 | Webview shared bridge | `src/webview-shared/AGENTS.md` |
 
+The **`sources`** domain (workspace source indexing) follows the same layer rules as other domains; details and wiring live in **`src/domains/AGENTS.md`** (not a separate `sources/AGENTS.md`).
+
 ## Conventions (summary)
 
 - **Domains must not import from each other.** Use `src/shared/` for contracts (interfaces, types, event shapes) and inject dependencies at the application layer; composition happens in `extension.ts` or a small bootstrap module.

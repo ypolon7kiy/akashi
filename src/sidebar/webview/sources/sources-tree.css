@@ -30,6 +30,13 @@
     var(--vscode-sideBarSectionHeader-border, var(--akashi-border));
 }
 
+.akashi-tree-panel__hint {
+  margin: 0;
+  padding: var(--akashi-space-1) var(--akashi-space-3) var(--akashi-space-2);
+  font-size: var(--vscode-font-size);
+  line-height: 1.35;
+}
+
 .akashi-tree-panel__scroll {
   max-height: min(42vh, 360px);
   min-height: 0;

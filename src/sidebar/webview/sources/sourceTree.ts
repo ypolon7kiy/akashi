@@ -8,7 +8,7 @@ export type TreeNode =
       label: string;
       path: string;
       kind: string;
-      blockCount: number;
+      presets: readonly string[];
     };
 
 type TrieEntry =
@@ -129,12 +129,11 @@ function trieToTreeNodes(map: TrieMap, idPrefix: string): TreeNode[] {
         label: name,
         path: d.path,
         kind: d.kind,
-        blockCount: d.blockCount,
+        presets: d.presets,
       });
     } else {
       const childId = `${idPrefix}:dir:${name}`;
       const children = trieToTreeNodes(entry.children, childId);
-      children.sort(compareTreeNodes);
       nodes.push({
         type: 'folder',
         id: childId,

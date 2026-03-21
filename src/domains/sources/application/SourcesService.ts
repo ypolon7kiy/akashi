@@ -1,14 +1,14 @@
-import type { SourceIndexSnapshot, SourceRecord } from '../domain/model';
+import type { IndexedSourceEntry, SourceIndexSnapshot, SourceKind } from '../domain/model';
 import type {
   SourcesLoggerPort,
-  SourceParserPort,
-  SourceReaderPort,
+  SourceFileStatsPort,
   SourcesSnapshotStorePort,
   WorkspaceSourceScannerPort,
 } from './ports';
 
 export interface IndexWorkspaceRequest {
   includeHomeConfig?: boolean;
+  allowedKinds?: ReadonlySet<SourceKind>;
 }
 
 export class SourcesService {
@@ -17,10 +17,10 @@ export class SourcesService {
 
   public constructor(
     private readonly scanner: WorkspaceSourceScannerPort,
-    private readonly reader: SourceReaderPort,
-    private readonly parser: SourceParserPort,
+    private readonly fileStats: SourceFileStatsPort,
     private readonly snapshotStore: SourcesSnapshotStorePort,
-    private readonly logger: SourcesLoggerPort
+    private readonly logger: SourcesLoggerPort,
+    private readonly getAllowedSourceKinds: () => ReadonlySet<SourceKind>
   ) {}
 
   public async indexWorkspace(request: IndexWorkspaceRequest = {}): Promise<SourceIndexSnapshot> {
@@ -28,8 +28,9 @@ export class SourcesService {
       this.logger.info('[Akashi][Sources] indexWorkspace reusing in-flight indexing promise.');
       return this.indexingPromise;
     }
+    const allowedPreview = (request.allowedKinds ?? this.getAllowedSourceKinds()).size;
     this.logger.info(
-      `[Akashi][Sources] indexWorkspace start includeHomeConfig=${request.includeHomeConfig ?? false}.`
+      `[Akashi][Sources] indexWorkspace start includeHomeConfig=${request.includeHomeConfig ?? false} allowedKindCount=${allowedPreview}.`
     );
 
     this.indexingPromise = this.performIndexWorkspace(request);
@@ -38,22 +39,6 @@ export class SourcesService {
     } finally {
       this.indexingPromise = null;
     }
-  }
-
-  public async listSources(): Promise<SourceRecord[]> {
-    const snapshot = (await this.getLastSnapshot()) ?? (await this.indexWorkspace());
-    this.logger.info(
-      `[Akashi][Sources] listSources using snapshot generatedAt=${snapshot.generatedAt} sourceCount=${snapshot.sourceCount}.`
-    );
-    return this.filterRecords(snapshot.records);
-  }
-
-  public async getSourceById(id: string): Promise<SourceRecord | null> {
-    const snapshot = (await this.getLastSnapshot()) ?? (await this.indexWorkspace());
-    this.logger.info(
-      `[Akashi][Sources] getSourceById using snapshot generatedAt=${snapshot.generatedAt} sourceCount=${snapshot.sourceCount}.`
-    );
-    return snapshot.records.find((record) => record.document.id === id) ?? null;
   }
 
   public async getLastSnapshot(): Promise<SourceIndexSnapshot | null> {
@@ -74,35 +59,33 @@ export class SourcesService {
     return this.snapshot;
   }
 
-  private filterRecords(records: SourceRecord[]): SourceRecord[] {
-    return records;
-  }
-
   private async performIndexWorkspace(
     request: IndexWorkspaceRequest = {}
   ): Promise<SourceIndexSnapshot> {
+    const allowedKinds = request.allowedKinds ?? this.getAllowedSourceKinds();
     const discovered = await this.scanner.scanWorkspace({
       includeHomeConfig: request.includeHomeConfig,
+      allowedKinds,
     });
-    const records = await Promise.all(
+    const records: IndexedSourceEntry[] = await Promise.all(
       discovered.map(async (item) => {
-        const raw = await this.reader.readUtf8(item.path);
-        return this.parser.parse({
+        const metadata = await this.fileStats.statFile(item.path);
+        const entry: IndexedSourceEntry = {
           id: item.id,
           path: item.path,
           kind: item.kind,
           scope: item.scope,
           origin: item.origin,
-          raw,
-        });
+          metadata,
+        };
+        return entry;
       })
     );
 
-    const filtered = this.filterRecords(records);
     const snapshot: SourceIndexSnapshot = {
       generatedAt: new Date().toISOString(),
-      sourceCount: filtered.length,
-      records: filtered,
+      sourceCount: records.length,
+      records,
     };
     this.snapshot = snapshot;
     await this.snapshotStore.save(snapshot);
