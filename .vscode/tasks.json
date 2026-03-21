@@ -6,7 +6,7 @@
       "script": "build",
       "group": "build",
       "presentation": { "reveal": "silent" },
-      "problemMatcher": "$tsc"
+      "problemMatcher": []
     }
   ]
 }

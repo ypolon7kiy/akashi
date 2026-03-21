@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getVscodeApi } from '../../../webview-shared/api';
 import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
 import { SidebarMessageType } from '../../bridge/messages';
-import { sidebarCategoryLabel } from './categorySidebarLabel';
+import { sidebarCategoryLabel, sidebarCategoryMetaModifier } from './categorySidebarLabel';
 import { buildSourceTree, type TreeNode } from './sourceTree';
 
 function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
@@ -29,6 +29,7 @@ function TreeRows(props: TreeRowProps): JSX.Element {
   if (node.type === 'file') {
     const presetLine = node.presets.length > 0 ? `\nPresets: ${node.presets.join(', ')}` : '';
     const categoryDisplay = sidebarCategoryLabel(node.categoryValue);
+    const categoryMod = sidebarCategoryMetaModifier(node.categoryValue);
     const categoryHint =
       categoryDisplay !== node.categoryValue ? `\nCategory: ${node.categoryValue}` : '';
     const title = `${node.path}\n${node.kind}${categoryHint}${presetLine}`;
@@ -52,7 +53,9 @@ function TreeRows(props: TreeRowProps): JSX.Element {
         >
           <span className="akashi-tree__chevron-spacer" aria-hidden />
           <span className="akashi-tree__label">{node.label}</span>
-          <span className="akashi-tree__meta">{categoryDisplay}</span>
+          <span className={`akashi-tree__meta akashi-tree__meta--cat-${categoryMod}`}>
+            {categoryDisplay}
+          </span>
         </button>
       </li>
     );

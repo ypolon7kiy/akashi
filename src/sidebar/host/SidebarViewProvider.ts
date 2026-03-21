@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs';
 import * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { ExamplePanel } from '../../domains/example/ui/webview/ExamplePanel';
@@ -16,7 +17,20 @@ function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist');
 }
 
+/** Bust webview cache when bundle files change (mtime updates on each esbuild). */
+function sidebarBundleCacheQuery(extensionUri: vscode.Uri): string {
+  try {
+    const dir = vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar');
+    const jsM = statSync(vscode.Uri.joinPath(dir, 'sidebar-main.js').fsPath).mtimeMs;
+    const cssM = statSync(vscode.Uri.joinPath(dir, 'sidebar-main.css').fsPath).mtimeMs;
+    return `?v=${Math.floor(Math.max(jsM, cssM))}`;
+  } catch {
+    return '';
+  }
+}
+
 function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+  const cacheQ = sidebarBundleCacheQuery(extensionUri);
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar', 'sidebar-main.js')
   );
@@ -36,11 +50,11 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource}; font-src ${webview.cspSource};">
   <title>Akashi Sidebar</title>
   <link rel="stylesheet" href="${codiconCssUri.toString()}">
-  <link rel="stylesheet" href="${styleUri.toString()}">
+  <link rel="stylesheet" href="${styleUri.toString()}${cacheQ}">
 </head>
 <body>
   <div id="root"></div>
-  <script src="${scriptUri.toString()}"></script>
+  <script src="${scriptUri.toString()}${cacheQ}"></script>
 </body>
 </html>`;
 }
@@ -63,6 +77,23 @@ export function createSidebarViewProvider(
       type: SidebarMessageType.SourcesSnapshotPush,
       payload,
     });
+  }
+
+  if (context.extensionMode === vscode.ExtensionMode.Development) {
+    const sidebarDist = vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview', 'sidebar');
+    const bundleWatcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(sidebarDist, 'sidebar-main.*')
+    );
+    const refreshSidebarHtml = (): void => {
+      const w = activeView?.webview;
+      if (w) {
+        w.html = getHtml(w, context.extensionUri);
+        appendLine('[Akashi] Sidebar: webview HTML refreshed after bundle change.');
+      }
+    };
+    bundleWatcher.onDidChange(refreshSidebarHtml);
+    bundleWatcher.onDidCreate(refreshSidebarHtml);
+    context.subscriptions.push(bundleWatcher);
   }
 
   context.subscriptions.push(

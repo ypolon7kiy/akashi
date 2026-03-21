@@ -182,6 +182,85 @@
   text-align: right;
 }
 
+/*
+ * Category tint: prefer chart + symbol tokens, always end with readable workbench colors.
+ * Some themes omit or mis-tune symbolIcon vars in webviews; bare symbol-only rules looked “white”/invisible.
+ *
+ * context + rule share one badge color: users read both as “rules/guidelines” (AGENTS.md vs .cursor/rules).
+ * Green chart was often faint; orange reads consistently next to other categories.
+ */
+.akashi-tree__meta--cat-context,
+.akashi-tree__meta--cat-rule {
+  color: var(
+    --vscode-charts-orange,
+    var(
+      --vscode-symbolIcon-stringForeground,
+      var(
+        --vscode-symbolIcon-structForeground,
+        var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+      )
+    )
+  );
+}
+
+.akashi-tree__meta--cat-skill {
+  color: var(
+    --vscode-charts-purple,
+    var(
+      --vscode-symbolIcon-functionForeground,
+      var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+    )
+  );
+}
+
+.akashi-tree__meta--cat-hook {
+  color: var(
+    --vscode-charts-red,
+    var(
+      --vscode-symbolIcon-eventForeground,
+      var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+    )
+  );
+}
+
+.akashi-tree__meta--cat-config {
+  color: var(
+    --vscode-charts-yellow,
+    var(
+      --vscode-symbolIcon-objectForeground,
+      var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+    )
+  );
+}
+
+.akashi-tree__meta--cat-mcp {
+  color: var(
+    --vscode-charts-blue,
+    var(
+      --vscode-symbolIcon-interfaceForeground,
+      var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+    )
+  );
+}
+
+.akashi-tree__meta--cat-unknown {
+  color: var(
+    --vscode-charts-foreground,
+    var(
+      --vscode-symbolIcon-miscForeground,
+      var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+    )
+  );
+}
+
+.akashi-tree__meta--cat-fallback {
+  color: var(
+    --vscode-descriptionForeground,
+    var(--vscode-foreground, var(--akashi-text-muted))
+  );
+}
+
+/* Selection: single list foreground for contrast (category tint suppressed). */
 .akashi-tree__row--selected .akashi-tree__meta {
   color: var(--vscode-list-activeSelectionForeground, var(--akashi-text-muted));
 }
