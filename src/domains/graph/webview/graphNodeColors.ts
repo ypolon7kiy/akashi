@@ -1,3 +1,5 @@
+/** Node / edge palette for the 2D canvas (shared with former 3D styling). */
+
 export const NODE_COLORS = {
   NOTE: '#3B82F6',
   CONCEPT: '#F59E0B',
@@ -22,17 +24,6 @@ export const NODE_COLORS = {
 export const EDGE_COLORS = {
   DEFAULT: '#94A3B8',
   HIGHLIGHTED: '#A78BFA',
-} as const;
-
-export const UI_COLORS = {
-  BACKGROUND_DARK: '#1a1a2e',
-  EMISSIVE_DEFAULT: '#000000',
-} as const;
-
-export const LIGHTING_COLORS = {
-  DIRECTIONAL: '#ffffff',
-  POINT_LIGHT_1: '#4f46e5',
-  POINT_LIGHT_2: '#ec4899',
 } as const;
 
 export function getNodeColor(nodeType: string): string {

@@ -5,7 +5,7 @@ import type { Simulation } from 'd3-force';
 import { inferLayoutDepth } from '../../application/gridLayout';
 import { applyPointedFocusVisibility } from '../../application/applyPointedFocusVisibility';
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
-import { getNodeColor } from '../graph3d/colors';
+import { getNodeColor } from '../graphNodeColors';
 import { readCanvasThemeColors } from './canvasThemeColors';
 import { Graph2DMessageType } from './messages';
 import { getVscodeApi } from '../../../../webview-shared/api';

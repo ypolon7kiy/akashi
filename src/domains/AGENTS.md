@@ -11,7 +11,7 @@ Create new domains by mirroring **`graph/`** when you need a command + editor we
 
 | Domain | Layout | How it is reached |
 |--------|--------|-------------------|
-| **graph** | `domain/`, `application/`, `ui/` + `webview/` (3D graph panel). | Command `akashi.graph.showPanel` opens `GraphPanel`; webview loads snapshot payload via host. |
+| **graph** | `domain/`, `application/`, `ui/` + `webview/graph2d/`. | Command `akashi.graph.showPanel` opens `Graph2DPanel`; the graph2d webview loads the sources snapshot via the host. |
 | **sources** | `domain/`, `application/`, `infrastructure/` (no `ui/` or `webview/` yet). | `SourcesService` is constructed in `extension.ts` and passed into `SidebarViewProvider`. The app-level sidebar webview drives indexing and snapshots via `src/sidebar/bridge/messages.ts`. Index is a **path catalog** (preset, category, tags, and `stat` metadata only). |
 
 ---

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
-import { Graph2DPanel, GraphPanel, registerGraphUi } from './domains/graph/ui/register';
+import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
 import { readActiveSourcePresets } from './domains/sources/infrastructure/vscodeSourcePresetConfig';
 import type { ActiveSourcePresetsGetter } from './domains/sources/domain/sourcePresets';
@@ -38,7 +38,6 @@ export function activate(context: vscode.ExtensionContext): void {
       'akashi.sidebar',
       createSidebarViewProvider(context, sourcesService, getActiveSourcePresets, {
         onAfterSourcesSnapshotRefreshed: () => {
-          void GraphPanel.refreshIfOpen(graphEnv);
           void Graph2DPanel.refreshIfOpen(graphEnv);
         },
       })

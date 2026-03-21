@@ -11,7 +11,7 @@ Message flow (browser → host):
 ```
   Browser (webview iframe)                    Extension host
   ┌──────────────────────────┐                ┌──────────────────────────┐
-  │ Graph App.tsx            │── postMessage ──▶ GraphPanel               │
+  │ Graph2DApp (graph2d)     │── postMessage ──▶ Graph2DPanel           │
   │ Sidebar App.tsx          │── postMessage ──▶ SidebarViewProvider      │
   └──────────────────────────┘                └──────────────────────────┘
          │ getVscodeApi() (shared)                    │ onDidReceiveMessage (per panel)
