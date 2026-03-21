@@ -6,13 +6,14 @@
 import type { SourcesSnapshotPayload } from './sourceDescriptor';
 
 export const SidebarMessageType = {
-  OpenGraphPanel: 'sidebar/openGraphPanel',
   SourcesOpenPath: 'sources/openPath',
   SourcesIndexWorkspaceRequest: 'sources/indexWorkspace',
   SourcesGetSnapshotRequest: 'sources/getSnapshot',
   SourcesResponse: 'sources/response',
   /** Host → webview: filtered snapshot when presets change (no request id). */
   SourcesSnapshotPush: 'sources/snapshotPush',
+  /** Host → webview: title-bar refresh / long index; drives progress UI without an RPC round-trip. */
+  SourcesIndexingState: 'sources/indexingState',
 } as const;
 
 export type SidebarMessageKind = (typeof SidebarMessageType)[keyof typeof SidebarMessageType];
@@ -51,8 +52,12 @@ export interface SourcesSnapshotPushMessage {
   payload: SourcesSnapshotPayload | null;
 }
 
+export interface SourcesIndexingStateMessage {
+  type: typeof SidebarMessageType.SourcesIndexingState;
+  busy: boolean;
+}
+
 export type SidebarRequestMessage =
   | SourcesIndexWorkspaceRequestMessage
   | SourcesGetSnapshotRequestMessage
-  | SourcesOpenPathMessage
-  | { type: typeof SidebarMessageType.OpenGraphPanel };
+  | SourcesOpenPathMessage;

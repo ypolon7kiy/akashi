@@ -96,6 +96,38 @@ export function createSidebarViewProvider(
     });
   }
 
+  /** Shared path: full index, push snapshot to sidebar webview if visible, notify graph. */
+  async function refreshSourcesIndexFromHost(opts?: { notifyWebviewBusy?: boolean }): Promise<void> {
+    const w = activeView?.webview;
+    const showBusy = Boolean(opts?.notifyWebviewBusy && w);
+    if (showBusy) {
+      await w!.postMessage({ type: SidebarMessageType.SourcesIndexingState, busy: true });
+    }
+    try {
+      await sourcesService.indexWorkspace({ includeHomeConfig: readIncludeHomeConfig() });
+      if (w) {
+        await postFilteredSnapshotPush(w);
+      }
+      notifySnapshotRefreshed();
+    } finally {
+      if (showBusy) {
+        await w!.postMessage({ type: SidebarMessageType.SourcesIndexingState, busy: false });
+      }
+    }
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('akashi.sources.refresh', async () => {
+      try {
+        await refreshSourcesIndexFromHost({ notifyWebviewBusy: true });
+      } catch (err) {
+        appendLine(
+          `[Akashi][Sources] Refresh source index command failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    })
+  );
+
   if (context.extensionMode === vscode.ExtensionMode.Development) {
     const sidebarDist = vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview', 'sidebar');
     const bundleWatcher = vscode.workspace.createFileSystemWatcher(
@@ -169,11 +201,6 @@ export function createSidebarViewProvider(
       webviewView.webview.onDidReceiveMessage(async (message: unknown) => {
         logInboundSidebarMessage(message);
         const typedMessage = message as SidebarRequestMessage;
-        if (typedMessage?.type === SidebarMessageType.OpenGraphPanel) {
-          appendLine('[Akashi] Sidebar: Open graph panel requested.');
-          void vscode.commands.executeCommand('akashi.graph.showPanel');
-          return;
-        }
 
         if (typedMessage?.type === SidebarMessageType.SourcesOpenPath) {
           const filePath = typedMessage.payload?.path;
@@ -224,9 +251,8 @@ export function createSidebarViewProvider(
             logSourcesCommand(typedMessage.type, requestId, {
               includeHomeConfig: includeHome,
             });
-            const result = await sourcesService.indexWorkspace({
-              includeHomeConfig: includeHome,
-            });
+            await refreshSourcesIndexFromHost();
+            const result = await sourcesService.getLastSnapshot();
             const payload = buildSourcesSnapshotPayload(
               result,
               snapshotWorkspaceFolders(),
@@ -240,7 +266,6 @@ export function createSidebarViewProvider(
             };
             await postSourcesResponse(webviewView.webview, response);
             logSourcesResponse(response, `sourceCount=${payload?.sourceCount ?? 0} (filtered)`);
-            notifySnapshotRefreshed();
             return;
           }
         } catch (error) {
@@ -301,10 +326,6 @@ function logInboundSidebarMessage(message: unknown): void {
   }
   const m = message as Record<string, unknown>;
   const type = typeof m.type === 'string' ? m.type : '?';
-  if (type === SidebarMessageType.OpenGraphPanel) {
-    appendLine(`[Akashi] Sidebar: received message type=${type}`);
-    return;
-  }
   if (type === SidebarMessageType.SourcesOpenPath) {
     const p = (m.payload as { path?: unknown } | undefined)?.path;
     const pathLen = typeof p === 'string' ? p.length : 0;

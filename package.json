@@ -12,6 +12,7 @@
   ],
   "activationEvents": [
     "onCommand:akashi.graph.showPanel",
+    "onCommand:akashi.sources.refresh",
     "onView:akashi.sidebar",
     "onStartupFinished"
   ],
@@ -37,11 +38,32 @@
     },
     "commands": [
       {
+        "command": "akashi.sources.refresh",
+        "title": "Refresh source index",
+        "category": "Akashi",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "akashi.graph.showPanel",
         "title": "Show 3D graph",
-        "category": "Akashi"
+        "category": "Akashi",
+        "icon": "$(graph-line)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "akashi.sources.refresh",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@0"
+        },
+        {
+          "command": "akashi.graph.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@1"
+        }
+      ]
+    },
     "configuration": {
       "title": "Akashi",
       "properties": {

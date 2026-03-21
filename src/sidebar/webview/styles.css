@@ -73,22 +73,6 @@ body {
   accent-color: var(--vscode-button-background);
 }
 
-.akashi-actions {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--akashi-space-4);
-}
-
-.akashi-progress-slot {
-  align-self: stretch;
-  width: 100%;
-  min-height: 6px;
-  display: flex;
-  align-items: center;
-}
-
 .akashi-help {
   margin: 0;
   color: var(--akashi-text-muted);

@@ -7,6 +7,7 @@ import {
 } from '../../bridge/sourceDescriptor';
 import {
   SidebarMessageType,
+  type SourcesIndexingStateMessage,
   type SourcesResponseMessage,
   type SourcesSnapshotPushMessage,
 } from '../../bridge/messages';
@@ -15,12 +16,13 @@ export interface SourcesSidebarState {
   isIndexing: boolean;
   records: SourceDescriptor[];
   workspaceFolders: WorkspaceFolderInfo[];
-  handleShowGraph: () => void;
-  handleIndexSources: () => Promise<void>;
 }
 
 export function useSourcesSidebarState(): SourcesSidebarState {
-  const [isIndexing, setIsIndexing] = useState<boolean>(false);
+  /** Mount-time hydrate index (RPC); separate from title-bar refresh so busy flags do not race. */
+  const [mountIndexBusy, setMountIndexBusy] = useState<boolean>(false);
+  const [hostCommandIndexBusy, setHostCommandIndexBusy] = useState<boolean>(false);
+  const isIndexing = mountIndexBusy || hostCommandIndexBusy;
   const [records, setRecords] = useState<SourceDescriptor[]>([]);
   const [workspaceFolders, setWorkspaceFolders] = useState<WorkspaceFolderInfo[]>([]);
 
@@ -36,48 +38,22 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     }
   }, []);
 
-  const handleShowGraph = useCallback((): void => {
-    const vscode = getVscodeApi();
-    if (vscode) {
-      vscode.postMessage({ type: SidebarMessageType.OpenGraphPanel });
-    }
-  }, []);
-
-  const handleIndexSources = useCallback(async (): Promise<void> => {
-    if (isIndexing) {
-      return;
-    }
-    const vscode = getVscodeApi();
-    if (!vscode) {
-      return;
-    }
-    setIsIndexing(true);
-    try {
-      const response = await postRequest<SourcesResponseMessage>(
-        vscode,
-        {
-          type: SidebarMessageType.SourcesIndexWorkspaceRequest,
-        },
-        SidebarMessageType.SourcesResponse
-      );
-      if (!response.ok) {
-        return;
-      }
-      applySnapshotPayload(response.payload);
-    } catch {
-      // Keep existing values on transient indexing failures.
-    } finally {
-      setIsIndexing(false);
-    }
-  }, [applySnapshotPayload, isIndexing]);
-
   useEffect(() => {
     const onMessage = (event: MessageEvent): void => {
-      const data = event.data as SourcesSnapshotPushMessage | undefined;
-      if (data?.type !== SidebarMessageType.SourcesSnapshotPush) {
+      const data = event.data as
+        | SourcesSnapshotPushMessage
+        | SourcesIndexingStateMessage
+        | undefined;
+      if (!data || typeof data !== 'object' || typeof data.type !== 'string') {
         return;
       }
-      applySnapshotPayload(data.payload);
+      if (data.type === SidebarMessageType.SourcesSnapshotPush) {
+        applySnapshotPayload(data.payload);
+        return;
+      }
+      if (data.type === SidebarMessageType.SourcesIndexingState) {
+        setHostCommandIndexBusy(data.busy);
+      }
     };
     window.addEventListener('message', onMessage);
     return () => {
@@ -105,7 +81,7 @@ export function useSourcesSidebarState(): SourcesSidebarState {
         // Keep existing UI state and continue with background refresh.
       }
 
-      setIsIndexing(true);
+      setMountIndexBusy(true);
       try {
         const refreshResponse = await postRequest<SourcesResponseMessage>(
           vscode,
@@ -121,7 +97,7 @@ export function useSourcesSidebarState(): SourcesSidebarState {
       } catch {
         // Keep existing values on transient indexing failures.
       } finally {
-        setIsIndexing(false);
+        setMountIndexBusy(false);
       }
     };
 
@@ -132,7 +108,5 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     isIndexing,
     records,
     workspaceFolders,
-    handleShowGraph,
-    handleIndexSources,
   };
 }

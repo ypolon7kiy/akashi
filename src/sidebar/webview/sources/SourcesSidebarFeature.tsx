@@ -3,8 +3,7 @@ import { SourceTreeView } from './SourceTreeView';
 import { useSourcesSidebarState } from './useSourcesSidebarState';
 
 export function SourcesSidebarFeature(): JSX.Element {
-  const { isIndexing, records, workspaceFolders, handleShowGraph, handleIndexSources } =
-    useSourcesSidebarState();
+  const { isIndexing, records, workspaceFolders } = useSourcesSidebarState();
 
   return (
     <>
@@ -19,25 +18,6 @@ export function SourcesSidebarFeature(): JSX.Element {
       </section>
 
       <section className="akashi-actions" aria-busy={isIndexing}>
-        <button
-          className="akashi-button akashi-button--primary"
-          type="button"
-          onClick={() => {
-            void handleIndexSources();
-          }}
-          disabled={isIndexing}
-          aria-busy={isIndexing}
-        >
-          Index sources
-        </button>
-        <button
-          className="akashi-button akashi-button--secondary"
-          type="button"
-          onClick={handleShowGraph}
-          disabled={isIndexing}
-        >
-          Show 3D graph
-        </button>
         <div className="akashi-progress-slot">
           {isIndexing ? (
             <div
