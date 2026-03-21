@@ -12,7 +12,7 @@ function readOptionalSourcesDir(key: OptionalDirSettingKey, homeDir: string): st
   return resolveOptionalUserConfigDir(raw, homeDir);
 }
 
-/** Optional extra Codex CLI root from `akashi.sources.codexHome` (unioned with `~/.codex` and `CODEX_HOME`). */
+/** Optional Codex CLI user root from `akashi.sources.codexHome` (before env/default fallback). */
 export function readCodexHomeSettingPath(homeDir: string): string | null {
   return readOptionalSourcesDir('codexHome', homeDir);
 }

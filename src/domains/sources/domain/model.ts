@@ -7,7 +7,7 @@
  * Claude Code: .claude/settings.json, .claude/settings.local.json, .claude/rules/*.md, .claude/hooks/** (+ ~/.claude/settings.json); discovery lives in `VscodeWorkspaceSourceScanner`.
  * Cursor: .cursorrules, .cursor/rules/*.mdc, .cursor/mcp.json (+ ~/.cursor/mcp.json)
  * Copilot: .github/copilot-instructions.md
- * Codex: .codex/config.toml (project or ~/.codex / $CODEX_HOME / setting akashi.sources.codexHome), AGENTS.override.md (any dir), .codex/rules/*.rules; not indexed: auth.json, history, logs/sessions.
+ * Codex: .codex/config.toml (project or user home: akashi.sources.codexHome → CODEX_HOME → ~/.codex), AGENTS.override.md (any dir), .codex/rules/*.rules; not indexed: auth.json, history, logs/sessions.
  * Agent Skills: `SKILL.md` files under known skill roots only (catalog only, no frontmatter parse). Cursor loads `.agents/skills/`, `.cursor/skills/`, user `.cursor/skills/`, plus `.claude/skills/`, `.codex/skills/` and home counterparts. Antigravity-style layouts often use `.agent/skills/` (workspace) and user `.gemini/antigravity/skills/` (verify against your product version).
  */
 export const SourceKind = {

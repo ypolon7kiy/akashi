@@ -72,7 +72,7 @@
           "type": "string",
           "order": 40,
           "default": "",
-          "description": "Extra Codex CLI dir (union with ~/.codex and CODEX_HOME). Absolute or ~/…."
+          "description": "Codex user config dir. Absolute or ~/…. Empty: CODEX_HOME or ~/.codex."
         },
         "akashi.sources.cursorConfigDir": {
           "type": "string",

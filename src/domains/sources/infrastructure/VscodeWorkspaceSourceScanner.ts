@@ -10,7 +10,6 @@ import type {
 import { SourceKind, SourceScope } from '../domain/model';
 import { collectHomeSourcePaths, selectWorkspaceGlobs } from './sourceDiscoveryPlan';
 import { readToolUserRoots, type ToolUserRoots } from './providerUserRoots';
-import { readCodexHomeSettingPath } from './vscodeSourcesDirSettings';
 
 export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort {
   public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
@@ -50,28 +49,25 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
   ): Promise<DiscoveredSource[]> {
     const home = os.homedir();
     const roots = readToolUserRoots(home);
-    const fromSetting = readCodexHomeSettingPath(home);
-    const codexRoots = buildCodexHomeRootsList(home, fromSetting);
     const paths = await collectHomeSourcePaths(home, allowedKinds, {
       claudeUserRoot: roots.claudeUserRoot,
       cursorUserRoot: roots.cursorUserRoot,
       geminiUserRoot: roots.geminiUserRoot,
-      extraCodexHomeRoots: fromSetting ? [fromSetting] : [],
+      codexUserRoot: roots.codexUserRoot,
     });
     return paths
-      .map((p) => this.toDiscoveredSource(p, 'user', roots, codexRoots))
+      .map((p) => this.toDiscoveredSource(p, 'user', roots))
       .filter((s) => isAllowedDiscovered(s, allowedKinds));
   }
 
   private toDiscoveredSource(
     filePath: string,
     origin: 'workspace' | 'user',
-    userRoots?: ToolUserRoots,
-    codexRoots?: readonly string[]
+    userRoots?: ToolUserRoots
   ): DiscoveredSource {
     const kind =
-      origin === 'user' && userRoots && codexRoots
-        ? inferUserSourceKind(filePath, userRoots, codexRoots)
+      origin === 'user' && userRoots
+        ? inferUserSourceKind(filePath, userRoots)
         : inferSourceKind(filePath);
     return {
       id: filePath,
@@ -95,29 +91,11 @@ function isUnderRoot(filePath: string, rootDir: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
-/** Matches {@link collectHomeSourcePaths} Codex root union for user-scope kind inference. */
-function buildCodexHomeRootsList(homeDir: string, extraFromSetting: string | null): string[] {
-  const roots = new Set<string>();
-  roots.add(path.normalize(path.join(homeDir, '.codex')));
-  const env = process.env.CODEX_HOME?.trim();
-  if (env && path.isAbsolute(env)) {
-    roots.add(path.normalize(env));
-  }
-  if (extraFromSetting) {
-    roots.add(path.normalize(extraFromSetting));
-  }
-  return [...roots];
-}
-
-/** Classify user-scope paths when tool roots may differ from `~/.claude` / `~/.cursor` / `~/.gemini`. */
-function inferUserSourceKind(
-  filePath: string,
-  roots: ToolUserRoots,
-  codexRoots: readonly string[]
-): SourceKind {
+/** Classify user-scope paths when tool roots may differ from default `~/.tool` layouts. */
+function inferUserSourceKind(filePath: string, roots: ToolUserRoots): SourceKind {
   const basename = path.basename(filePath);
   const normalized = filePath.replace(/\\/g, '/');
-  const { claudeUserRoot, cursorUserRoot, geminiUserRoot } = roots;
+  const { claudeUserRoot, cursorUserRoot, geminiUserRoot, codexUserRoot } = roots;
 
   if (basename === 'AGENTS.md' || basename === 'agents.md') {
     return SourceKind.AgentsMd;
@@ -150,11 +128,9 @@ function inferUserSourceKind(
     if (isUnderRoot(filePath, claudeSkills)) {
       return SourceKind.ClaudeSkillMd;
     }
-    for (const cr of codexRoots) {
-      const codexSkills = path.join(cr, 'skills');
-      if (isUnderRoot(filePath, codexSkills)) {
-        return SourceKind.CodexSkillMd;
-      }
+    const codexSkills = path.join(codexUserRoot, 'skills');
+    if (isUnderRoot(filePath, codexSkills)) {
+      return SourceKind.CodexSkillMd;
     }
     return SourceKind.Unknown;
   }
@@ -194,14 +170,12 @@ function inferUserSourceKind(
   if (basename === 'mcp.json' && isUnderRoot(filePath, cursorUserRoot)) {
     return SourceKind.CursorMcpJson;
   }
-  for (const cr of codexRoots) {
-    if (basename === 'config.toml' && isUnderRoot(filePath, cr)) {
-      return SourceKind.CodexConfigToml;
-    }
-    const codexRules = path.join(cr, 'rules');
-    if (basename.endsWith('.rules') && isUnderRoot(filePath, codexRules)) {
-      return SourceKind.CodexRulesFile;
-    }
+  if (basename === 'config.toml' && isUnderRoot(filePath, codexUserRoot)) {
+    return SourceKind.CodexConfigToml;
+  }
+  const codexRules = path.join(codexUserRoot, 'rules');
+  if (basename.endsWith('.rules') && isUnderRoot(filePath, codexRules)) {
+    return SourceKind.CodexRulesFile;
   }
   if (basename === 'copilot-instructions.md' && normalized.includes('/.github/')) {
     return SourceKind.GithubCopilotInstructionsMd;

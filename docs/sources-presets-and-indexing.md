@@ -86,9 +86,9 @@ When **Sources: Include Home Config** is on, the scanner resolves **user-scope**
 | `claudeConfigDir` | Single Claude Code user root (settings, rules, hooks, skills, `CLAUDE.md`) | `CLAUDE_CONFIG_DIR` (absolute) | `~/.claude` |
 | `geminiConfigDir` | Single Gemini user root (`GEMINI.md`, `antigravity/skills`, etc.) | `GEMINI_CONFIG_DIR` (absolute) | `~/.gemini` |
 | `cursorConfigDir` | Single Cursor user root (`mcp.json`, `rules`, `skills`) | *(none)* | `~/.cursor` |
-| `codexHome` | **Extra** Codex CLI root (unioned with defaults) | *(use `CODEX_HOME` via scanner)* | Always also indexes `~/.codex` and absolute `CODEX_HOME` |
+| `codexHome` | Single Codex CLI user root (`config.toml`, `rules`, home `skills`, etc.) | `CODEX_HOME` (absolute) | `~/.codex` |
 
-**Codex** remains a **union** of multiple roots (`~/.codex`, `CODEX_HOME`, optional `codexHome`). **Claude**, **Gemini**, and **Cursor** use **one effective root** each (setting → env where applicable → default).
+**Claude**, **Gemini**, **Cursor**, and **Codex** each use **one effective root** (setting → env where applicable → default under OS user home).
 
 Implementation: [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`collectHomeSourcePaths`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts), and user-scope kind detection in [`VscodeWorkspaceSourceScanner.ts`](../src/domains/sources/infrastructure/VscodeWorkspaceSourceScanner.ts).
 

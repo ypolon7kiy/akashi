@@ -195,8 +195,8 @@ export interface CollectHomeSourcePathsOptions {
   readonly cursorUserRoot: string;
   /** Absolute user-scope Gemini config directory (may differ from `~/.gemini`). */
   readonly geminiUserRoot: string;
-  /** Extra Codex CLI home directories (absolute, normalized), e.g. from `akashi.sources.codexHome`. */
-  readonly extraCodexHomeRoots?: readonly string[];
+  /** Absolute user-scope Codex CLI directory (may differ from `~/.codex` / `CODEX_HOME`). */
+  readonly codexUserRoot: string;
 }
 
 /**
@@ -208,7 +208,7 @@ export async function collectHomeSourcePaths(
   allowedKinds: ReadonlySet<SourceKindType>,
   options: CollectHomeSourcePathsOptions
 ): Promise<string[]> {
-  const { claudeUserRoot, cursorUserRoot, geminiUserRoot, extraCodexHomeRoots } = options;
+  const { claudeUserRoot, cursorUserRoot, geminiUserRoot, codexUserRoot } = options;
   const paths: string[] = [];
   const seen = new Set<string>();
 
@@ -243,29 +243,13 @@ export async function collectHomeSourcePaths(
     }
   }
 
-  const codexHomeRoots = new Set<string>();
-  codexHomeRoots.add(path.normalize(path.join(homeDir, '.codex')));
-  const codexHomeEnv = process.env.CODEX_HOME?.trim();
-  if (codexHomeEnv && path.isAbsolute(codexHomeEnv)) {
-    codexHomeRoots.add(path.normalize(codexHomeEnv));
-  }
-  if (extraCodexHomeRoots) {
-    for (const r of extraCodexHomeRoots) {
-      if (path.isAbsolute(r)) {
-        codexHomeRoots.add(path.normalize(r));
-      }
-    }
-  }
-  for (const root of codexHomeRoots) {
-    await collectCodexHomeDirectoryPaths(root, allowedKinds, add);
-  }
+  const codexRoot = path.normalize(codexUserRoot);
+  await collectCodexHomeDirectoryPaths(codexRoot, allowedKinds, add);
 
   if (kindsIntersect(allowedKinds, [SourceKind.CodexSkillMd])) {
-    for (const root of codexHomeRoots) {
-      const skillsDir = path.join(root, 'skills');
-      for (const f of await collectSkillMdRecursiveUnderDir(skillsDir)) {
-        add(f);
-      }
+    const codexSkills = path.join(codexRoot, 'skills');
+    for (const f of await collectSkillMdRecursiveUnderDir(codexSkills)) {
+      add(f);
     }
   }
 
