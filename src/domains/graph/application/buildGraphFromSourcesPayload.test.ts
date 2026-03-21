@@ -58,9 +58,13 @@ describe('buildGraphFromSourcesPayload', () => {
 
     expect(nodes.some((n) => n.type === 'tag')).toBe(false);
 
-    expect(edges.some((e) => e.source === graphPresetNodeId('cursor') && e.target === graphLocalityNodeId('cursor', 'project'))).toBe(
-      true
-    );
+    expect(
+      edges.some(
+        (e) =>
+          e.source === graphPresetNodeId('cursor') &&
+          e.target === graphLocalityNodeId('cursor', 'project')
+      )
+    ).toBe(true);
     expect(
       edges.some(
         (e) =>
@@ -87,6 +91,21 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(nodes.some((n) => n.id === cursorFile)).toBe(true);
     expect(nodes.some((n) => n.id === claudeFile)).toBe(true);
     expect(nodes.filter((n) => n.type === 'preset').length).toBe(2);
+  });
+
+  it('applies grid spacing options to node positions', () => {
+    const payload = basePayload();
+    const fileId = graphFileNodeId('cursor', 'project', '/ws/src/AGENTS.md');
+    const defaultPos = buildGraphFromSourcesPayload(payload).nodes.find(
+      (n) => n.id === fileId
+    )?.position;
+    const widePos = buildGraphFromSourcesPayload(payload, {
+      gridCellSize: 20,
+      gridLayerSpacing: 24,
+    }).nodes.find((n) => n.id === fileId)?.position;
+    expect(defaultPos).toBeDefined();
+    expect(widePos).toBeDefined();
+    expect(widePos).not.toEqual(defaultPos);
   });
 
   it('respects enabledPresets filter', () => {

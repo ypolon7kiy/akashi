@@ -1,4 +1,4 @@
-import type { Camera3DConfig, GraphNode3D } from '../../domain/graphTypes';
+import type { Camera3DConfig, CameraAnglePreset, GraphNode3D } from '../../domain/graphTypes';
 import { CAMERA_CONSTANTS } from './Constants';
 
 export interface GraphBounds {
@@ -14,6 +14,12 @@ export interface GraphBounds {
   width: number;
   height: number;
   depth: number;
+}
+
+export interface CameraFitOptions {
+  /** Multiplies fitted camera distance (ioodine ControlPanel default 1.0, range ~0.1–1). */
+  cameraDistanceMultiplier?: number;
+  cameraAnglePreset?: CameraAnglePreset;
 }
 
 export function calculateGraphBounds(nodes: GraphNode3D[]): GraphBounds | null {
@@ -66,12 +72,19 @@ export function getDefaultCameraConfig(): Camera3DConfig {
 
 /**
  * Fit camera using vertical FOV and bounding diagonal (ioodine GraphUtils.calculateCameraFit idea).
- * Replaces span*1.8, which over-pulls the camera for tall multi-layer graphs.
+ * Does not set `autoRotate` / `autoRotateSpeed` — merge from previous UI state in the caller.
  */
-export function cameraFitToBounds(nodes: GraphNode3D[]): Camera3DConfig {
+export function cameraFitToBounds(
+  nodes: GraphNode3D[],
+  options?: CameraFitOptions
+): Omit<Camera3DConfig, 'autoRotate' | 'autoRotateSpeed'> {
   const b = calculateGraphBounds(nodes);
   if (!b) {
-    return getDefaultCameraConfig();
+    const d = getDefaultCameraConfig();
+    const { autoRotate: _a, autoRotateSpeed: _s, ...rest } = d;
+    void _a;
+    void _s;
+    return rest;
   }
 
   const w = b.width;
@@ -93,33 +106,22 @@ export function cameraFitToBounds(nodes: GraphNode3D[]): Camera3DConfig {
   let fov = CAMERA_CONSTANTS.DEFAULT_FOV;
   const depthLevels = new Set(
     nodes.map((n) =>
-      typeof n.layoutDepth === 'number'
-        ? n.layoutDepth
-        : typeof n.depth === 'number'
-          ? n.depth
-          : 0
+      typeof n.layoutDepth === 'number' ? n.layoutDepth : typeof n.depth === 'number' ? n.depth : 0
     )
   ).size;
   if (depthLevels >= 4) {
-    fov = Math.min(
-      fov + CAMERA_CONSTANTS.FIT_FOV_EXTRA_LEVELS_4,
-      CAMERA_CONSTANTS.FIT_FOV_CAP
-    );
+    fov = Math.min(fov + CAMERA_CONSTANTS.FIT_FOV_EXTRA_LEVELS_4, CAMERA_CONSTANTS.FIT_FOV_CAP);
   } else if (depthLevels >= 3) {
-    fov = Math.min(
-      fov + CAMERA_CONSTANTS.FIT_FOV_EXTRA_LEVELS_3,
-      CAMERA_CONSTANTS.FIT_FOV_CAP
-    );
+    fov = Math.min(fov + CAMERA_CONSTANTS.FIT_FOV_EXTRA_LEVELS_3, CAMERA_CONSTANTS.FIT_FOV_CAP);
   }
 
   const fovRad = (fov * Math.PI) / 180;
-  let cameraDistance = (diagonal / 2) / Math.tan(fovRad / 2);
+  let cameraDistance = diagonal / 2 / Math.tan(fovRad / 2);
   cameraDistance *= padding;
 
-  const tall =
-    h > w * 0.85 || h > d * 0.85;
+  const tall = h > w * 0.85 || h > d * 0.85;
   if (tall) {
-    const verticalDistance = (h / 2) / Math.tan(fovRad / 2) * padding;
+    const verticalDistance = (h / 2 / Math.tan(fovRad / 2)) * padding;
     cameraDistance = Math.max(cameraDistance, verticalDistance);
   }
 
@@ -127,20 +129,32 @@ export function cameraFitToBounds(nodes: GraphNode3D[]): Camera3DConfig {
   const maxD = 480;
   cameraDistance = Math.min(Math.max(cameraDistance, minD), maxD);
 
-  const dir = [0.65, 0.45, 0.65] as const;
-  const dirLen = Math.hypot(dir[0], dir[1], dir[2]);
-  const scale = cameraDistance / dirLen;
+  const mult = options?.cameraDistanceMultiplier ?? 1;
+  cameraDistance *= mult;
+
+  const preset = options?.cameraAnglePreset ?? CAMERA_CONSTANTS.DEFAULT_ANGLE_PRESET;
+  const presetPos = CAMERA_CONSTANTS.ANGLE_PRESET_POSITIONS[preset];
+
+  const targetX = b.centerX;
+  let targetY = b.centerY;
+  const targetZ = b.centerZ;
+  if (preset === 'diagonal-2') {
+    targetY = b.centerY - b.height * CAMERA_CONSTANTS.DIAGONAL_2_TARGET_OFFSET_MULTIPLIER;
+  }
+
+  const presetLen = Math.hypot(presetPos[0], presetPos[1], presetPos[2]);
+  const scale = presetLen > 0 ? cameraDistance / presetLen : 1;
+  const position: [number, number, number] = [
+    targetX + presetPos[0] * scale,
+    targetY + presetPos[1] * scale,
+    targetZ + presetPos[2] * scale,
+  ];
 
   return {
-    position: [
-      b.centerX + dir[0] * scale,
-      b.centerY + dir[1] * scale,
-      b.centerZ + dir[2] * scale,
-    ],
-    target: [b.centerX, b.centerY, b.centerZ],
+    position,
+    target: [targetX, targetY, targetZ],
     fov,
     near: CAMERA_CONSTANTS.DEFAULT_NEAR,
     far: CAMERA_CONSTANTS.DEFAULT_FAR,
-    autoRotate: false,
   };
 }

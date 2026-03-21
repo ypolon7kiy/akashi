@@ -85,7 +85,14 @@ describe('applyPointedFocusVisibility', () => {
   ];
 
   const edges: GraphEdge3D[] = [
-    e({ id: 'e0', source: presetCursor, target: locProj, type: 'contains', strength: 1, opacity: 0.6 }),
+    e({
+      id: 'e0',
+      source: presetCursor,
+      target: locProj,
+      type: 'contains',
+      strength: 1,
+      opacity: 0.6,
+    }),
     e({ id: 'e1', source: locProj, target: fWs, type: 'contains', strength: 1, opacity: 0.6 }),
     e({ id: 'e2', source: fWs, target: fWsSrc, type: 'contains', strength: 1, opacity: 0.6 }),
     e({ id: 'e3', source: fWsSrc, target: nA, type: 'contains', strength: 1, opacity: 0.6 }),

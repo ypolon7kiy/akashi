@@ -10,6 +10,8 @@ interface EdgeRendererProps {
   sourceNode: GraphNode3D;
   targetNode: GraphNode3D;
   isPointed: boolean;
+  /** Multiplier on computed line thickness (default 1). */
+  thicknessScale?: number;
 }
 
 const EdgeRendererComponent: React.FC<EdgeRendererProps> = ({
@@ -17,18 +19,23 @@ const EdgeRendererComponent: React.FC<EdgeRendererProps> = ({
   sourceNode,
   targetNode,
   isPointed,
+  thicknessScale = 1,
 }) => {
   const lineRef = useRef<THREE.Line>(null);
   const color = getEdgeColor(isPointed);
   const opacity = calculateEdgeOpacity(edge, isPointed);
-  const thickness = calculateEdgeThickness(edge, isPointed);
+  const thickness = calculateEdgeThickness(edge, isPointed) * thicknessScale;
 
   const direction = new THREE.Vector3(
     targetNode.position[0] - sourceNode.position[0],
     targetNode.position[1] - sourceNode.position[1],
     targetNode.position[2] - sourceNode.position[2]
   );
-  direction.normalize();
+  if (direction.lengthSq() < 1e-12) {
+    direction.set(0, 1, 0);
+  } else {
+    direction.normalize();
+  }
   const sr = sourceNode.size;
   const tr = targetNode.size;
   const edgeStart = new THREE.Vector3(
@@ -57,7 +64,11 @@ const EdgeRendererComponent: React.FC<EdgeRendererProps> = ({
         targetNode.position[1] - sourceNode.position[1],
         targetNode.position[2] - sourceNode.position[2]
       );
-      dir.normalize();
+      if (dir.lengthSq() < 1e-12) {
+        dir.set(0, 1, 0);
+      } else {
+        dir.normalize();
+      }
       const sR = sourceNode.size;
       const tR = targetNode.size;
       const start = new THREE.Vector3(
@@ -106,6 +117,7 @@ export const EdgeRenderer = memo(EdgeRendererComponent, (prev, next) => {
     prev.targetNode.position[0] === next.targetNode.position[0] &&
     prev.targetNode.position[1] === next.targetNode.position[1] &&
     prev.targetNode.position[2] === next.targetNode.position[2] &&
-    prev.isPointed === next.isPointed
+    prev.isPointed === next.isPointed &&
+    (prev.thicknessScale ?? 1) === (next.thicknessScale ?? 1)
   );
 });

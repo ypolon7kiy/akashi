@@ -56,4 +56,13 @@ export const CAMERA_CONSTANTS = {
   FIT_FOV_EXTRA_LEVELS_3: 10,
   FIT_FOV_EXTRA_LEVELS_4: 15,
   FIT_FOV_CAP: 90,
+
+  /** Camera angle presets (relative offsets; scaled by fit distance). Aligned with ioodine GraphView3D. */
+  ANGLE_PRESET_POSITIONS: {
+    diagonal: [30, 23, 38] as [number, number, number],
+    'diagonal-2': [30, -23, 38] as [number, number, number],
+  },
+  DEFAULT_ANGLE_PRESET: 'diagonal' as const,
+  /** For diagonal-2, lower orbit target on Y so content stays framed (ioodine-style). */
+  DIAGONAL_2_TARGET_OFFSET_MULTIPLIER: 0.25,
 } as const;

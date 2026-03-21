@@ -4,15 +4,10 @@ import React, { memo, useCallback, useEffect, useRef } from 'react';
 import type { GraphNode3D } from '../../../domain/graphTypes';
 import { getHoverColor, getNodeColor, UI_COLORS } from '../colors';
 import { GEOMETRY_CONSTANTS } from '../Constants';
-import { frameRateController } from '../FrameRateController';
 
 function labelLinesForNode(node: GraphNode3D): string[] {
   const raw =
-    node.formattedTextLines.length > 0
-      ? node.formattedTextLines
-      : node.label
-        ? [node.label]
-        : [];
+    node.formattedTextLines.length > 0 ? node.formattedTextLines : node.label ? [node.label] : [];
   return raw.map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
@@ -20,12 +15,15 @@ function labelLinesForNode(node: GraphNode3D): string[] {
 const NodeLabelHtml: React.FC<{
   textLines: string[];
   position: [number, number, number];
-}> = ({ textLines, position }) => {
+  /** Remount Html when world layout changes so drei screen projection re-syncs. */
+  layoutSyncKey: string;
+}> = ({ textLines, position, layoutSyncKey }) => {
   if (textLines.length === 0) {
     return null;
   }
   return (
     <Html
+      key={layoutSyncKey}
       position={position}
       center
       pointerEvents="none"
@@ -68,20 +66,8 @@ const NodeRendererComponent: React.FC<NodeRendererProps> = ({
   showLabels,
   isRotating,
 }) => {
-  const groupRef = useRef<THREE.Group>(null);
   const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const doubleClickPendingRef = useRef(false);
-
-  useEffect(() => {
-    const unregister = frameRateController.registerCallback(() => {
-      if (!node.isVisible || !groupRef.current) {
-        return;
-      }
-      groupRef.current.position.set(node.position[0], node.position[1], node.position[2]);
-      groupRef.current.scale.setScalar(1);
-    });
-    return unregister;
-  }, [node.isVisible, node.position]);
 
   useEffect(() => {
     return () => {
@@ -156,13 +142,13 @@ const NodeRendererComponent: React.FC<NodeRendererProps> = ({
   );
 
   if (!node.isVisible) {
-    return <group ref={groupRef} position={node.position} visible={false} />;
+    return <group position={node.position} visible={false} />;
   }
 
   const nodeColor = node.isPointed ? getHoverColor(node.type) : getNodeColor(node.type);
 
   return (
-    <group ref={groupRef} position={node.position}>
+    <group position={node.position}>
       <mesh
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -183,6 +169,7 @@ const NodeRendererComponent: React.FC<NodeRendererProps> = ({
       </mesh>
       {showLabels ? (
         <NodeLabelHtml
+          layoutSyncKey={`${node.id}:${node.position[0]},${node.position[1]},${node.position[2]}`}
           textLines={labelLinesForNode(node)}
           position={[0, node.size + GEOMETRY_CONSTANTS.LABEL_OFFSET_Y, 0]}
         />

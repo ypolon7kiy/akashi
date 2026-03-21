@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
 import { appendLine } from '../../../../log';
+import {
+  GRAPH_VIEW_SETTINGS_GLOBAL_STATE_KEY,
+  defaultGraphWebviewPersistedState,
+  parseGraphWebviewPersistedState,
+} from '../../webview/graphViewSettings';
 import { GraphMessageType } from '../../webview/messages';
 import type { GraphPanelEnvironment } from '../graphPanelEnvironment';
 
@@ -26,7 +31,7 @@ export class GraphPanel {
       localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'graph')],
     });
 
-    GraphPanel.currentPanel = new GraphPanel(panel, extensionUri, env);
+    GraphPanel.currentPanel = new GraphPanel(panel, extensionUri, env, context);
     context.subscriptions.push(panel);
   }
 
@@ -40,7 +45,8 @@ export class GraphPanel {
   private constructor(
     public readonly panel: vscode.WebviewPanel,
     private readonly extensionUri: vscode.Uri,
-    initialEnv: GraphPanelEnvironment
+    initialEnv: GraphPanelEnvironment,
+    private readonly extensionContext: vscode.ExtensionContext
   ) {
     this.panel.webview.html = this.getHtml(this.panel.webview);
     this.panel.onDidDispose(() => this.onDispose());
@@ -51,6 +57,15 @@ export class GraphPanel {
           if (this.snapshotEnv) {
             await this.pushSnapshot(this.snapshotEnv);
           }
+          this.postViewSettings();
+          return;
+        }
+        if (message?.type === GraphMessageType.SaveViewSettings) {
+          const parsed = parseGraphWebviewPersistedState(message.payload);
+          await this.extensionContext.globalState.update(
+            GRAPH_VIEW_SETTINGS_GLOBAL_STATE_KEY,
+            parsed
+          );
           return;
         }
         if (message?.type === GraphMessageType.OpenPath) {
@@ -103,6 +118,19 @@ export class GraphPanel {
     );
     await this.panel.webview.postMessage({
       type: GraphMessageType.Snapshot,
+      payload,
+    });
+  }
+
+  /** Send persisted UI settings (defaults if unset). Call after webview is listening (e.g. WebviewReady). */
+  private postViewSettings(): void {
+    const raw = this.extensionContext.globalState.get(GRAPH_VIEW_SETTINGS_GLOBAL_STATE_KEY);
+    const payload =
+      raw !== undefined && raw !== null
+        ? parseGraphWebviewPersistedState(raw)
+        : defaultGraphWebviewPersistedState();
+    void this.panel.webview.postMessage({
+      type: GraphMessageType.ViewSettings,
       payload,
     });
   }

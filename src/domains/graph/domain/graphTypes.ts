@@ -62,6 +62,9 @@ export interface GraphEdge3D {
   color?: string;
 }
 
+/** Diagonal orbit presets only (from above vs from below). */
+export type CameraAnglePreset = 'diagonal' | 'diagonal-2';
+
 export interface Camera3DConfig {
   position: [number, number, number];
   target: [number, number, number];

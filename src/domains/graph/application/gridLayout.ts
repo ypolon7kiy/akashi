@@ -60,13 +60,17 @@ export function applyGridLayout(
   const cellSize = options?.cellSize ?? 6;
   const layerSpacing = options?.layerSpacing ?? 12;
 
-  const positioned = nodes.map((n) => ({ ...n }));
+  // Clone `position` so layout writes never mutate builder-owned tuples; avoids memo + R3F stale props
+  // when shallow copies shared the same array reference as upstream nodes.
+  const positioned = nodes.map((n) => ({
+    ...n,
+    position: [n.position[0], n.position[1], n.position[2]] as [number, number, number],
+  }));
   const depthBuckets = new Map<number, GraphNode3D[]>();
   let maxLayout = 0;
 
   for (const n of positioned) {
-    const d =
-      typeof n.layoutDepth === 'number' ? n.layoutDepth : inferLayoutDepth(n, positioned);
+    const d = typeof n.layoutDepth === 'number' ? n.layoutDepth : inferLayoutDepth(n, positioned);
     maxLayout = Math.max(maxLayout, d);
     let bucket = depthBuckets.get(d);
     if (!bucket) {

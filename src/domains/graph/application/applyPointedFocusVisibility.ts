@@ -58,7 +58,9 @@ export function applyPointedFocusVisibility(
     }
     visible.add(pointed.id);
     if (pointed.graphPresetId) {
-      const pre = nodes.find((n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId);
+      const pre = nodes.find(
+        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
+      );
       if (pre) {
         visible.add(pre.id);
       }

@@ -1,9 +1,9 @@
 import { Canvas } from '@react-three/fiber';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { Camera3DConfig, GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { applyPointedFocusVisibility } from '../../application/applyPointedFocusVisibility';
-import { cameraFitToBounds, getDefaultCameraConfig } from './cameraFit';
+import { cameraFitToBounds, getDefaultCameraConfig, type CameraFitOptions } from './cameraFit';
 import { getDefaultLightingConfig, LightingSystem } from './rendering/LightingSystem';
 import { CameraSystem } from './rendering/CameraSystem';
 import { NodeRenderer } from './rendering/NodeRenderer';
@@ -18,6 +18,11 @@ interface GraphCanvasProps {
   edges: GraphEdge3D[];
   /** Shown over the canvas when there are no nodes (helps diagnose empty index vs WebGL). */
   emptyHint: string | null;
+  showLabels?: boolean;
+  showEdges?: boolean;
+  autoRotate?: boolean;
+  autoRotateSpeed?: number;
+  cameraFitOptions?: CameraFitOptions;
 }
 
 function centerCameraOnNode(
@@ -40,7 +45,16 @@ function resolveFsPath(node: GraphNode3D): string {
   return node.id;
 }
 
-export const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, edges, emptyHint }) => {
+export const GraphCanvas: React.FC<GraphCanvasProps> = ({
+  nodes,
+  edges,
+  emptyHint,
+  showLabels = true,
+  showEdges = true,
+  autoRotate = false,
+  autoRotateSpeed = CAMERA_CONSTANTS.DEFAULT_AUTO_ROTATE_SPEED,
+  cameraFitOptions,
+}) => {
   const [cameraConfig, setCameraConfig] = useState<Camera3DConfig>(getDefaultCameraConfig);
   const [lightingConfig] = useState(getDefaultLightingConfig);
   const [pointedId, setPointedId] = useState<string | null>(null);
@@ -51,19 +65,46 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, edges, emptyHin
     node: GraphNode3D;
   } | null>(null);
 
+  const autoRotateRef = useRef(autoRotate);
+  const autoRotateSpeedRef = useRef(autoRotateSpeed);
+  autoRotateRef.current = autoRotate;
+  autoRotateSpeedRef.current = autoRotateSpeed;
+
   useEffect(() => {
+    const speed = autoRotateSpeedRef.current ?? CAMERA_CONSTANTS.DEFAULT_AUTO_ROTATE_SPEED;
     if (nodes.length === 0) {
-      setCameraConfig(getDefaultCameraConfig());
+      setCameraConfig({
+        ...getDefaultCameraConfig(),
+        autoRotate: autoRotateRef.current,
+        autoRotateSpeed: speed,
+      });
       return;
     }
-    setCameraConfig(cameraFitToBounds(nodes));
-  }, [nodes]);
+    setCameraConfig({
+      ...cameraFitToBounds(nodes, cameraFitOptions),
+      autoRotate: autoRotateRef.current,
+      autoRotateSpeed: speed,
+    });
+  }, [nodes, cameraFitOptions]);
+
+  useEffect(() => {
+    const speed = autoRotateSpeed ?? CAMERA_CONSTANTS.DEFAULT_AUTO_ROTATE_SPEED;
+    setCameraConfig((prev) => ({ ...prev, autoRotate, autoRotateSpeed: speed }));
+  }, [autoRotate, autoRotateSpeed]);
 
   useEffect(() => {
     const close = (): void => setContextMenu(null);
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
   }, []);
+
+  /**
+   * Hover focus (`pointedId`) filters edges. When layout or camera fit changes, node spheres move
+   * in world space but the pointer often never receives pointerout — stale focus hides most edges.
+   */
+  useEffect(() => {
+    setPointedId(null);
+  }, [nodes, cameraFitOptions]);
 
   const { nodes: focusNodes, edges: focusEdges } = useMemo(
     () => applyPointedFocusVisibility(nodes, edges, pointedId),
@@ -124,6 +165,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, edges, emptyHin
 
   const handleCanvasPointerMissed = useCallback(() => {
     setContextMenu(null);
+    setPointedId(null);
   }, []);
 
   return (
@@ -213,22 +255,24 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, edges, emptyHin
           onRotationStart={() => setIsRotating(true)}
           onRotationEnd={() => setIsRotating(false)}
         />
-        {edgesRendered.map((edge) => {
-          const src = nodesMap.get(edge.source);
-          const tgt = nodesMap.get(edge.target);
-          if (!src || !tgt) {
-            return null;
-          }
-          return (
-            <EdgeRenderer
-              key={edge.id}
-              edge={edge}
-              sourceNode={src}
-              targetNode={tgt}
-              isPointed={edge.isPointed}
-            />
-          );
-        })}
+        {showEdges
+          ? edgesRendered.map((edge) => {
+              const src = nodesMap.get(edge.source);
+              const tgt = nodesMap.get(edge.target);
+              if (!src || !tgt) {
+                return null;
+              }
+              return (
+                <EdgeRenderer
+                  key={edge.id}
+                  edge={edge}
+                  sourceNode={src}
+                  targetNode={tgt}
+                  isPointed={edge.isPointed}
+                />
+              );
+            })
+          : null}
         {nodesRendered.map((node) => (
           <NodeRenderer
             key={node.id}
@@ -237,7 +281,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ nodes, edges, emptyHin
             onDoubleClick={handleNodeDoubleClick}
             onPoint={handlePoint}
             onContextMenu={handleNodeContextMenu}
-            showLabels
+            showLabels={showLabels}
             isRotating={isRotating}
           />
         ))}

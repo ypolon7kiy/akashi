@@ -1,9 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { JSX } from 'react';
 import { buildGraphFromSourcesPayload } from '../application/buildGraphFromSourcesPayload';
-import type { GraphEdge3D, GraphNode3D } from '../domain/graphTypes';
+import type { CameraAnglePreset, GraphEdge3D, GraphNode3D } from '../domain/graphTypes';
 import { diagnoseInboundSnapshotMessage } from './graphSnapshotDiagnostics';
 import { GraphCanvas } from './graph3d/GraphCanvas';
+import type { CameraFitOptions } from './graph3d/cameraFit';
 import { GraphPresetToggles } from './GraphPresetToggles';
+import { GraphViewControls } from './GraphViewControls';
+import { CAMERA_CONSTANTS } from './graph3d/Constants';
+import { parseGraphWebviewPersistedState } from './graphViewSettings';
 import { GraphMessageType } from './messages';
 import {
   isSourcesSnapshotPayload,
@@ -19,14 +24,52 @@ export function GraphApp(): JSX.Element {
   > | null>(null);
   const [mountTime] = useState(() => new Date().toISOString());
 
+  const [showLabels, setShowLabels] = useState(true);
+  const [showEdges, setShowEdges] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(false);
+  const [gridCellSize, setGridCellSize] = useState(6);
+  const [gridLayerSpacing, setGridLayerSpacing] = useState(12);
+  const [cameraDistance, setCameraDistance] = useState(1);
+  const [cameraAnglePreset, setCameraAnglePreset] = useState<CameraAnglePreset>(
+    CAMERA_CONSTANTS.DEFAULT_ANGLE_PRESET
+  );
+  const [controlsCollapsed, setControlsCollapsed] = useState(true);
+  const [viewSettingsHydrated, setViewSettingsHydrated] = useState(false);
+  const [enabledPresetOverride, setEnabledPresetOverride] = useState<ReadonlySet<string> | null>(
+    null
+  );
+
+  const skipNextViewSettingsPersistRef = useRef(false);
+
+  const hasVscodeApi = useMemo(() => getVscodeApi() != null, []);
+  const sceneReady = viewSettingsHydrated || !hasVscodeApi;
+
   useEffect(() => {
     const vscode = getVscodeApi();
     vscode?.postMessage({ type: GraphMessageType.WebviewReady });
+    if (!vscode) {
+      setViewSettingsHydrated(true);
+    }
   }, []);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>): void => {
       const data = event.data as { type?: string; payload?: unknown };
+      if (data?.type === GraphMessageType.ViewSettings) {
+        const s = parseGraphWebviewPersistedState(data.payload);
+        skipNextViewSettingsPersistRef.current = true;
+        setShowLabels(s.showLabels);
+        setShowEdges(s.showEdges);
+        setAutoRotate(s.autoRotate);
+        setGridCellSize(s.gridCellSize);
+        setGridLayerSpacing(s.gridLayerSpacing);
+        setCameraDistance(s.cameraDistance);
+        setCameraAnglePreset(s.cameraAnglePreset);
+        setControlsCollapsed(s.controlsCollapsed);
+        setEnabledPresetOverride(s.enabledPresets === null ? null : new Set(s.enabledPresets));
+        setViewSettingsHydrated(true);
+        return;
+      }
       if (data?.type !== GraphMessageType.Snapshot) {
         return;
       }
@@ -54,20 +97,70 @@ export function GraphApp(): JSX.Element {
     return [...s].sort();
   }, [snapshot]);
 
-  const [enabledPresetOverride, setEnabledPresetOverride] = useState<ReadonlySet<string> | null>(
-    null
-  );
-
   const effectiveEnabledPresets = enabledPresetOverride;
 
+  useEffect(() => {
+    if (!viewSettingsHydrated) {
+      return;
+    }
+    if (skipNextViewSettingsPersistRef.current) {
+      skipNextViewSettingsPersistRef.current = false;
+      return;
+    }
+    const vscode = getVscodeApi();
+    if (!vscode) {
+      return;
+    }
+    const t = window.setTimeout(() => {
+      vscode.postMessage({
+        type: GraphMessageType.SaveViewSettings,
+        payload: {
+          showLabels,
+          showEdges,
+          autoRotate,
+          gridCellSize,
+          gridLayerSpacing,
+          cameraDistance,
+          cameraAnglePreset,
+          controlsCollapsed,
+          enabledPresets: enabledPresetOverride === null ? null : [...enabledPresetOverride].sort(),
+        },
+      });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [
+    viewSettingsHydrated,
+    showLabels,
+    showEdges,
+    autoRotate,
+    gridCellSize,
+    gridLayerSpacing,
+    cameraDistance,
+    cameraAnglePreset,
+    controlsCollapsed,
+    enabledPresetOverride,
+  ]);
+
   const model = useMemo(
-    () => buildGraphFromSourcesPayload(snapshot, { enabledPresets: effectiveEnabledPresets }),
-    [snapshot, effectiveEnabledPresets]
+    () =>
+      buildGraphFromSourcesPayload(snapshot, {
+        enabledPresets: effectiveEnabledPresets,
+        gridCellSize,
+        gridLayerSpacing,
+      }),
+    [snapshot, effectiveEnabledPresets, gridCellSize, gridLayerSpacing]
+  );
+
+  const cameraFitOptions = useMemo(
+    () => ({
+      cameraDistanceMultiplier: cameraDistance,
+      cameraAnglePreset,
+    }),
+    [cameraDistance, cameraAnglePreset]
   );
 
   const isPresetEnabled = useCallback(
-    (pid: string): boolean =>
-      effectiveEnabledPresets === null || effectiveEnabledPresets.has(pid),
+    (pid: string): boolean => effectiveEnabledPresets === null || effectiveEnabledPresets.has(pid),
     [effectiveEnabledPresets]
   );
 
@@ -122,22 +215,55 @@ export function GraphApp(): JSX.Element {
         <span className="akashi-graph-status">{statusText}</span>
       </header>
       <div className="akashi-graph-scene">
-        <GraphScene
-          nodes={model.nodes}
-          edges={model.edges}
-          emptyHint={buildEmptyHint(snapshot, model, {
-            allPresetsHidden:
-              !!snapshot &&
-              snapshot.records.length > 0 &&
-              snapshotPresetIds.length > 0 &&
-              effectiveEnabledPresets !== null &&
-              effectiveEnabledPresets.size === 0,
-            noPresetsOnRecords:
-              !!snapshot &&
-              snapshot.records.length > 0 &&
-              snapshotPresetIds.length === 0,
-          })}
-        />
+        <div className="akashi-graph-scene-stack">
+          {sceneReady ? (
+            <>
+              <GraphScene
+                nodes={model.nodes}
+                edges={model.edges}
+                emptyHint={buildEmptyHint(snapshot, model, {
+                  allPresetsHidden:
+                    !!snapshot &&
+                    snapshot.records.length > 0 &&
+                    snapshotPresetIds.length > 0 &&
+                    effectiveEnabledPresets !== null &&
+                    effectiveEnabledPresets.size === 0,
+                  noPresetsOnRecords:
+                    !!snapshot && snapshot.records.length > 0 && snapshotPresetIds.length === 0,
+                })}
+                showLabels={showLabels}
+                showEdges={showEdges}
+                autoRotate={autoRotate}
+                cameraFitOptions={cameraFitOptions}
+              />
+              <GraphViewControls
+                showLabels={showLabels}
+                onShowLabelsChange={setShowLabels}
+                showEdges={showEdges}
+                onShowEdgesChange={setShowEdges}
+                autoRotate={autoRotate}
+                onAutoRotateChange={setAutoRotate}
+                gridCellSize={gridCellSize}
+                onGridCellSizeChange={setGridCellSize}
+                gridLayerSpacing={gridLayerSpacing}
+                onGridLayerSpacingChange={setGridLayerSpacing}
+                cameraDistance={cameraDistance}
+                onCameraDistanceChange={setCameraDistance}
+                cameraAnglePreset={cameraAnglePreset}
+                onCameraAnglePresetChange={setCameraAnglePreset}
+                controlsCollapsed={controlsCollapsed}
+                onControlsCollapsedChange={setControlsCollapsed}
+              />
+            </>
+          ) : (
+            <div className="akashi-graph-scene-stack__loading" role="status" aria-live="polite">
+              <span className="akashi-graph-scene-stack__loading-text">Loading graph view…</span>
+              <span className="akashi-graph-scene-stack__loading-hint">
+                Restoring saved layout and camera settings.
+              </span>
+            </div>
+          )}
+        </div>
       </div>
       <details className="akashi-graph-debug">
         <summary className="akashi-graph-debug-summary">Graph debug</summary>
@@ -229,11 +355,30 @@ function GraphScene({
   nodes,
   edges,
   emptyHint,
+  showLabels,
+  showEdges,
+  autoRotate,
+  cameraFitOptions,
 }: {
   nodes: GraphNode3D[];
   edges: GraphEdge3D[];
   emptyHint: string | null;
+  showLabels: boolean;
+  showEdges: boolean;
+  autoRotate: boolean;
+  cameraFitOptions: CameraFitOptions;
 }): JSX.Element {
   const key = nodes.length === 0 ? 'empty' : 'graph';
-  return <GraphCanvas key={key} nodes={nodes} edges={edges} emptyHint={emptyHint} />;
+  return (
+    <GraphCanvas
+      key={key}
+      nodes={nodes}
+      edges={edges}
+      emptyHint={emptyHint}
+      showLabels={showLabels}
+      showEdges={showEdges}
+      autoRotate={autoRotate}
+      cameraFitOptions={cameraFitOptions}
+    />
+  );
 }

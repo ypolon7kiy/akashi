@@ -109,6 +109,10 @@ function folderChainForFile(filePath: string, workspaceRoots: readonly string[])
 export interface BuildSourcesGraphOptions {
   /** If set, only buckets for these preset ids are built. */
   enabledPresets?: ReadonlySet<string> | null;
+  /** Grid horizontal cell spacing (see {@link applyGridLayout} default 6). */
+  gridCellSize?: number;
+  /** Grid vertical spacing between depth layers (see {@link applyGridLayout} default 12). */
+  gridLayerSpacing?: number;
 }
 
 export interface SourcesGraphModel {
@@ -328,6 +332,9 @@ export function buildGraphFromSourcesPayload(
     }
   }
 
-  const positioned = applyGridLayout(nodes, edges);
+  const positioned = applyGridLayout(nodes, edges, {
+    cellSize: options?.gridCellSize,
+    layerSpacing: options?.gridLayerSpacing,
+  });
   return { nodes: positioned, edges };
 }
