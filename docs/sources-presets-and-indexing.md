@@ -77,7 +77,7 @@ Each built-in tool preset is defined under [`src/domains/sources/presets/`](../s
 2. Import the definition into [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts) and append it to **`SOURCE_PRESET_DEFINITIONS`** (order matters for classifier fall-through). Its **`homePathTasks`** are picked up automatically into **`HOME_PATH_TASKS`**; only **shared** user-home work (e.g. Copilot, home `AGENTS.md`) is still listed explicitly next to `HOME_PATH_TASKS`.
 3. Extend **`SourcePresetId`** and the **`SourcePresetId`** const object in [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts) if you introduce a new id string.
 4. Add the same id to the **`akashi.sources.presets`** `enum` in [`package.json`](../package.json) (VS Code contribution metadata cannot import TypeScript).
-5. If the tool uses a custom user config directory, extend [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts), and `package.json` properties as needed.
+5. If the tool uses a custom user config directory, extend [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts), and `akashi.sources.homePathOverrides` in [`package.json`](../package.json) as needed.
 6. Add new **`SourceKind`** values in [`model.ts`](../src/domains/sources/domain/model.ts) only when the artifact type is new; extend [`classifyPaths.test.ts`](../src/domains/sources/classifyPaths.test.ts) for classification order (especially `SKILL.md`).
 
 ### Catalog index (no file body in the snapshot)
@@ -90,14 +90,16 @@ Snapshots are persisted under `sources.lastSnapshot.v2` in extension global stat
 
 When **Sources: Include Home Config** is on, the scanner resolves **user-scope** tool directories as follows (VS Code settings win over environment variables when set; the extension host only sees env vars that were present when VS Code launched—often not the same as an interactive shell).
 
-| Setting (`akashi.sources.*`) | Role | Env fallback (if setting empty) | Default directory |
-|-------------------------------|------|-----------------------------------|-------------------|
-| `claudeConfigDir` | Single Claude Code user root (settings, rules, hooks, skills, `CLAUDE.md`) | `CLAUDE_CONFIG_DIR` (absolute) | `~/.claude` |
-| `geminiConfigDir` | Single Gemini user root (`GEMINI.md`, `antigravity/skills`, etc.) | `GEMINI_CONFIG_DIR` (absolute) | `~/.gemini` |
-| `cursorConfigDir` | Single Cursor user root (`mcp.json`, `rules`, `skills`) | *(none)* | `~/.cursor` |
-| `codexHome` | Single Codex CLI user root (`config.toml`, `rules`, home `skills`, etc.) | `CODEX_HOME` (absolute) | `~/.codex` |
+| `homePathOverrides` key | Role | Env fallback (if override empty) | Default directory |
+|-------------------------|------|-----------------------------------|-------------------|
+| `claude` | Single Claude Code user root (settings, rules, hooks, skills, `CLAUDE.md`) | `CLAUDE_CONFIG_DIR` (absolute) | `~/.claude` |
+| `gemini` | Single Gemini user root (`GEMINI.md`, `antigravity/skills`, etc.) | `GEMINI_CONFIG_DIR` (absolute) | `~/.gemini` |
+| `cursor` | Single Cursor user root (`mcp.json`, `rules`, `skills`) | *(none)* | `~/.cursor` |
+| `codex` | Single Codex CLI user root (`config.toml`, `rules`, home `skills`, etc.) | `CODEX_HOME` (absolute) | `~/.codex` |
 
-**Claude**, **Gemini**, **Cursor**, and **Codex** each use **one effective root** (setting → env where applicable → default under OS user home).
+Configure these under **`akashi.sources.homePathOverrides`** in Settings.
+
+**Claude**, **Gemini**, **Cursor**, and **Codex** each use **one effective root** (override → env where applicable → default under OS user home).
 
 Implementation: [`providerUserRoots.ts`](../src/domains/sources/infrastructure/providerUserRoots.ts), [`collectHomeSourcePaths`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts) (runs [`HOME_PATH_TASKS`](../src/domains/sources/registerSourcePresets.ts) in parallel via `Promise.all`), and user/workspace path classification in [`classifySourcePath.ts`](../src/domains/sources/infrastructure/classifySourcePath.ts) (used by [`VscodeWorkspaceSourceScanner.ts`](../src/domains/sources/infrastructure/VscodeWorkspaceSourceScanner.ts)).
 
@@ -105,5 +107,5 @@ Implementation: [`providerUserRoots.ts`](../src/domains/sources/infrastructure/p
 
 - Preset registry: [`registerSourcePresets.ts`](../src/domains/sources/registerSourcePresets.ts), per-preset folders under [`presets/`](../src/domains/sources/presets/)
 - Presets from VS Code: [`vscodeSourcePresetConfig.ts`](../src/domains/sources/infrastructure/vscodeSourcePresetConfig.ts) (`ALL_SOURCE_PRESET_IDS` / `isSourcePresetId` follow the registry via [`sourcePresets.ts`](../src/domains/sources/domain/sourcePresets.ts))
-- Globs and home paths: [`sourceDiscoveryPlan.ts`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts); optional `akashi.sources.*` directory strings: [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts) + [`userConfigDirPath.ts`](../src/domains/sources/infrastructure/userConfigDirPath.ts).
+- Globs and home paths: [`sourceDiscoveryPlan.ts`](../src/domains/sources/infrastructure/sourceDiscoveryPlan.ts); optional `akashi.sources.homePathOverrides`: [`vscodeSourcesDirSettings.ts`](../src/domains/sources/infrastructure/vscodeSourcesDirSettings.ts) + [`userConfigDirPath.ts`](../src/domains/sources/infrastructure/userConfigDirPath.ts).
 - Service wiring: [`createSourcesService.ts`](../src/domains/sources/infrastructure/createSourcesService.ts)

@@ -12,7 +12,7 @@ export type { ToolUserRoots } from '../domain/toolUserRoots';
 /**
  * Effective user-scope config directories for tools that support non-default locations
  * (VS Code settings override env when set; env is only visible if the extension host inherited it).
- * Optional directory strings are read in `vscodeSourcesDirSettings.ts` (`resolveOptionalUserConfigDir`).
+ * Optional directory strings are read in `vscodeSourcesDirSettings.ts` (`homePathOverrides`, `resolveOptionalUserConfigDir`).
  */
 export function readToolUserRoots(homeDir: string): ToolUserRoots {
   return {

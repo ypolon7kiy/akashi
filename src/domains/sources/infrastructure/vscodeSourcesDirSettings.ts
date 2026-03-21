@@ -1,33 +1,37 @@
 import * as vscode from 'vscode';
 import { resolveOptionalUserConfigDir } from './userConfigDirPath';
 
-type OptionalDirSettingKey =
-  | 'codexHome'
-  | 'claudeConfigDir'
-  | 'geminiConfigDir'
-  | 'cursorConfigDir';
+/** Keys under `akashi.sources.homePathOverrides`. */
+type HomePathOverrideTool = 'claude' | 'codex' | 'cursor' | 'gemini';
 
-function readOptionalSourcesDir(key: OptionalDirSettingKey, homeDir: string): string | null {
-  const raw = vscode.workspace.getConfiguration('akashi.sources').get<string>(key);
-  return resolveOptionalUserConfigDir(raw, homeDir);
+function readRawHomePathOverride(tool: HomePathOverrideTool): string | undefined {
+  const obj = vscode.workspace
+    .getConfiguration('akashi.sources')
+    .get<Partial<Record<HomePathOverrideTool, unknown>>>('homePathOverrides');
+  const v = obj?.[tool];
+  return typeof v === 'string' ? v : undefined;
 }
 
-/** Optional Codex CLI user root from `akashi.sources.codexHome` (before env/default fallback). */
+function readOptionalSourcesDirForTool(tool: HomePathOverrideTool, homeDir: string): string | null {
+  return resolveOptionalUserConfigDir(readRawHomePathOverride(tool), homeDir);
+}
+
+/** Optional Codex CLI user root from `akashi.sources.homePathOverrides.codex`, before env/default fallback. */
 export function readCodexHomeSettingPath(homeDir: string): string | null {
-  return readOptionalSourcesDir('codexHome', homeDir);
+  return readOptionalSourcesDirForTool('codex', homeDir);
 }
 
-/** Optional Claude Code user root from `akashi.sources.claudeConfigDir` (before env/default fallback). */
+/** Optional Claude Code user root from `akashi.sources.homePathOverrides.claude`, before env/default fallback. */
 export function readClaudeConfigDirSettingPath(homeDir: string): string | null {
-  return readOptionalSourcesDir('claudeConfigDir', homeDir);
+  return readOptionalSourcesDirForTool('claude', homeDir);
 }
 
-/** Optional Gemini user root from `akashi.sources.geminiConfigDir` (before env/default fallback). */
+/** Optional Gemini user root from `akashi.sources.homePathOverrides.gemini`, before env/default fallback. */
 export function readGeminiConfigDirSettingPath(homeDir: string): string | null {
-  return readOptionalSourcesDir('geminiConfigDir', homeDir);
+  return readOptionalSourcesDirForTool('gemini', homeDir);
 }
 
-/** Optional Cursor user root from `akashi.sources.cursorConfigDir` (before default `~/.cursor`). */
+/** Optional Cursor user root from `akashi.sources.homePathOverrides.cursor`, before default `~/.cursor`. */
 export function readCursorConfigDirSettingPath(homeDir: string): string | null {
-  return readOptionalSourcesDir('cursorConfigDir', homeDir);
+  return readOptionalSourcesDirForTool('cursor', homeDir);
 }

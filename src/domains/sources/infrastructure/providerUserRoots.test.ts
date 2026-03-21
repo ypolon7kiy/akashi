@@ -47,7 +47,7 @@ describe('readToolUserRoots', () => {
     });
   });
 
-  it('uses akashi.sources optional dirs when set (absolute paths)', async () => {
+  it('uses akashi.sources.homePathOverrides when set (absolute paths)', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'akashi-roots-'));
     const c = path.join(tmp, 'my-claude');
     const cu = path.join(tmp, 'my-cursor');
@@ -58,10 +58,12 @@ describe('readToolUserRoots', () => {
     await fs.mkdir(g, { recursive: true });
     await fs.mkdir(x, { recursive: true });
 
-    config.set('akashi.sources\0claudeConfigDir', c);
-    config.set('akashi.sources\0cursorConfigDir', cu);
-    config.set('akashi.sources\0geminiConfigDir', g);
-    config.set('akashi.sources\0codexHome', x);
+    config.set('akashi.sources\0homePathOverrides', {
+      claude: c,
+      cursor: cu,
+      gemini: g,
+      codex: x,
+    });
 
     const homeDir = '/unused/for-this-case';
     expect(readToolUserRoots(homeDir)).toEqual({
@@ -74,9 +76,14 @@ describe('readToolUserRoots', () => {
     await fs.rm(tmp, { recursive: true, force: true });
   });
 
-  it('expands tilde in optional dir settings relative to homeDir', () => {
+  it('expands tilde in homePathOverrides relative to homeDir', () => {
     const homeDir = '/Users/me';
-    config.set('akashi.sources\0claudeConfigDir', '~/Library/Claude');
+    config.set('akashi.sources\0homePathOverrides', {
+      claude: '~/Library/Claude',
+      codex: '',
+      cursor: '',
+      gemini: '',
+    });
     expect(readToolUserRoots(homeDir).claudeUserRoot).toBe(
       path.normalize(path.join(homeDir, 'Library/Claude'))
     );
@@ -100,10 +107,15 @@ describe('readToolUserRoots', () => {
     expect(readToolUserRoots('/home/u').codexUserRoot).toBe(path.normalize(override));
   });
 
-  it('setting wins over CLAUDE_CONFIG_DIR env', () => {
+  it('homePathOverrides wins over CLAUDE_CONFIG_DIR env', () => {
     const fromSetting = path.join(os.tmpdir(), 'from-setting');
     process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'from-env');
-    config.set('akashi.sources\0claudeConfigDir', fromSetting);
+    config.set('akashi.sources\0homePathOverrides', {
+      claude: fromSetting,
+      codex: '',
+      cursor: '',
+      gemini: '',
+    });
     expect(readToolUserRoots('/home/u').claudeUserRoot).toBe(path.normalize(fromSetting));
   });
 });

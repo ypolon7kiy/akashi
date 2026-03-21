@@ -117,10 +117,7 @@ export function createSidebarViewProvider(
       const indexingKeysChanged =
         e.affectsConfiguration('akashi.sources.presets') ||
         e.affectsConfiguration('akashi.sources.includeHomeConfig') ||
-        e.affectsConfiguration('akashi.sources.claudeConfigDir') ||
-        e.affectsConfiguration('akashi.sources.codexHome') ||
-        e.affectsConfiguration('akashi.sources.cursorConfigDir') ||
-        e.affectsConfiguration('akashi.sources.geminiConfigDir');
+        e.affectsConfiguration('akashi.sources.homePathOverrides');
       if (!indexingKeysChanged) {
         return;
       }

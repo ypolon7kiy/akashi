@@ -72,29 +72,36 @@
           "default": true,
           "description": "Include user-home tool configs in the index."
         },
-        "akashi.sources.claudeConfigDir": {
-          "type": "string",
+        "akashi.sources.homePathOverrides": {
+          "type": "object",
           "order": 30,
-          "default": "",
-          "description": "Claude user config dir. Absolute or ~/…. Empty: CLAUDE_CONFIG_DIR or ~/.claude."
-        },
-        "akashi.sources.codexHome": {
-          "type": "string",
-          "order": 40,
-          "default": "",
-          "description": "Codex user config dir. Absolute or ~/…. Empty: CODEX_HOME or ~/.codex."
-        },
-        "akashi.sources.cursorConfigDir": {
-          "type": "string",
-          "order": 50,
-          "default": "",
-          "description": "Cursor user config dir. Absolute or ~/…. Empty: ~/.cursor."
-        },
-        "akashi.sources.geminiConfigDir": {
-          "type": "string",
-          "order": 60,
-          "default": "",
-          "description": "Gemini user config dir. Absolute or ~/…. Empty: GEMINI_CONFIG_DIR or ~/.gemini."
+          "title": "Home path overrides",
+          "description": "Optional user config directory per tool. Use absolute paths or ~/…. Empty values use environment variables (where supported) or defaults under the user home directory (e.g. ~/.claude, ~/.cursor).",
+          "additionalProperties": false,
+          "properties": {
+            "claude": {
+              "type": "string",
+              "default": ""
+            },
+            "codex": {
+              "type": "string",
+              "default": ""
+            },
+            "cursor": {
+              "type": "string",
+              "default": ""
+            },
+            "gemini": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          "default": {
+            "claude": "",
+            "codex": "",
+            "cursor": "",
+            "gemini": ""
+          }
         },
         "akashi.sources.sidebar.fileColors": {
           "type": "object",

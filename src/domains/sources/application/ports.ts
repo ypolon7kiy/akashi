@@ -1,9 +1,4 @@
-import type {
-  SourceFacetTag,
-  SourceIndexSnapshot,
-  SourceKind,
-  SourceScope,
-} from '../domain/model';
+import type { SourceFacetTag, SourceIndexSnapshot, SourceKind, SourceScope } from '../domain/model';
 
 export interface DiscoveredSource {
   id: string;

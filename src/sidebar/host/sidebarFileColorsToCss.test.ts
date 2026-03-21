@@ -10,10 +10,7 @@ describe('fileColorsObjectToCssLines', () => {
         skill: 'bad',
         hook: '#f14c4c',
       })
-    ).toEqual([
-      '  --akashi-source-cat-context: #abc;',
-      '  --akashi-source-cat-hook: #f14c4c;',
-    ]);
+    ).toEqual(['  --akashi-source-cat-context: #abc;', '  --akashi-source-cat-hook: #f14c4c;']);
   });
 
   it('returns empty for non-object', () => {

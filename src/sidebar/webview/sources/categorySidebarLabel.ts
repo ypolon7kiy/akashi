@@ -10,7 +10,9 @@ import {
 export type SidebarCategoryMetaModifier = SidebarSourceCategoryKey;
 
 /** Whitelisted CSS suffix for `akashi-tree__meta--cat-*` (missing category / kind fallback → `unknown`). */
-export function sidebarCategoryMetaModifier(categoryFacetValue: string): SidebarCategoryMetaModifier {
+export function sidebarCategoryMetaModifier(
+  categoryFacetValue: string
+): SidebarCategoryMetaModifier {
   return (SIDEBAR_SOURCE_CATEGORY_KEYS as readonly string[]).includes(categoryFacetValue)
     ? (categoryFacetValue as SidebarCategoryMetaModifier)
     : 'unknown';
