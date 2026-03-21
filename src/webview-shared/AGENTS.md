@@ -4,14 +4,14 @@
 - **vscode-tokens.css** – `:root` aliases (`--akashi-*`) mapping to `var(--vscode-*)` so UIs track the active theme.
 - **webview-controls.css** – shared `.akashi-button*` / `.akashi-progress` using VS Code button and progress tokens. Import after `vscode-tokens.css` in each webview entry stylesheet.
 
-Used by the example domain webview (`domains/example/webview/`) and the sidebar webview (`sidebar/webview/`).
+Used by panel webviews (e.g. `domains/graph/webview/`) and the sidebar webview (`sidebar/webview/`).
 
 Message flow (browser → host):
 
 ```
   Browser (webview iframe)                    Extension host
   ┌──────────────────────────┐                ┌──────────────────────────┐
-  │ Example App.tsx          │── postMessage ──▶ ExamplePanel             │
+  │ Graph App.tsx            │── postMessage ──▶ GraphPanel               │
   │ Sidebar App.tsx          │── postMessage ──▶ SidebarViewProvider      │
   └──────────────────────────┘                └──────────────────────────┘
          │ getVscodeApi() (shared)                    │ onDidReceiveMessage (per panel)

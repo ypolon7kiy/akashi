@@ -3,14 +3,8 @@ import { SourceTreeView } from './SourceTreeView';
 import { useSourcesSidebarState } from './useSourcesSidebarState';
 
 export function SourcesSidebarFeature(): JSX.Element {
-  const {
-    isIndexing,
-    records,
-    workspaceFolders,
-    handleShowExample,
-    handleShowGraph,
-    handleIndexSources,
-  } = useSourcesSidebarState();
+  const { isIndexing, records, workspaceFolders, handleShowGraph, handleIndexSources } =
+    useSourcesSidebarState();
 
   return (
     <>
@@ -35,14 +29,6 @@ export function SourcesSidebarFeature(): JSX.Element {
           aria-busy={isIndexing}
         >
           Index sources
-        </button>
-        <button
-          className="akashi-button akashi-button--secondary"
-          type="button"
-          onClick={handleShowExample}
-          disabled={isIndexing}
-        >
-          Open example panel
         </button>
         <button
           className="akashi-button akashi-button--secondary"

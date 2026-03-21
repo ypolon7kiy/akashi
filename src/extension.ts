@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { registerExampleUi } from './domains/example/ui/register';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { GraphPanel, registerGraphUi } from './domains/graph/ui/register';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
@@ -34,7 +33,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const disposables = [
     // Register UI/commands for each domain here
-    ...registerExampleUi(context),
     ...registerGraphUi(context, graphEnv),
     vscode.window.registerWebviewViewProvider(
       'akashi.sidebar',

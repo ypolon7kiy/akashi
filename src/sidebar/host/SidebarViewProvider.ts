@@ -1,7 +1,6 @@
 import { statSync } from 'node:fs';
 import * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
-import { ExamplePanel } from '../../domains/example/ui/webview/ExamplePanel';
 import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
 import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
 import { appendLine } from '../../log';
@@ -170,12 +169,6 @@ export function createSidebarViewProvider(
       webviewView.webview.onDidReceiveMessage(async (message: unknown) => {
         logInboundSidebarMessage(message);
         const typedMessage = message as SidebarRequestMessage;
-        if (typedMessage?.type === SidebarMessageType.ShowExamplePanel) {
-          appendLine('[Akashi] Sidebar: Show example panel requested.');
-          ExamplePanel.createOrShow(context);
-          return;
-        }
-
         if (typedMessage?.type === SidebarMessageType.OpenGraphPanel) {
           appendLine('[Akashi] Sidebar: Open graph panel requested.');
           void vscode.commands.executeCommand('akashi.graph.showPanel');

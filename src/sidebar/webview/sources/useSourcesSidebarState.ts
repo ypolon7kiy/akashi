@@ -15,7 +15,6 @@ export interface SourcesSidebarState {
   isIndexing: boolean;
   records: SourceDescriptor[];
   workspaceFolders: WorkspaceFolderInfo[];
-  handleShowExample: () => void;
   handleShowGraph: () => void;
   handleIndexSources: () => Promise<void>;
 }
@@ -34,13 +33,6 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     if (isSourcesSnapshotPayload(payload)) {
       setRecords([...payload.records]);
       setWorkspaceFolders([...payload.workspaceFolders]);
-    }
-  }, []);
-
-  const handleShowExample = useCallback((): void => {
-    const vscode = getVscodeApi();
-    if (vscode) {
-      vscode.postMessage({ type: SidebarMessageType.ShowExamplePanel });
     }
   }, []);
 
@@ -140,7 +132,6 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     isIndexing,
     records,
     workspaceFolders,
-    handleShowExample,
     handleShowGraph,
     handleIndexSources,
   };

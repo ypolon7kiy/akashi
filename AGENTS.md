@@ -14,8 +14,7 @@ Use these AGENTS for structure and conventions in each area:
 |------|--------|
 | Extension host layout | `src/AGENTS.md` |
 | Domains and layers | `src/domains/AGENTS.md` |
-| Example domain | `src/domains/example/AGENTS.md` |
-| Example webview (React, browser bundle) | `src/domains/example/webview/AGENTS.md` |
+| Graph domain (3D panel) | `src/domains/graph/` (`ui/`, `webview/`) |
 | Shared code (types, utils, vscode) | `src/shared/AGENTS.md` |
 | Sidebar (app-level webview) | `src/sidebar/AGENTS.md` |
 | Webview shared bridge | `src/webview-shared/AGENTS.md` |

@@ -11,7 +11,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:dddExample.example.showPanel",
     "onCommand:akashi.graph.showPanel",
     "onView:akashi.sidebar",
     "onStartupFinished"
@@ -32,19 +31,14 @@
         {
           "type": "webview",
           "id": "akashi.sidebar",
-          "name": "Sidebar"
+          "name": "Akashi"
         }
       ]
     },
     "commands": [
       {
-        "command": "dddExample.example.showPanel",
-        "title": "Akashi: Show Panel",
-        "category": "Akashi"
-      },
-      {
         "command": "akashi.graph.showPanel",
-        "title": "Akashi: Show 3D graph",
+        "title": "Show 3D graph",
         "category": "Akashi"
       }
     ],
