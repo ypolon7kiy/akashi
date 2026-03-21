@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { ExamplePanel } from '../../domains/example/ui/webview/ExamplePanel';
 import type { IndexedSourceEntry, SourceIndexSnapshot } from '../../domains/sources/domain/model';
-import { presetsContainingKind } from '../../domains/sources/domain/sourcePresets';
-import { readActiveSourcePresets } from '../../domains/sources/infrastructure/vscodeSourcePresetConfig';
+import {
+  presetsContainingKind,
+  type ActiveSourcePresetsGetter,
+} from '../../domains/sources/domain/sourcePresets';
 import { appendLine } from '../../log';
 import type {
   SourceDescriptor,
@@ -52,7 +54,8 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
 
 export function createSidebarViewProvider(
   context: vscode.ExtensionContext,
-  sourcesService: SourcesService
+  sourcesService: SourcesService,
+  getActiveSourcePresets: ActiveSourcePresetsGetter
 ): vscode.WebviewViewProvider {
   let activeView: vscode.WebviewView | undefined;
   /** Last successful sidebar index request; used when re-indexing after preset changes. */
@@ -60,7 +63,11 @@ export function createSidebarViewProvider(
 
   async function postFilteredSnapshotPush(webview: vscode.Webview): Promise<void> {
     const snap = await sourcesService.getLastSnapshot();
-    const payload = buildSourcesSnapshotPayload(snap, snapshotWorkspaceFolders());
+    const payload = buildSourcesSnapshotPayload(
+      snap,
+      snapshotWorkspaceFolders(),
+      getActiveSourcePresets
+    );
     await webview.postMessage({
       type: SidebarMessageType.SourcesSnapshotPush,
       payload,
@@ -116,7 +123,7 @@ export function createSidebarViewProvider(
       webviewView.webview.html = getHtml(webviewView.webview, extensionUri);
 
       webviewView.webview.onDidReceiveMessage(async (message: unknown) => {
-        appendLine('[Akashi] Sidebar: received message ' + JSON.stringify(message));
+        logInboundSidebarMessage(message);
         const typedMessage = message as SidebarRequestMessage;
         if (typedMessage?.type === SidebarMessageType.ShowExamplePanel) {
           appendLine('[Akashi] Sidebar: Show example panel requested.');
@@ -133,7 +140,7 @@ export function createSidebarViewProvider(
               await vscode.window.showTextDocument(doc);
             } catch (error) {
               appendLine(
-                `[Akashi] Sidebar: openPath failed path=${filePath} ${error instanceof Error ? error.message : String(error)}`
+                `[Akashi] Sidebar: openPath failed pathLength=${filePath.length} ${error instanceof Error ? error.message : String(error)}`
               );
             }
           }
@@ -149,7 +156,11 @@ export function createSidebarViewProvider(
           if (typedMessage.type === SidebarMessageType.SourcesGetSnapshotRequest) {
             logSourcesCommand(typedMessage.type, requestId);
             const result = await sourcesService.getLastSnapshot();
-            const payload = buildSourcesSnapshotPayload(result, snapshotWorkspaceFolders());
+            const payload = buildSourcesSnapshotPayload(
+              result,
+              snapshotWorkspaceFolders(),
+              getActiveSourcePresets
+            );
             const response: SourcesResponseMessage = {
               type: SidebarMessageType.SourcesResponse,
               requestId,
@@ -173,7 +184,11 @@ export function createSidebarViewProvider(
             const result = await sourcesService.indexWorkspace({
               includeHomeConfig: includeHome,
             });
-            const payload = buildSourcesSnapshotPayload(result, snapshotWorkspaceFolders());
+            const payload = buildSourcesSnapshotPayload(
+              result,
+              snapshotWorkspaceFolders(),
+              getActiveSourcePresets
+            );
             const response: SourcesResponseMessage = {
               type: SidebarMessageType.SourcesResponse,
               requestId,
@@ -235,14 +250,44 @@ function snapshotWorkspaceFolders(): WorkspaceFolderInfo[] {
   );
 }
 
+function logInboundSidebarMessage(message: unknown): void {
+  if (!message || typeof message !== 'object') {
+    appendLine('[Akashi] Sidebar: received non-object message');
+    return;
+  }
+  const m = message as Record<string, unknown>;
+  const type = typeof m.type === 'string' ? m.type : '?';
+  if (type === SidebarMessageType.SourcesOpenPath) {
+    const p = (m.payload as { path?: unknown } | undefined)?.path;
+    const pathLen = typeof p === 'string' ? p.length : 0;
+    appendLine(`[Akashi] Sidebar: received message type=${type} pathLength=${pathLen}`);
+    return;
+  }
+  const requestId = typeof m.requestId === 'string' ? m.requestId : undefined;
+  if (requestId) {
+    const parts: string[] = [];
+    if (type === SidebarMessageType.SourcesIndexWorkspaceRequest) {
+      const pl = m.payload as { includeHomeConfig?: unknown } | undefined;
+      if (pl && typeof pl.includeHomeConfig === 'boolean') {
+        parts.push(`includeHomeConfig=${pl.includeHomeConfig}`);
+      }
+    }
+    const extra = parts.length > 0 ? ` ${parts.join(' ')}` : '';
+    appendLine(`[Akashi] Sidebar: received message type=${type} requestId=${requestId}${extra}`);
+    return;
+  }
+  appendLine(`[Akashi] Sidebar: received message type=${type}`);
+}
+
 function buildSourcesSnapshotPayload(
   snapshot: SourceIndexSnapshot | null,
-  workspaceFolders: WorkspaceFolderInfo[]
+  workspaceFolders: WorkspaceFolderInfo[],
+  getActiveSourcePresets: ActiveSourcePresetsGetter
 ): SourcesSnapshotPayload | null {
   if (!snapshot) {
     return null;
   }
-  const active = readActiveSourcePresets();
+  const active = getActiveSourcePresets();
   const filtered = filterRecordsByPresets(snapshot.records, active);
   return {
     generatedAt: snapshot.generatedAt,

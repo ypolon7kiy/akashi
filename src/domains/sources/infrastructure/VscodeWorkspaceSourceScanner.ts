@@ -14,11 +14,16 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
   public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
     const allowedKinds = options.allowedKinds;
     if (allowedKinds.size === 0) {
+      appendLine('[Akashi][SourcesScanner] scanWorkspace skipped (no allowed kinds)');
       return [];
     }
     const workspaceSources = await this.scanWorkspaceSources(allowedKinds);
     const homeSources = options.includeHomeConfig ? await this.scanHomeSources(allowedKinds) : [];
-    return dedupeByPath([...workspaceSources, ...homeSources]);
+    const deduped = dedupeByPath([...workspaceSources, ...homeSources]);
+    appendLine(
+      `[Akashi][SourcesScanner] scanWorkspace complete sourceCount=${deduped.length} includeHome=${options.includeHomeConfig ?? false}`
+    );
+    return deduped;
   }
 
   private async scanWorkspaceSources(
@@ -49,17 +54,13 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
   }
 
   private toDiscoveredSource(filePath: string, origin: 'workspace' | 'user'): DiscoveredSource {
-    const source: DiscoveredSource = {
+    return {
       id: filePath,
       path: filePath,
       kind: inferSourceKind(filePath),
       scope: origin === 'user' ? SourceScope.User : SourceScope.File,
       origin,
     };
-    appendLine(
-      `[Akashi][SourcesScanner] Found source: kind=${source.kind} origin=${source.origin} path=${source.path}`
-    );
-    return source;
   }
 }
 

@@ -12,7 +12,8 @@
   ],
   "activationEvents": [
     "onCommand:dddExample.example.showPanel",
-    "onView:akashi.sidebar"
+    "onView:akashi.sidebar",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {

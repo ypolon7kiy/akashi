@@ -13,6 +13,9 @@ export const SourcePresetId = {
 
 export type SourcePresetId = (typeof SourcePresetId)[keyof typeof SourcePresetId];
 
+/** Injected at the extension composition root (reads VS Code settings). */
+export type ActiveSourcePresetsGetter = () => ReadonlySet<SourcePresetId>;
+
 export const ALL_SOURCE_PRESET_IDS: readonly SourcePresetId[] = [
   SourcePresetId.Claude,
   SourcePresetId.Cursor,
