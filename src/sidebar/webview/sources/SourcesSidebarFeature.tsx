@@ -12,6 +12,7 @@ export function SourcesSidebarFeature(): JSX.Element {
     workspaceFolders,
     generatedAt,
     handleShowExample,
+    handleShowGraph,
     handleIndexSources,
   } = useSourcesSidebarState();
 
@@ -72,6 +73,14 @@ export function SourcesSidebarFeature(): JSX.Element {
           disabled={isIndexing}
         >
           Open example panel
+        </button>
+        <button
+          className="akashi-button akashi-button--secondary"
+          type="button"
+          onClick={handleShowGraph}
+          disabled={isIndexing}
+        >
+          Show 3D graph
         </button>
         <div className="akashi-progress-slot">
           {isIndexing ? (

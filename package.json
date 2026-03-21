@@ -12,6 +12,7 @@
   ],
   "activationEvents": [
     "onCommand:dddExample.example.showPanel",
+    "onCommand:akashi.graph.showPanel",
     "onView:akashi.sidebar",
     "onStartupFinished"
   ],
@@ -39,6 +40,11 @@
       {
         "command": "dddExample.example.showPanel",
         "title": "Akashi: Show Panel",
+        "category": "Akashi"
+      },
+      {
+        "command": "akashi.graph.showPanel",
+        "title": "Akashi: Show 3D graph",
         "category": "Akashi"
       }
     ],
@@ -171,14 +177,18 @@
     "package": "vsce package"
   },
   "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@vscode/codicons": "^0.0.45",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.158.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.158.3",
     "@types/vscode": "^1.85.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",

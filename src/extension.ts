@@ -1,10 +1,23 @@
 import * as vscode from 'vscode';
 import { registerExampleUi } from './domains/example/ui/register';
+import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
+import { GraphPanel, registerGraphUi } from './domains/graph/ui/register';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
 import { readActiveSourcePresets } from './domains/sources/infrastructure/vscodeSourcePresetConfig';
 import type { ActiveSourcePresetsGetter } from './domains/sources/domain/sourcePresets';
 import { appendLine, getLog, initLog } from './log';
+import type { WorkspaceFolderInfo } from './sidebar/bridge/sourceDescriptor';
+import { buildSourcesSnapshotPayload } from './sidebar/host/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
+
+function snapshotWorkspaceFolders(): WorkspaceFolderInfo[] {
+  return (
+    vscode.workspace.workspaceFolders?.map((f) => ({
+      name: f.name,
+      path: f.uri.fsPath,
+    })) ?? []
+  );
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   initLog(context);
@@ -12,12 +25,24 @@ export function activate(context: vscode.ExtensionContext): void {
   const getActiveSourcePresets: ActiveSourcePresetsGetter = readActiveSourcePresets;
   const sourcesService = createSourcesService(context, getActiveSourcePresets);
 
+  const graphEnv: GraphPanelEnvironment = {
+    getGraphPayload: async () => {
+      const snap = await sourcesService.getLastSnapshot();
+      return buildSourcesSnapshotPayload(snap, snapshotWorkspaceFolders(), getActiveSourcePresets);
+    },
+  };
+
   const disposables = [
     // Register UI/commands for each domain here
     ...registerExampleUi(context),
+    ...registerGraphUi(context, graphEnv),
     vscode.window.registerWebviewViewProvider(
       'akashi.sidebar',
-      createSidebarViewProvider(context, sourcesService, getActiveSourcePresets)
+      createSidebarViewProvider(context, sourcesService, getActiveSourcePresets, {
+        onAfterSourcesSnapshotRefreshed: () => {
+          void GraphPanel.refreshIfOpen(graphEnv);
+        },
+      })
     ),
   ];
 

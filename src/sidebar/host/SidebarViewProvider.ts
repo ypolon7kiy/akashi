@@ -65,11 +65,26 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
 </html>`;
 }
 
+export interface SidebarViewProviderOptions {
+  /** Called after the sidebar (and filtered snapshot) has been updated — e.g. refresh graph panel. */
+  onAfterSourcesSnapshotRefreshed?: () => void;
+}
+
 export function createSidebarViewProvider(
   context: vscode.ExtensionContext,
   sourcesService: SourcesService,
-  getActiveSourcePresets: ActiveSourcePresetsGetter
+  getActiveSourcePresets: ActiveSourcePresetsGetter,
+  options?: SidebarViewProviderOptions
 ): vscode.WebviewViewProvider {
+  const notifySnapshotRefreshed = (): void => {
+    try {
+      options?.onAfterSourcesSnapshotRefreshed?.();
+    } catch (err) {
+      appendLine(
+        `[Akashi] Sidebar: onAfterSourcesSnapshotRefreshed failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  };
   let activeView: vscode.WebviewView | undefined;
 
   async function postFilteredSnapshotPush(webview: vscode.Webview): Promise<void> {
@@ -131,6 +146,7 @@ export function createSidebarViewProvider(
           );
         }
         await postFilteredSnapshotPush(w);
+        notifySnapshotRefreshed();
       })();
     })
   );
@@ -167,6 +183,12 @@ export function createSidebarViewProvider(
         if (typedMessage?.type === SidebarMessageType.ShowExamplePanel) {
           appendLine('[Akashi] Sidebar: Show example panel requested.');
           ExamplePanel.createOrShow(context);
+          return;
+        }
+
+        if (typedMessage?.type === SidebarMessageType.OpenGraphPanel) {
+          appendLine('[Akashi] Sidebar: Open graph panel requested.');
+          void vscode.commands.executeCommand('akashi.graph.showPanel');
           return;
         }
 
@@ -235,6 +257,7 @@ export function createSidebarViewProvider(
             };
             await postSourcesResponse(webviewView.webview, response);
             logSourcesResponse(response, `sourceCount=${payload?.sourceCount ?? 0} (filtered)`);
+            notifySnapshotRefreshed();
             return;
           }
         } catch (error) {
@@ -295,6 +318,10 @@ function logInboundSidebarMessage(message: unknown): void {
   }
   const m = message as Record<string, unknown>;
   const type = typeof m.type === 'string' ? m.type : '?';
+  if (type === SidebarMessageType.OpenGraphPanel) {
+    appendLine(`[Akashi] Sidebar: received message type=${type}`);
+    return;
+  }
   if (type === SidebarMessageType.SourcesOpenPath) {
     const p = (m.payload as { path?: unknown } | undefined)?.path;
     const pathLen = typeof p === 'string' ? p.length : 0;

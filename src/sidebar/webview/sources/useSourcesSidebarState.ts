@@ -20,6 +20,7 @@ export interface SourcesSidebarState {
   workspaceFolders: WorkspaceFolderInfo[];
   generatedAt: string | null;
   handleShowExample: () => void;
+  handleShowGraph: () => void;
   handleIndexSources: () => Promise<void>;
 }
 
@@ -61,6 +62,13 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     const vscode = getVscodeApi();
     if (vscode) {
       vscode.postMessage({ type: SidebarMessageType.ShowExamplePanel });
+    }
+  }, []);
+
+  const handleShowGraph = useCallback((): void => {
+    const vscode = getVscodeApi();
+    if (vscode) {
+      vscode.postMessage({ type: SidebarMessageType.OpenGraphPanel });
     }
   }, []);
 
@@ -168,6 +176,7 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     workspaceFolders,
     generatedAt,
     handleShowExample,
+    handleShowGraph,
     handleIndexSources,
   };
 }

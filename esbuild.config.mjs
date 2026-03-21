@@ -48,17 +48,31 @@ async function main() {
     loader: { '.tsx': 'tsx' },
   };
 
+  const graphWebviewOptions = {
+    ...common,
+    platform: 'browser',
+    target: 'es2020',
+    entryPoints: {
+      'graph-main': join(__dirname, 'src', 'domains', 'graph', 'webview', 'index.tsx'),
+    },
+    outdir: join(__dirname, 'dist', 'webview', 'graph'),
+    format: 'iife',
+    loader: { '.tsx': 'tsx' },
+  };
+
   if (isWatch) {
     const extCtx = await context(extensionOptions);
     const webCtx = await context(webviewOptions);
     const sidebarCtx = await context(sidebarWebviewOptions);
+    const graphCtx = await context(graphWebviewOptions);
 
     console.log('Watching for changes...');
-    await Promise.all([extCtx.watch(), webCtx.watch(), sidebarCtx.watch()]);
+    await Promise.all([extCtx.watch(), webCtx.watch(), sidebarCtx.watch(), graphCtx.watch()]);
   } else {
     await build(extensionOptions);
     await build(webviewOptions);
     await build(sidebarWebviewOptions);
+    await build(graphWebviewOptions);
   }
 }
 

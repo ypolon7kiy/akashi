@@ -7,6 +7,7 @@ import type { SourcesSnapshotPayload } from './sourceDescriptor';
 
 export const SidebarMessageType = {
   ShowExamplePanel: 'showExamplePanel',
+  OpenGraphPanel: 'sidebar/openGraphPanel',
   SourcesOpenPath: 'sources/openPath',
   SourcesIndexWorkspaceRequest: 'sources/indexWorkspace',
   SourcesGetSnapshotRequest: 'sources/getSnapshot',
@@ -55,4 +56,5 @@ export type SidebarRequestMessage =
   | SourcesIndexWorkspaceRequestMessage
   | SourcesGetSnapshotRequestMessage
   | SourcesOpenPathMessage
-  | { type: typeof SidebarMessageType.ShowExamplePanel };
+  | { type: typeof SidebarMessageType.ShowExamplePanel }
+  | { type: typeof SidebarMessageType.OpenGraphPanel };
