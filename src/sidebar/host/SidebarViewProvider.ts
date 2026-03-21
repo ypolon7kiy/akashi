@@ -80,10 +80,8 @@ export function createSidebarViewProvider(
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      const presetsChanged = e.affectsConfiguration('akashi.sources.presets');
-      const homeConfigChanged = e.affectsConfiguration('akashi.sources.includeHomeConfig');
-      const codexHomeChanged = e.affectsConfiguration('akashi.sources.codexHome');
-      if (!presetsChanged && !homeConfigChanged && !codexHomeChanged) {
+      const sourcesChanged = e.affectsConfiguration('akashi.sources');
+      if (!sourcesChanged) {
         return;
       }
       const w = activeView?.webview;

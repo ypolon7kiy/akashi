@@ -35,6 +35,9 @@ export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly So
     K.ClaudeSettingsJson,
     K.ClaudeRulesMd,
     K.ClaudeHookFile,
+    K.AgentsSkillMd,
+    K.ClaudeSkillMd,
+    K.CodexSkillMd,
   ],
   [SourcePresetId.Cursor]: [
     K.AgentsMd,
@@ -44,6 +47,10 @@ export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly So
     K.CursorLegacyRules,
     K.CursorRulesMdc,
     K.CursorMcpJson,
+    K.AgentsSkillMd,
+    K.CursorSkillMd,
+    K.ClaudeSkillMd,
+    K.CodexSkillMd,
   ],
   [SourcePresetId.Antigravity]: [
     K.AgentsMd,
@@ -51,6 +58,8 @@ export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly So
     K.TeamGuideMd,
     K.GithubCopilotInstructionsMd,
     K.GeminiMd,
+    K.AgentsSkillMd,
+    K.GeminiAntigravitySkillMd,
   ],
   [SourcePresetId.Codex]: [
     K.AgentsMd,
@@ -60,6 +69,7 @@ export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly So
     K.CodexConfigToml,
     K.CodexAgentsOverrideMd,
     K.CodexRulesFile,
+    K.CodexSkillMd,
   ],
 };
 

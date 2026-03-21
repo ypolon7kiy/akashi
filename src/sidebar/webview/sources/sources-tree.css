@@ -1,4 +1,5 @@
 .akashi-tree-panel {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -38,7 +39,7 @@
 }
 
 .akashi-tree-panel__scroll {
-  max-height: min(42vh, 360px);
+  flex: 1;
   min-height: 0;
   overflow: auto;
   padding: var(--akashi-space-1) 0;

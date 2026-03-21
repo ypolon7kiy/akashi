@@ -22,7 +22,7 @@
         {
           "id": "akashi",
           "title": "Akashi",
-          "icon": "$(layout-sidebar-left)"
+          "icon": "media/akashi-activity.svg"
         }
       ]
     },
@@ -47,23 +47,44 @@
       "properties": {
         "akashi.sources.presets": {
           "type": "array",
+          "order": 10,
           "items": {
             "type": "string",
             "enum": ["claude", "cursor", "antigravity", "codex"]
           },
           "default": ["claude", "cursor", "antigravity", "codex"],
           "uniqueItems": true,
-          "description": "Tool presets for the Source Index sidebar. Only source kinds belonging to an enabled preset are shown. Cross-tool docs such as AGENTS.md are included on every preset."
+          "description": "Which tool families appear in the Source Index."
         },
         "akashi.sources.includeHomeConfig": {
           "type": "boolean",
+          "order": 20,
           "default": true,
-          "description": "When enabled, the Source Index includes tool configuration files from your user home directory (e.g. ~/.claude) in addition to the workspace."
+          "description": "Include user-home tool configs in the index."
+        },
+        "akashi.sources.claudeConfigDir": {
+          "type": "string",
+          "order": 30,
+          "default": "",
+          "description": "Claude user config dir. Absolute or ~/…. Empty: CLAUDE_CONFIG_DIR or ~/.claude."
         },
         "akashi.sources.codexHome": {
           "type": "string",
+          "order": 40,
           "default": "",
-          "description": "Optional extra Codex CLI config directory for the Source Index (when home config is enabled). Same contents as ~/.codex: AGENTS.md, config.toml, AGENTS.override.md, rules/*.rules. Use an absolute path or prefix with ~ (e.g. ~/.local/share/codex-profile). Leave empty to rely on ~/.codex and the CODEX_HOME environment variable only."
+          "description": "Extra Codex CLI dir (union with ~/.codex and CODEX_HOME). Absolute or ~/…."
+        },
+        "akashi.sources.cursorConfigDir": {
+          "type": "string",
+          "order": 50,
+          "default": "",
+          "description": "Cursor user config dir. Absolute or ~/…. Empty: ~/.cursor."
+        },
+        "akashi.sources.geminiConfigDir": {
+          "type": "string",
+          "order": 60,
+          "default": "",
+          "description": "Gemini user config dir. Absolute or ~/…. Empty: GEMINI_CONFIG_DIR or ~/.gemini."
         }
       }
     }

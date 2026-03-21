@@ -22,7 +22,6 @@ export function SourcesSidebarFeature(): JSX.Element {
       <header className="akashi-header">
         <div>
           <p className="akashi-overline">Akashi</p>
-          <h1 className="akashi-title">Source Index</h1>
         </div>
       </header>
 

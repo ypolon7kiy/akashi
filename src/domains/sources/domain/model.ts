@@ -8,6 +8,7 @@
  * Cursor: .cursorrules, .cursor/rules/*.mdc, .cursor/mcp.json (+ ~/.cursor/mcp.json)
  * Copilot: .github/copilot-instructions.md
  * Codex: .codex/config.toml (project or ~/.codex / $CODEX_HOME / setting akashi.sources.codexHome), AGENTS.override.md (any dir), .codex/rules/*.rules; not indexed: auth.json, history, logs/sessions.
+ * Agent Skills: `SKILL.md` files under known skill roots only (catalog only, no frontmatter parse). Cursor loads `.agents/skills/`, `.cursor/skills/`, user `.cursor/skills/`, plus `.claude/skills/`, `.codex/skills/` and home counterparts. Antigravity-style layouts often use `.agent/skills/` (workspace) and user `.gemini/antigravity/skills/` (verify against your product version).
  */
 export const SourceKind = {
   /** `AGENTS.md` / `agents.md` — universal agent instructions (repo, nested dirs). */
@@ -44,6 +45,17 @@ export const SourceKind = {
   CodexAgentsOverrideMd: 'codex_agents_override_md',
   /** `.codex/rules/*.rules` — Codex Starlark exec-policy rules (e.g. `default.rules`). */
   CodexRulesFile: 'codex_rules_file',
+
+  /** Nested `.agents/skills/.../SKILL.md` — Agent Skills standard (project; Cursor and others). */
+  AgentsSkillMd: 'agents_skill_md',
+  /** `.cursor/skills/.../SKILL.md` or user `~/.cursor/skills/.../SKILL.md` — Cursor Agent Skills. */
+  CursorSkillMd: 'cursor_skill_md',
+  /** `.claude/skills/.../SKILL.md` or user `~/.claude/skills/.../SKILL.md` — Claude Code skills. */
+  ClaudeSkillMd: 'claude_skill_md',
+  /** `.codex/skills/.../SKILL.md` or Codex home `skills/.../SKILL.md`. */
+  CodexSkillMd: 'codex_skill_md',
+  /** `.agent/skills/.../SKILL.md` or user `~/.gemini/antigravity/skills/.../SKILL.md` — Antigravity-style skills. */
+  GeminiAntigravitySkillMd: 'gemini_antigravity_skill_md',
 
   /** Matched path but no known convention (extend patterns / inference). */
   Unknown: 'unknown',

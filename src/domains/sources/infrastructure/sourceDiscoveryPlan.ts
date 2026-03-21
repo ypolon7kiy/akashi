@@ -76,6 +76,26 @@ export const WORKSPACE_GLOB_DEFINITIONS: readonly {
     glob: '**/.codex/rules/*.rules',
     kinds: [SourceKind.CodexRulesFile],
   },
+  {
+    glob: '**/.agents/skills/**/SKILL.md',
+    kinds: [SourceKind.AgentsSkillMd],
+  },
+  {
+    glob: '**/.cursor/skills/**/SKILL.md',
+    kinds: [SourceKind.CursorSkillMd],
+  },
+  {
+    glob: '**/.claude/skills/**/SKILL.md',
+    kinds: [SourceKind.ClaudeSkillMd],
+  },
+  {
+    glob: '**/.codex/skills/**/SKILL.md',
+    kinds: [SourceKind.CodexSkillMd],
+  },
+  {
+    glob: '**/.agent/skills/**/SKILL.md',
+    kinds: [SourceKind.GeminiAntigravitySkillMd],
+  },
 ];
 
 export function selectWorkspaceGlobs(allowedKinds: ReadonlySet<SourceKindType>): string[] {
@@ -130,6 +150,12 @@ async function collectShallowFilesWithSuffix(dir: string, suffix: string): Promi
   }
 }
 
+/** Recursive files under `rootDir` whose basename is `SKILL.md` (case-insensitive). */
+async function collectSkillMdRecursiveUnderDir(rootDir: string): Promise<string[]> {
+  const all = await collectFilesRecursiveUnderDir(rootDir);
+  return all.filter((p) => path.basename(p).toLowerCase() === 'skill.md');
+}
+
 /**
  * Codex CLI “home” directory (default `~/.codex`, or `CODEX_HOME`): `AGENTS.md`, `config.toml`,
  * `AGENTS.override.md`, and shallow `rules/*.rules`.
@@ -163,6 +189,12 @@ async function collectCodexHomeDirectoryPaths(
 }
 
 export interface CollectHomeSourcePathsOptions {
+  /** Absolute user-scope Claude Code config directory (may differ from `~/.claude`). */
+  readonly claudeUserRoot: string;
+  /** Absolute user-scope Cursor config directory (may differ from `~/.cursor`). */
+  readonly cursorUserRoot: string;
+  /** Absolute user-scope Gemini config directory (may differ from `~/.gemini`). */
+  readonly geminiUserRoot: string;
   /** Extra Codex CLI home directories (absolute, normalized), e.g. from `akashi.sources.codexHome`. */
   readonly extraCodexHomeRoots?: readonly string[];
 }
@@ -174,8 +206,9 @@ export interface CollectHomeSourcePathsOptions {
 export async function collectHomeSourcePaths(
   homeDir: string,
   allowedKinds: ReadonlySet<SourceKindType>,
-  options?: CollectHomeSourcePathsOptions
+  options: CollectHomeSourcePathsOptions
 ): Promise<string[]> {
+  const { claudeUserRoot, cursorUserRoot, geminiUserRoot, extraCodexHomeRoots } = options;
   const paths: string[] = [];
   const seen = new Set<string>();
 
@@ -186,25 +219,27 @@ export async function collectHomeSourcePaths(
     }
   };
 
-  const homeFiles: { segments: string[]; kinds: readonly SourceKindType[] }[] = [
-    { segments: ['.cursor', 'mcp.json'], kinds: [SourceKind.CursorMcpJson] },
-    { segments: ['.claude', 'CLAUDE.md'], kinds: [SourceKind.ClaudeMd] },
-    { segments: ['.claude', 'settings.json'], kinds: [SourceKind.ClaudeSettingsJson] },
-    { segments: ['.claude', 'settings.local.json'], kinds: [SourceKind.ClaudeSettingsJson] },
-    { segments: ['.gemini', 'GEMINI.md'], kinds: [SourceKind.GeminiMd] },
+  const toolHomeFiles: { abs: string; kinds: readonly SourceKindType[] }[] = [
+    { abs: path.join(cursorUserRoot, 'mcp.json'), kinds: [SourceKind.CursorMcpJson] },
+    { abs: path.join(claudeUserRoot, 'CLAUDE.md'), kinds: [SourceKind.ClaudeMd] },
+    { abs: path.join(claudeUserRoot, 'settings.json'), kinds: [SourceKind.ClaudeSettingsJson] },
     {
-      segments: ['.github', 'copilot-instructions.md'],
+      abs: path.join(claudeUserRoot, 'settings.local.json'),
+      kinds: [SourceKind.ClaudeSettingsJson],
+    },
+    { abs: path.join(geminiUserRoot, 'GEMINI.md'), kinds: [SourceKind.GeminiMd] },
+    {
+      abs: path.join(homeDir, '.github', 'copilot-instructions.md'),
       kinds: [SourceKind.GithubCopilotInstructionsMd],
     },
   ];
 
-  for (const row of homeFiles) {
+  for (const row of toolHomeFiles) {
     if (!kindsIntersect(allowedKinds, row.kinds)) {
       continue;
     }
-    const abs = path.join(homeDir, ...row.segments);
-    if (await fileExists(abs)) {
-      add(abs);
+    if (await fileExists(row.abs)) {
+      add(row.abs);
     }
   }
 
@@ -214,8 +249,8 @@ export async function collectHomeSourcePaths(
   if (codexHomeEnv && path.isAbsolute(codexHomeEnv)) {
     codexHomeRoots.add(path.normalize(codexHomeEnv));
   }
-  if (options?.extraCodexHomeRoots) {
-    for (const r of options.extraCodexHomeRoots) {
+  if (extraCodexHomeRoots) {
+    for (const r of extraCodexHomeRoots) {
       if (path.isAbsolute(r)) {
         codexHomeRoots.add(path.normalize(r));
       }
@@ -223,6 +258,36 @@ export async function collectHomeSourcePaths(
   }
   for (const root of codexHomeRoots) {
     await collectCodexHomeDirectoryPaths(root, allowedKinds, add);
+  }
+
+  if (kindsIntersect(allowedKinds, [SourceKind.CodexSkillMd])) {
+    for (const root of codexHomeRoots) {
+      const skillsDir = path.join(root, 'skills');
+      for (const f of await collectSkillMdRecursiveUnderDir(skillsDir)) {
+        add(f);
+      }
+    }
+  }
+
+  if (kindsIntersect(allowedKinds, [SourceKind.CursorSkillMd])) {
+    const cursorSkills = path.join(cursorUserRoot, 'skills');
+    for (const f of await collectSkillMdRecursiveUnderDir(cursorSkills)) {
+      add(f);
+    }
+  }
+
+  if (kindsIntersect(allowedKinds, [SourceKind.ClaudeSkillMd])) {
+    const claudeSkills = path.join(claudeUserRoot, 'skills');
+    for (const f of await collectSkillMdRecursiveUnderDir(claudeSkills)) {
+      add(f);
+    }
+  }
+
+  if (kindsIntersect(allowedKinds, [SourceKind.GeminiAntigravitySkillMd])) {
+    const antigravitySkills = path.join(geminiUserRoot, 'antigravity', 'skills');
+    for (const f of await collectSkillMdRecursiveUnderDir(antigravitySkills)) {
+      add(f);
+    }
   }
 
   if (kindsIntersect(allowedKinds, [SourceKind.CursorLegacyRules])) {
@@ -256,21 +321,21 @@ export async function collectHomeSourcePaths(
   }
 
   if (kindsIntersect(allowedKinds, [SourceKind.ClaudeRulesMd])) {
-    const rulesDir = path.join(homeDir, '.claude', 'rules');
+    const rulesDir = path.join(claudeUserRoot, 'rules');
     for (const f of await collectShallowFilesWithSuffix(rulesDir, '.md')) {
       add(f);
     }
   }
 
   if (kindsIntersect(allowedKinds, [SourceKind.ClaudeHookFile])) {
-    const hooksDir = path.join(homeDir, '.claude', 'hooks');
+    const hooksDir = path.join(claudeUserRoot, 'hooks');
     for (const f of await collectFilesRecursiveUnderDir(hooksDir)) {
       add(f);
     }
   }
 
   if (kindsIntersect(allowedKinds, [SourceKind.CursorRulesMdc])) {
-    const rulesDir = path.join(homeDir, '.cursor', 'rules');
+    const rulesDir = path.join(cursorUserRoot, 'rules');
     for (const f of await collectShallowFilesWithSuffix(rulesDir, '.mdc')) {
       add(f);
     }

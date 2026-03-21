@@ -1,10 +1,10 @@
 import * as path from 'node:path';
 
 /**
- * Resolves `akashi.sources.codexHome` to a single absolute directory, or `null` if unset/invalid.
+ * Resolves an optional `akashi.sources.*` directory setting to a single absolute path, or `null` if unset/invalid.
  * Accepts absolute paths or `~/…` / `~` relative to {@link homeDir}.
  */
-export function resolveCodexHomeSettingPath(
+export function resolveOptionalUserConfigDir(
   raw: string | undefined,
   homeDir: string
 ): string | null {
