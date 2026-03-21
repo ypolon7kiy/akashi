@@ -14,14 +14,7 @@ export function SourcesSidebarFeature(): JSX.Element {
 
   return (
     <>
-      <header className="akashi-header">
-        <div>
-          <p className="akashi-overline">Akashi</p>
-        </div>
-      </header>
-
       <section className="akashi-tree-panel" aria-label="Indexed sources">
-        <h2 className="akashi-tree-panel__title">Indexed sources</h2>
         <div className="akashi-tree-panel__scroll">
           <SourceTreeView
             records={records}

@@ -10,27 +10,6 @@
   background: transparent;
 }
 
-.akashi-tree-panel__title {
-  margin: 0;
-  padding: var(--akashi-space-2) var(--akashi-space-2) var(--akashi-space-2) var(--akashi-space-3);
-  font-size: var(--vscode-font-size);
-  font-weight: 600;
-  line-height: 1.3;
-  text-transform: none;
-  letter-spacing: normal;
-  color: var(
-    --vscode-sideBarSectionHeader-foreground,
-    var(--vscode-foreground)
-  );
-  background: var(
-    --vscode-sideBarSectionHeader-background,
-    transparent
-  );
-  border: none;
-  border-bottom: 1px solid
-    var(--vscode-sideBarSectionHeader-border, var(--akashi-border));
-}
-
 .akashi-tree-panel__hint {
   margin: 0;
   padding: var(--akashi-space-1) var(--akashi-space-3) var(--akashi-space-2);
