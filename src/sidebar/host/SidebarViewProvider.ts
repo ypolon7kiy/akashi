@@ -11,10 +11,7 @@ import {
   type SidebarRequestMessage,
   type SourcesResponseMessage,
 } from '../bridge/messages';
-import {
-  buildSidebarCategoryColorStyleBlock,
-  configurationAffectsSidebarCategoryColors,
-} from './sidebarCategoryColorStyle';
+import { buildSidebarCategoryColorStyleBlock } from './sidebarCategoryColorStyle';
 import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
 
 function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
@@ -123,18 +120,11 @@ export function createSidebarViewProvider(
         e.affectsConfiguration('akashi.presets') ||
         e.affectsConfiguration('akashi.includeHomeConfig') ||
         e.affectsConfiguration('akashi.homePathOverrides');
-      const affectsSidebarColors = configurationAffectsSidebarCategoryColors(e);
-      if (!affectsIndexing && !affectsSidebarColors) {
+      if (!affectsIndexing) {
         return;
       }
       const w = activeView?.webview;
       if (!w) {
-        return;
-      }
-      if (affectsSidebarColors) {
-        w.html = getHtml(w, context.extensionUri);
-      }
-      if (!affectsIndexing) {
         return;
       }
       void (async () => {

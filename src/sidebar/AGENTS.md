@@ -8,7 +8,7 @@ The **Akashi sidebar** is the activity-bar webview: app-level UI, not a domain.
 | [`host/`](host/) | `SidebarViewProvider` — registers the webview view, resolves HTML, handles `postMessage` from the webview (request/response for sources plus fire-and-forget messages such as `sources/openPath` to open a file). |
 | [`webview/`](webview/) | React bundle entry (`index.tsx`, `App.tsx`, shell `styles.css` — imports shared [`webview-shared/vscode-tokens.css`](../webview-shared/vscode-tokens.css) + [`webview-controls.css`](../webview-shared/webview-controls.css)). |
 
-Feature-sized UI lives under **`webview/<feature>/`**. Today: [`webview/sources/`](webview/sources/) — source index card, tree, actions, `useSourcesSidebarState`, and feature-local CSS (`sources-tree.css`) imported from the feature root component.
+Feature-sized UI lives under **`webview/<feature>/`**. Today: [`webview/sources/`](webview/sources/) — tree, actions, `useSourcesSidebarState`, and feature-local CSS (`sources-tree.css`) imported from the feature root component.
 
 ## Build
 

@@ -113,6 +113,8 @@
           "type": "object",
           "order": 70,
           "title": "File colors",
+          "description": "Colors for source categories in the sidebar. Applied when the sidebar loads; reload the window (Developer: Reload Window) after changing values.",
+          "markdownDescription": "Colors for source categories in the sidebar. Applied when the sidebar loads; reload the window (**Developer: Reload Window**) after changing values.",
           "additionalProperties": false,
           "properties": {
             "context": {

@@ -10,9 +10,3 @@ export function buildSidebarCategoryColorStyleBlock(): string {
   }
   return `<style id="akashi-sidebar-category-colors">\n:root {\n${lines.join('\n')}\n}\n</style>`;
 }
-
-export function configurationAffectsSidebarCategoryColors(
-  e: vscode.ConfigurationChangeEvent
-): boolean {
-  return e.affectsConfiguration('akashi.sidebar');
-}
