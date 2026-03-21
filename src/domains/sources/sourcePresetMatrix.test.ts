@@ -1,80 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { SourceKind as K } from './domain/model';
-import {
-  ALL_SOURCE_PRESET_IDS,
-  SOURCE_KINDS_BY_PRESET,
-  type SourcePresetId,
-} from './domain/sourcePresets';
-import { SHARED_SOURCE_KINDS } from './presets/_shared/kinds';
+import { SOURCE_PRESET_DEFINITIONS, WORKSPACE_GLOB_SCAN_ROWS } from './registerSourcePresets';
+import { SourceCategoryId } from './domain/sourceTags';
 
-function sortedKinds(kinds: readonly string[]): string[] {
-  return [...kinds].sort();
-}
-
-/** Baseline from pre-refactor `sourcePresets.ts` (sorted for comparison). */
-const EXPECTED_KINDS_BY_PRESET: Record<SourcePresetId, readonly string[]> = {
-  claude: sortedKinds([
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.ClaudeMd,
-    K.ClaudeSettingsJson,
-    K.ClaudeRulesMd,
-    K.ClaudeHookFile,
-    K.AgentsSkillMd,
-    K.ClaudeSkillMd,
-    K.CodexSkillMd,
-  ]),
-  cursor: sortedKinds([
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.CursorLegacyRules,
-    K.CursorRulesMdc,
-    K.CursorMcpJson,
-    K.AgentsSkillMd,
-    K.CursorSkillMd,
-    K.ClaudeSkillMd,
-    K.CodexSkillMd,
-  ]),
-  antigravity: sortedKinds([
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.GeminiMd,
-    K.AgentsSkillMd,
-    K.GeminiAntigravitySkillMd,
-  ]),
-  codex: sortedKinds([
-    K.AgentsMd,
-    K.DotAgentsMd,
-    K.TeamGuideMd,
-    K.GithubCopilotInstructionsMd,
-    K.CodexConfigToml,
-    K.CodexAgentsOverrideMd,
-    K.CodexRulesFile,
-    K.CodexSkillMd,
-  ]),
-};
-
-describe('SOURCE_KINDS_BY_PRESET', () => {
-  it('matches the historical preset matrix', () => {
-    for (const id of ALL_SOURCE_PRESET_IDS) {
-      expect(sortedKinds(SOURCE_KINDS_BY_PRESET[id])).toEqual(EXPECTED_KINDS_BY_PRESET[id]);
+describe('SOURCE_PRESET_DEFINITIONS', () => {
+  it('has four presets with ids and non-empty workspace globs or home tasks', () => {
+    expect(SOURCE_PRESET_DEFINITIONS.length).toBe(4);
+    const ids = SOURCE_PRESET_DEFINITIONS.map((p) => p.id).sort();
+    expect(ids).toEqual(['antigravity', 'claude', 'codex', 'cursor']);
+    for (const p of SOURCE_PRESET_DEFINITIONS) {
+      expect(p.workspaceGlobContributions.length + p.homePathTasks.length).toBeGreaterThan(0);
     }
   });
-});
 
-describe('SHARED_SOURCE_KINDS', () => {
-  it('is contained in every preset', () => {
-    for (const id of ALL_SOURCE_PRESET_IDS) {
-      const row = new Set(SOURCE_KINDS_BY_PRESET[id]);
-      for (const k of SHARED_SOURCE_KINDS) {
-        expect(row.has(k), `${id} should include ${k}`).toBe(true);
-      }
+  it('uses only known category strings on workspace rows', () => {
+    const allowed = new Set<string>(Object.values(SourceCategoryId));
+    for (const row of WORKSPACE_GLOB_SCAN_ROWS) {
+      expect(allowed.has(row.category)).toBe(true);
     }
   });
 });

@@ -1,53 +1,48 @@
 import * as path from 'node:path';
-import { SourceKind, type SourceKind as SourceKindType } from '../../domain/model';
 import type { HomePathTask } from '../../domain/sourcePresetDefinition';
+import { SourceCategoryId } from '../../domain/sourceTags';
 
-function kindsIntersect(
-  allowed: ReadonlySet<SourceKindType>,
-  probe: readonly SourceKindType[]
-): boolean {
-  return probe.some((k) => allowed.has(k));
-}
+const PRESET_ID = 'cursor' as const;
 
 export const cursorHomePathTasks: readonly HomePathTask[] = [
   async (ctx) => {
-    const { allowedKinds, roots, add, fileExists } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.CursorMcpJson])) {
+    const { activePresets, roots, add, fileExists } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const abs = path.join(roots.cursorUserRoot, 'mcp.json');
     if (await fileExists(abs)) {
-      add(abs);
+      add(abs, PRESET_ID, SourceCategoryId.Mcp);
     }
   },
   async (ctx) => {
-    const { allowedKinds, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.CursorSkillMd])) {
+    const { activePresets, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const cursorSkills = path.join(roots.cursorUserRoot, 'skills');
     for (const f of await collectSkillMdRecursiveUnderDir(cursorSkills)) {
-      add(f);
+      add(f, PRESET_ID, SourceCategoryId.Skill);
     }
   },
   async (ctx) => {
-    const { allowedKinds, homeDir, add, fileExists } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.CursorLegacyRules])) {
+    const { activePresets, homeDir, add, fileExists } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const cursorrules = path.join(homeDir, '.cursorrules');
     if (await fileExists(cursorrules)) {
-      add(cursorrules);
+      add(cursorrules, PRESET_ID, SourceCategoryId.Rule);
     }
   },
   async (ctx) => {
-    const { allowedKinds, roots, add, collectShallowFilesWithSuffix } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.CursorRulesMdc])) {
+    const { activePresets, roots, add, collectShallowFilesWithSuffix } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const rulesDir = path.join(roots.cursorUserRoot, 'rules');
     for (const f of await collectShallowFilesWithSuffix(rulesDir, '.mdc')) {
-      add(f);
+      add(f, PRESET_ID, SourceCategoryId.Rule);
     }
   },
 ];

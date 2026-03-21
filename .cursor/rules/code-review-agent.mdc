@@ -16,3 +16,11 @@ The **code review agent** instructions for this project are maintained in your *
 **Scope:** The global rule has no file globs; Cursor applies it when Agent judges it relevant from the description, or when you @mention it. If you want it tied to `src/**` in this repo only, duplicate or symlink a project rule with `globs` under `.cursor/rules`.
 
 For collaborators: add the same user rule (or keep a copy under `.cursor/rules` in the repo) so reviews stay consistent.
+
+## TypeScript: imports at the top
+
+- All static `import` / `import type` declarations belong at the **top** of the file (before any other statements). **No** mid-file imports.
+- Prefer top-level `import type { … } from "…"` over inline `import("…").Type` in type positions when it expresses the same dependency.
+- Use dynamic `import()` only for real lazy-loading of runtime modules, not as a substitute for organizing type imports.
+
+The same bullets are mirrored in the global user rule `~/.cursor/rules/code-review-agent.mdc` under **Code quality** and **Common issues**.

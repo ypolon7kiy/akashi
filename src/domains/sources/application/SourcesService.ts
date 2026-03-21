@@ -1,4 +1,5 @@
-import type { IndexedSourceEntry, SourceIndexSnapshot, SourceKind } from '../domain/model';
+import type { IndexedSourceEntry, SourceIndexSnapshot } from '../domain/model';
+import type { ActiveSourcePresetsGetter, SourcePresetId } from '../domain/sourcePresets';
 import type {
   SourcesLoggerPort,
   SourceFileStatsPort,
@@ -8,7 +9,7 @@ import type {
 
 export interface IndexWorkspaceRequest {
   includeHomeConfig?: boolean;
-  allowedKinds?: ReadonlySet<SourceKind>;
+  activePresets?: ReadonlySet<SourcePresetId>;
 }
 
 export class SourcesService {
@@ -20,7 +21,7 @@ export class SourcesService {
     private readonly fileStats: SourceFileStatsPort,
     private readonly snapshotStore: SourcesSnapshotStorePort,
     private readonly logger: SourcesLoggerPort,
-    private readonly getAllowedSourceKinds: () => ReadonlySet<SourceKind>
+    private readonly getActiveSourcePresets: ActiveSourcePresetsGetter
   ) {}
 
   public async indexWorkspace(request: IndexWorkspaceRequest = {}): Promise<SourceIndexSnapshot> {
@@ -28,9 +29,9 @@ export class SourcesService {
       this.logger.info('[Akashi][Sources] indexWorkspace reusing in-flight indexing promise.');
       return this.indexingPromise;
     }
-    const allowedPreview = (request.allowedKinds ?? this.getAllowedSourceKinds()).size;
+    const active = request.activePresets ?? this.getActiveSourcePresets();
     this.logger.info(
-      `[Akashi][Sources] indexWorkspace start includeHomeConfig=${request.includeHomeConfig ?? false} allowedKindCount=${allowedPreview}.`
+      `[Akashi][Sources] indexWorkspace start includeHomeConfig=${request.includeHomeConfig ?? false} activePresetCount=${active.size}.`
     );
 
     this.indexingPromise = this.performIndexWorkspace(request);
@@ -62,10 +63,10 @@ export class SourcesService {
   private async performIndexWorkspace(
     request: IndexWorkspaceRequest = {}
   ): Promise<SourceIndexSnapshot> {
-    const allowedKinds = request.allowedKinds ?? this.getAllowedSourceKinds();
+    const activePresets = request.activePresets ?? this.getActiveSourcePresets();
     const discovered = await this.scanner.scanWorkspace({
       includeHomeConfig: request.includeHomeConfig,
-      allowedKinds,
+      activePresets,
     });
     const records: IndexedSourceEntry[] = await Promise.all(
       discovered.map(async (item) => {
@@ -73,7 +74,8 @@ export class SourcesService {
         const entry: IndexedSourceEntry = {
           id: item.id,
           path: item.path,
-          kind: item.kind,
+          preset: item.preset,
+          category: item.category,
           scope: item.scope,
           origin: item.origin,
           tags: item.tags,

@@ -4,56 +4,53 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SourcesService } from '../../domains/sources/application/SourcesService';
 import type { DiscoveredSource } from '../../domains/sources/application/ports';
+import type { SourceCategory } from '../../domains/sources/domain/model';
+import { SourceScope } from '../../domains/sources/domain/model';
 import type { SourceIndexSnapshot } from '../../domains/sources/domain/model';
 import {
-  SourceKind,
-  SourceScope,
-  type SourceKind as SourceKindT,
-} from '../../domains/sources/domain/model';
-import {
   ALL_SOURCE_PRESET_IDS,
-  presetsContainingKind,
-  sourceKindsForPresets,
   type SourcePresetId,
 } from '../../domains/sources/domain/sourcePresets';
-import { isSourcesSnapshotPayload, type WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
-import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
 import {
   buildSourceFacetTags,
   SourceCategoryId,
   SourceLocalityTagValue,
 } from '../../domains/sources/domain/sourceTags';
 import { SourceTagType } from '../../domains/sources/domain/model';
+import { sourceRecordId } from '../../shared/sourceRecordId';
+import { isSourcesSnapshotPayload, type WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
+import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
 
 const STAT = { byteLength: 10, updatedAt: '2025-01-01T00:00:00.000Z' };
 
-function sortKinds(kinds: readonly string[]): string[] {
-  return [...kinds].sort();
+function sortPaths(paths: readonly string[]): string[] {
+  return [...paths].sort();
 }
 
 function discovered(
   path: string,
-  kind: SourceKindT,
+  preset: SourcePresetId,
+  category: SourceCategory,
   origin: 'workspace' | 'user'
 ): DiscoveredSource {
   return {
-    id: path,
+    id: sourceRecordId(preset, origin, path),
     path,
-    kind,
+    preset,
+    category,
     scope: origin === 'user' ? SourceScope.User : SourceScope.File,
     origin,
-    tags: buildSourceFacetTags(kind, origin),
+    tags: buildSourceFacetTags({ category, preset, origin }),
   };
 }
 
-const MIXED_CURSOR_CLAUDE_CODEX: DiscoveredSource[] = [
-  discovered('/ws/AGENTS.md', SourceKind.AgentsMd, 'workspace'),
-  discovered('/ws/.cursor/rules/x.mdc', SourceKind.CursorRulesMdc, 'workspace'),
-  discovered('/ws/.claude/settings.json', SourceKind.ClaudeSettingsJson, 'workspace'),
-  discovered('/ws/.codex/config.toml', SourceKind.CodexConfigToml, 'workspace'),
+const MIXED_PRESETS: DiscoveredSource[] = [
+  discovered('/ws/CLAUDE.md', 'claude', SourceCategoryId.LlmGuideline, 'workspace'),
+  discovered('/ws/.cursor/rules/x.mdc', 'cursor', SourceCategoryId.Rule, 'workspace'),
+  discovered('/ws/.claude/settings.json', 'claude', SourceCategoryId.Config, 'workspace'),
+  discovered('/ws/.codex/config.toml', 'codex', SourceCategoryId.Config, 'workspace'),
 ];
 
-/** Mirrors VscodeWorkspaceSourceScanner: home branch omitted when includeHomeConfig is false. */
 function effectiveMockDiscovered(
   world: DiscoveredSource[],
   includeHomeConfig: boolean
@@ -65,14 +62,14 @@ function effectiveMockDiscovered(
 }
 
 const WORLD_MIXED_WS_USER: DiscoveredSource[] = [
-  discovered('/ws/AGENTS.md', SourceKind.AgentsMd, 'workspace'),
-  discovered('/home/.cursor/mcp.json', SourceKind.CursorMcpJson, 'user'),
+  discovered('/ws/.cursor/rules/a.mdc', 'cursor', SourceCategoryId.Rule, 'workspace'),
+  discovered('/home/.cursor/mcp.json', 'cursor', SourceCategoryId.Mcp, 'user'),
 ];
 
 const WORLD_ANTIGRAVITY_VS_CURSOR: DiscoveredSource[] = [
-  discovered('/ws/AGENTS.md', SourceKind.AgentsMd, 'workspace'),
-  discovered('/ws/GEMINI.md', SourceKind.GeminiMd, 'workspace'),
-  discovered('/ws/.cursor/rules/x.mdc', SourceKind.CursorRulesMdc, 'workspace'),
+  discovered('/ws/GEMINI.md', 'antigravity', SourceCategoryId.LlmGuideline, 'workspace'),
+  discovered('/ws/.cursor/rules/x.mdc', 'cursor', SourceCategoryId.Rule, 'workspace'),
+  discovered('/ws/CLAUDE.md', 'claude', SourceCategoryId.LlmGuideline, 'workspace'),
 ];
 
 function createPipeline(opts: {
@@ -92,8 +89,12 @@ function createPipeline(opts: {
       return Promise.resolve();
     }),
   };
-  const service = new SourcesService(scanner, fileStats, snapshotStore, { info: vi.fn() }, () =>
-    sourceKindsForPresets(opts.activePresets)
+  const service = new SourcesService(
+    scanner,
+    fileStats,
+    snapshotStore,
+    { info: vi.fn() },
+    () => opts.activePresets
   );
 
   function payloadFor(snap: SourceIndexSnapshot | null) {
@@ -109,7 +110,7 @@ interface MatrixRow {
   includeHomeConfig: boolean;
   workspaceFolders: WorkspaceFolderInfo[];
   mockDiscovered: DiscoveredSource[];
-  expectedPayloadKinds: string[];
+  expectedPayloadPaths: string[];
   assertRawSnapshotCount?: number;
 }
 
@@ -120,15 +121,17 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: false,
     workspaceFolders: [],
     mockDiscovered: [],
-    expectedPayloadKinds: [],
+    expectedPayloadPaths: [],
   },
   {
     label: 'workspace-only-includeHome-false',
     activePresets: new Set<SourcePresetId>(['cursor']),
     includeHomeConfig: false,
     workspaceFolders: [],
-    mockDiscovered: [discovered('/ws/AGENTS.md', SourceKind.AgentsMd, 'workspace')],
-    expectedPayloadKinds: [SourceKind.AgentsMd],
+    mockDiscovered: [
+      discovered('/ws/.cursor/mcp.json', 'cursor', SourceCategoryId.Mcp, 'workspace'),
+    ],
+    expectedPayloadPaths: ['/ws/.cursor/mcp.json'],
   },
   {
     label: 'user-global-claude-includeHome-true',
@@ -136,30 +139,25 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: true,
     workspaceFolders: [],
     mockDiscovered: [
-      discovered('/home/.claude/settings.json', SourceKind.ClaudeSettingsJson, 'user'),
+      discovered('/home/.claude/settings.json', 'claude', SourceCategoryId.Config, 'user'),
     ],
-    expectedPayloadKinds: [SourceKind.ClaudeSettingsJson],
+    expectedPayloadPaths: ['/home/.claude/settings.json'],
   },
   {
     label: 'three-presets-mixed-workspace',
     activePresets: new Set<SourcePresetId>(['cursor', 'claude', 'codex']),
     includeHomeConfig: true,
     workspaceFolders: [],
-    mockDiscovered: MIXED_CURSOR_CLAUDE_CODEX,
-    expectedPayloadKinds: sortKinds([
-      SourceKind.AgentsMd,
-      SourceKind.CursorRulesMdc,
-      SourceKind.ClaudeSettingsJson,
-      SourceKind.CodexConfigToml,
-    ]),
+    mockDiscovered: MIXED_PRESETS,
+    expectedPayloadPaths: sortPaths(MIXED_PRESETS.map((d) => d.path)),
   },
   {
     label: 'three-presets-mixed-but-cursor-active-filters-payload',
     activePresets: new Set<SourcePresetId>(['cursor']),
     includeHomeConfig: true,
     workspaceFolders: [],
-    mockDiscovered: MIXED_CURSOR_CLAUDE_CODEX,
-    expectedPayloadKinds: sortKinds([SourceKind.AgentsMd, SourceKind.CursorRulesMdc]),
+    mockDiscovered: MIXED_PRESETS,
+    expectedPayloadPaths: ['/ws/.cursor/rules/x.mdc'],
     assertRawSnapshotCount: 4,
   },
   {
@@ -167,13 +165,8 @@ const MATRIX: MatrixRow[] = [
     activePresets: new Set(ALL_SOURCE_PRESET_IDS),
     includeHomeConfig: true,
     workspaceFolders: [],
-    mockDiscovered: MIXED_CURSOR_CLAUDE_CODEX,
-    expectedPayloadKinds: sortKinds([
-      SourceKind.AgentsMd,
-      SourceKind.CursorRulesMdc,
-      SourceKind.ClaudeSettingsJson,
-      SourceKind.CodexConfigToml,
-    ]),
+    mockDiscovered: MIXED_PRESETS,
+    expectedPayloadPaths: sortPaths(MIXED_PRESETS.map((d) => d.path)),
   },
   {
     label: 'workspace-folders-passthrough',
@@ -181,10 +174,10 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: true,
     workspaceFolders: [{ name: 'proj', path: '/projects/foo' }],
     mockDiscovered: [
-      discovered('/ws/AGENTS.md', SourceKind.AgentsMd, 'workspace'),
-      discovered('/ws/.cursor/rules/a.mdc', SourceKind.CursorRulesMdc, 'workspace'),
+      discovered('/ws/.cursor/rules/a.mdc', 'cursor', SourceCategoryId.Rule, 'workspace'),
+      discovered('/ws/.cursor/mcp.json', 'cursor', SourceCategoryId.Mcp, 'workspace'),
     ],
-    expectedPayloadKinds: sortKinds([SourceKind.AgentsMd, SourceKind.CursorRulesMdc]),
+    expectedPayloadPaths: sortPaths(['/ws/.cursor/rules/a.mdc', '/ws/.cursor/mcp.json']),
   },
   {
     label: 'cardinality-antigravity-only-filters-cursor-kind',
@@ -192,7 +185,7 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: true,
     workspaceFolders: [],
     mockDiscovered: WORLD_ANTIGRAVITY_VS_CURSOR,
-    expectedPayloadKinds: sortKinds([SourceKind.AgentsMd, SourceKind.GeminiMd]),
+    expectedPayloadPaths: ['/ws/GEMINI.md'],
     assertRawSnapshotCount: 3,
   },
   {
@@ -201,11 +194,7 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: true,
     workspaceFolders: [],
     mockDiscovered: WORLD_ANTIGRAVITY_VS_CURSOR,
-    expectedPayloadKinds: sortKinds([
-      SourceKind.AgentsMd,
-      SourceKind.GeminiMd,
-      SourceKind.CursorRulesMdc,
-    ]),
+    expectedPayloadPaths: sortPaths(['/ws/GEMINI.md', '/ws/.cursor/rules/x.mdc']),
   },
   {
     label: 'mixed-ws-user-includeHome-true-cursor',
@@ -213,7 +202,7 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: true,
     workspaceFolders: [],
     mockDiscovered: effectiveMockDiscovered(WORLD_MIXED_WS_USER, true),
-    expectedPayloadKinds: sortKinds([SourceKind.AgentsMd, SourceKind.CursorMcpJson]),
+    expectedPayloadPaths: sortPaths(['/ws/.cursor/rules/a.mdc', '/home/.cursor/mcp.json']),
   },
   {
     label: 'mixed-ws-user-includeHome-false-drops-user-paths',
@@ -221,15 +210,26 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: false,
     workspaceFolders: [],
     mockDiscovered: effectiveMockDiscovered(WORLD_MIXED_WS_USER, false),
-    expectedPayloadKinds: [SourceKind.AgentsMd],
+    expectedPayloadPaths: ['/ws/.cursor/rules/a.mdc'],
   },
   {
-    label: 'empty-active-presets-no-kinds-empty-snapshot',
+    label: 'empty-active-presets-no-scan-rows',
     activePresets: new Set<SourcePresetId>(),
     includeHomeConfig: true,
     workspaceFolders: [],
     mockDiscovered: [],
-    expectedPayloadKinds: [],
+    expectedPayloadPaths: [],
+  },
+  {
+    label: 'same-path-two-presets-two-snapshot-rows',
+    activePresets: new Set<SourcePresetId>(['claude', 'cursor']),
+    includeHomeConfig: false,
+    workspaceFolders: [],
+    mockDiscovered: [
+      discovered('/ws/overlap.md', 'claude', SourceCategoryId.LlmGuideline, 'workspace'),
+      discovered('/ws/overlap.md', 'cursor', SourceCategoryId.Rule, 'workspace'),
+    ],
+    expectedPayloadPaths: sortPaths(['/ws/overlap.md', '/ws/overlap.md']),
   },
 ];
 
@@ -246,7 +246,7 @@ describe('sources indexing pipeline (matrix)', () => {
     expect(scanner.scanWorkspace).toHaveBeenCalledWith(
       expect.objectContaining({
         includeHomeConfig: row.includeHomeConfig,
-        allowedKinds: sourceKindsForPresets(row.activePresets),
+        activePresets: row.activePresets,
       })
     );
 
@@ -261,12 +261,15 @@ describe('sources indexing pipeline (matrix)', () => {
     const payload = payloadFor(snap);
     expect(payload).not.toBeNull();
     expect(isSourcesSnapshotPayload(payload)).toBe(true);
-    expect(payload!.sourceCount).toBe(row.expectedPayloadKinds.length);
-    expect(sortKinds(payload!.records.map((r) => r.kind))).toEqual(row.expectedPayloadKinds);
+    expect(payload!.sourceCount).toBe(row.expectedPayloadPaths.length);
+    expect(sortPaths(payload!.records.map((r) => r.path))).toEqual(row.expectedPayloadPaths);
     expect(payload!.workspaceFolders).toEqual(row.workspaceFolders);
 
     for (const r of payload!.records) {
-      expect(sortKinds(r.presets)).toEqual(sortKinds(presetsContainingKind(r.kind as SourceKindT)));
+      const src = row.mockDiscovered.find((d) => d.id === r.id);
+      expect(src).toBeDefined();
+      expect(r.preset).toBe(src!.preset);
+      expect(r.category).toBe(src!.category);
     }
   });
 });
@@ -291,10 +294,10 @@ describe('sources indexing pipeline (edge cases)', () => {
     ).toBe(false);
   });
 
-  it('persists facet tags on snapshot and payload (locality, category, presets)', async () => {
+  it('persists facet tags on snapshot and payload (locality, category, preset)', async () => {
     const mockDiscovered: DiscoveredSource[] = [
-      discovered('/ws/.claude/hooks/run.sh', SourceKind.ClaudeHookFile, 'workspace'),
-      discovered('/home/.cursor/mcp.json', SourceKind.CursorMcpJson, 'user'),
+      discovered('/ws/.claude/hooks/run.sh', 'claude', SourceCategoryId.Hook, 'workspace'),
+      discovered('/home/.cursor/mcp.json', 'cursor', SourceCategoryId.Mcp, 'user'),
     ];
     const { service, payloadFor } = createPipeline({
       activePresets: new Set<SourcePresetId>(['claude', 'cursor']),
@@ -351,12 +354,12 @@ describe('sources indexing pipeline (edge cases)', () => {
       { statFile: vi.fn(() => Promise.resolve(STAT)) },
       snapshotStore,
       { info: vi.fn() },
-      () => sourceKindsForPresets(active)
+      () => active
     );
     const p1 = service.indexWorkspace();
     const p2 = service.indexWorkspace();
     expect(scanner.scanWorkspace).toHaveBeenCalledTimes(1);
-    resolveScan([discovered('/a', SourceKind.AgentsMd, 'workspace')]);
+    resolveScan([discovered('/a', 'cursor', SourceCategoryId.Rule, 'workspace')]);
     const [a, b] = await Promise.all([p1, p2]);
     expect(a).toBe(b);
     expect(snapshotStore.save).toHaveBeenCalledTimes(1);

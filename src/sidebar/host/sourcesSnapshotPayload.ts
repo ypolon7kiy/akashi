@@ -1,8 +1,5 @@
 import type { IndexedSourceEntry, SourceIndexSnapshot } from '../../domains/sources/domain/model';
-import {
-  presetsContainingKind,
-  type ActiveSourcePresetsGetter,
-} from '../../domains/sources/domain/sourcePresets';
+import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
 import type {
   SourceDescriptor,
   SourcesSnapshotPayload,
@@ -32,8 +29,8 @@ function toSourceDescriptor(record: IndexedSourceEntry): SourceDescriptor {
   return {
     id: record.id,
     path: record.path,
-    kind: record.kind,
-    presets: presetsContainingKind(record.kind),
+    preset: record.preset,
+    category: record.category,
     scope: record.scope,
     origin: record.origin,
     tags: [...record.tags],

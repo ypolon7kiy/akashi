@@ -1,45 +1,11 @@
 /**
- * Shape of each indexed source and snapshot payload fields shared by host and sidebar webview.
+ * Re-exports sources snapshot DTOs from `shared/` for the sidebar bridge bundle.
  */
 
-import type { SourceFacetTag } from '../../domains/sources/domain/model';
-
-export interface WorkspaceFolderInfo {
-  readonly name: string;
-  readonly path: string;
-}
-
-export interface SourceDescriptor {
-  readonly id: string;
-  readonly path: string;
-  readonly kind: string;
-  /** Presets whose kind list includes this file (derived from `SOURCE_PRESET_DEFINITIONS` / `SOURCE_KINDS_BY_PRESET` on the host). */
-  readonly presets: readonly string[];
-  readonly scope: string;
-  readonly origin: 'workspace' | 'user';
-  /** Facet tags: locality, category, presets (mirrors `IndexedSourceEntry.tags`). */
-  readonly tags: readonly SourceFacetTag[];
-  readonly metadata: { byteLength: number; updatedAt: string };
-}
-
-/** Payload for get-snapshot (non-null) and index-workspace responses. */
-export interface SourcesSnapshotPayload {
-  readonly generatedAt: string;
-  readonly sourceCount: number;
-  readonly records: SourceDescriptor[];
-  readonly workspaceFolders: WorkspaceFolderInfo[];
-}
-
-/** Loose guard for webview `postMessage` payloads from our host (same bundle). Trusts record shape to TypeScript at the producer. */
-export function isSourcesSnapshotPayload(value: unknown): value is SourcesSnapshotPayload {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  const o = value as Record<string, unknown>;
-  return (
-    typeof o.generatedAt === 'string' &&
-    typeof o.sourceCount === 'number' &&
-    Array.isArray(o.records) &&
-    Array.isArray(o.workspaceFolders)
-  );
-}
+export type {
+  SourceDescriptor,
+  SourceFacetTagPayload,
+  SourcesSnapshotPayload,
+  WorkspaceFolderInfo,
+} from '../../shared/types/sourcesSnapshotPayload';
+export { isSourcesSnapshotPayload } from '../../shared/types/sourcesSnapshotPayload';

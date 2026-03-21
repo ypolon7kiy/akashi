@@ -1,6 +1,6 @@
 import type * as vscode from 'vscode';
 import { SourcesService } from '../application/SourcesService';
-import { sourceKindsForPresets, type ActiveSourcePresetsGetter } from '../domain/sourcePresets';
+import type { ActiveSourcePresetsGetter } from '../domain/sourcePresets';
 import { NodeSourceFileStats } from './NodeSourceFileStats';
 import { VscodeSourcesLogger } from './VscodeSourcesLogger';
 import { VscodeSourcesSnapshotStore } from './VscodeSourcesSnapshotStore';
@@ -16,6 +16,6 @@ export function createSourcesService(
     new NodeSourceFileStats(),
     new VscodeSourcesSnapshotStore(context),
     new VscodeSourcesLogger(),
-    () => sourceKindsForPresets(getActiveSourcePresets())
+    getActiveSourcePresets
   );
 }

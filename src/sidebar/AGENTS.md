@@ -4,7 +4,7 @@ The **Akashi sidebar** is the activity-bar webview: app-level UI, not a domain.
 
 | Folder | Role |
 |--------|------|
-| [`bridge/`](bridge/) | Types and message constants shared by the extension host and the webview (`messages.ts`, `sourceDescriptor.ts`, `sourceCategoryKeys.ts` — canonical source category keys for tree meta + `fileColors`). No `vscode` imports. |
+| [`bridge/`](bridge/) | Types and message constants shared by the extension host and the webview (`messages.ts`, `sourceCategoryKeys.ts`). `sourceDescriptor.ts` re-exports sources snapshot DTOs from [`shared/types/sourcesSnapshotPayload.ts`](../shared/types/sourcesSnapshotPayload.ts). No `vscode` imports. |
 | [`host/`](host/) | `SidebarViewProvider` — registers the webview view, resolves HTML, handles `postMessage` from the webview (request/response for sources plus fire-and-forget messages such as `sources/openPath` to open a file). |
 | [`webview/`](webview/) | React bundle entry (`index.tsx`, `App.tsx`, shell `styles.css` — imports shared [`webview-shared/vscode-tokens.css`](../webview-shared/vscode-tokens.css) + [`webview-controls.css`](../webview-shared/webview-controls.css)). |
 

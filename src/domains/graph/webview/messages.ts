@@ -1,4 +1,4 @@
-import type { SourcesSnapshotPayload } from '../../../sidebar/bridge/sourceDescriptor';
+import type { SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
 import type { GraphWebviewPersistedState } from './graphViewSettings';
 
 export const GraphMessageType = {

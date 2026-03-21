@@ -1,8 +1,9 @@
-import type { SourceFacetTag } from '../../../domains/sources/domain/model';
 import { SourceTagType } from '../../../domains/sources/domain/model';
 import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
 
-function categoryValueFromTags(tags: readonly SourceFacetTag[]): string | undefined {
+function categoryValueFromTags(
+  tags: readonly { readonly type: string; readonly value: string }[]
+): string | undefined {
   const t = tags.find((x) => x.type === SourceTagType.Category);
   return t?.value;
 }
@@ -14,17 +15,33 @@ export type TreeNode =
       id: string;
       label: string;
       path: string;
-      kind: string;
-      /** Category facet value for display; falls back to `kind` when missing. */
+      /** Category id for badges / CSS (first descriptor after preset/id sort when they differ). */
       categoryValue: string;
+      /** Presets that discovered this path, sorted. */
       presets: readonly string[];
+      /** Distinct category ids across merged descriptors, sorted (for tooltip when length > 1). */
+      categories: readonly string[];
     };
 
 type TrieEntry =
   | { kind: 'dir'; children: TrieMap }
-  | { kind: 'file'; descriptor: SourceDescriptor };
+  | { kind: 'file'; descriptors: SourceDescriptor[] };
 
 type TrieMap = Map<string, TrieEntry>;
+
+function pushDescriptorToLeaf(map: TrieMap, leafKey: string, descriptor: SourceDescriptor): void {
+  const existing = map.get(leafKey);
+  if (!existing) {
+    map.set(leafKey, { kind: 'file', descriptors: [descriptor] });
+    return;
+  }
+  if (existing.kind === 'file') {
+    if (!existing.descriptors.some((d) => d.id === descriptor.id)) {
+      existing.descriptors.push(descriptor);
+    }
+    return;
+  }
+}
 
 function normalizeFsPath(p: string): string {
   return p.replace(/\\/g, '/');
@@ -71,9 +88,10 @@ function ensureDir(map: TrieMap, segment: string): TrieMap {
     return existing.children;
   }
   if (existing?.kind === 'file') {
-    const moved = existing.descriptor;
+    const moved = existing.descriptors;
     const childMap: TrieMap = new Map();
-    childMap.set(basename(moved.path), { kind: 'file', descriptor: moved });
+    const name = basename(moved[0]!.path);
+    childMap.set(name, { kind: 'file', descriptors: [...moved] });
     map.set(segment, { kind: 'dir', children: childMap });
     return childMap;
   }
@@ -89,7 +107,7 @@ function insertFileAtRelativePath(
 ): void {
   const segments = relative.split('/').filter(Boolean);
   if (segments.length === 0) {
-    map.set(basename(descriptor.path), { kind: 'file', descriptor });
+    pushDescriptorToLeaf(map, basename(descriptor.path), descriptor);
     return;
   }
   let current = map;
@@ -104,7 +122,7 @@ function insertFileAtRelativePath(
   if (fileName === undefined) {
     return;
   }
-  current.set(fileName, { kind: 'file', descriptor });
+  pushDescriptorToLeaf(current, fileName, descriptor);
 }
 
 function insertAbsolutePathTrie(map: TrieMap, fsPath: string, descriptor: SourceDescriptor): void {
@@ -124,22 +142,34 @@ function insertAbsolutePathTrie(map: TrieMap, fsPath: string, descriptor: Source
   if (leaf === undefined) {
     return;
   }
-  current.set(leaf, { kind: 'file', descriptor });
+  pushDescriptorToLeaf(current, leaf, descriptor);
+}
+
+function categoryForDescriptor(d: SourceDescriptor): string {
+  return d.category ?? categoryValueFromTags(d.tags) ?? 'unknown';
 }
 
 function trieToTreeNodes(map: TrieMap, idPrefix: string): TreeNode[] {
   const nodes: TreeNode[] = [];
   for (const [name, entry] of map.entries()) {
     if (entry.kind === 'file') {
-      const d = entry.descriptor;
+      const list = [...entry.descriptors].sort(
+        (a, b) => a.preset.localeCompare(b.preset) || a.id.localeCompare(b.id)
+      );
+      const path = list[0]!.path;
+      const presets = [...new Set(list.map((d) => d.preset))].sort((a, b) => a.localeCompare(b));
+      const categories = [...new Set(list.map(categoryForDescriptor))].sort((a, b) =>
+        a.localeCompare(b)
+      );
+      const first = list[0]!;
       nodes.push({
         type: 'file',
-        id: `${idPrefix}:file:${d.id}`,
-        label: name,
-        path: d.path,
-        kind: d.kind,
-        categoryValue: categoryValueFromTags(d.tags) ?? d.kind,
-        presets: d.presets,
+        id: `${idPrefix}:file:${encodeURIComponent(normalizeFsPath(path))}`,
+        label: presets.length > 1 ? `${name} (${presets.join(', ')})` : name,
+        path,
+        categoryValue: categoryForDescriptor(first),
+        presets,
+        categories,
       });
     } else {
       const childId = `${idPrefix}:dir:${name}`;

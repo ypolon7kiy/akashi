@@ -13,7 +13,7 @@ import { GraphMessageType } from './messages';
 import {
   isSourcesSnapshotPayload,
   type SourcesSnapshotPayload,
-} from '../../../sidebar/bridge/sourceDescriptor';
+} from '../../../shared/types/sourcesSnapshotPayload';
 import { getVscodeApi } from '../../../webview-shared/api';
 
 export function GraphApp(): JSX.Element {
@@ -92,7 +92,9 @@ export function GraphApp(): JSX.Element {
   const snapshotPresetIds = useMemo(() => {
     const s = new Set<string>();
     snapshot?.records.forEach((r) => {
-      r.presets.forEach((p) => s.add(p));
+      if (r.preset) {
+        s.add(r.preset);
+      }
     });
     return [...s].sort();
   }, [snapshot]);
@@ -345,7 +347,7 @@ function buildEmptyHint(
     return 'All presets are hidden. Turn on at least one preset toggle above.';
   }
   if (opts?.noPresetsOnRecords) {
-    return 'No preset tags on indexed records; the graph needs presets on each source.';
+    return 'Indexed records are missing a preset id; re-run “Index sources” after upgrading.';
   }
   return 'Graph builder returned no nodes (unexpected). See Graph debug below.';
 }

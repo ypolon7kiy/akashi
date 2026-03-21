@@ -3,7 +3,7 @@
   "displayName": "Akashi",
   "description": "Akashi extension.",
   "version": "0.0.1",
-  "publisher": "your-name-or-org",
+  "publisher": "yp",
   "engines": {
     "vscode": "^1.85.0"
   },

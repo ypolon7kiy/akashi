@@ -1,14 +1,10 @@
-import type { IndexedSourceEntry, SourceKind } from './model';
-import {
-  ALL_SOURCE_PRESET_IDS as ALL_SOURCE_PRESET_IDS_FROM_REGISTRY,
-  SOURCE_PRESET_DEFINITIONS,
-} from '../registerSourcePresets';
+import { ALL_SOURCE_PRESET_IDS as ALL_SOURCE_PRESET_IDS_FROM_REGISTRY } from '../registerSourcePresets';
 import type { SourcePresetId as SourcePresetIdType } from './sourcePresetDefinition';
 
 export type SourcePresetId = SourcePresetIdType;
 
 /**
- * Sidebar / settings preset ids (no `vscode` here). Kept in sync with {@link SOURCE_PRESET_DEFINITIONS}.
+ * Sidebar / settings preset ids (no `vscode` here). Kept in sync with `SOURCE_PRESET_DEFINITIONS` in `registerSourcePresets.ts`.
  */
 export const SourcePresetId = {
   Claude: 'claude',
@@ -22,45 +18,6 @@ export type ActiveSourcePresetsGetter = () => ReadonlySet<SourcePresetId>;
 
 export const ALL_SOURCE_PRESET_IDS: readonly SourcePresetId[] = ALL_SOURCE_PRESET_IDS_FROM_REGISTRY;
 
-const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly SourceKind[]>> =
-  Object.fromEntries(SOURCE_PRESET_DEFINITIONS.map((p) => [p.id, p.kinds])) as Readonly<
-    Record<SourcePresetId, readonly SourceKind[]>
-  >;
-
-export { SOURCE_KINDS_BY_PRESET };
-
 export function isSourcePresetId(value: string): value is SourcePresetId {
   return (ALL_SOURCE_PRESET_IDS as readonly string[]).includes(value);
-}
-
-/** Union of kinds for the given active presets. */
-export function sourceKindsForPresets(
-  active: ReadonlySet<SourcePresetId>
-): ReadonlySet<SourceKind> {
-  const kinds = new Set<SourceKind>();
-  for (const preset of active) {
-    for (const kind of SOURCE_KINDS_BY_PRESET[preset]) {
-      kinds.add(kind);
-    }
-  }
-  return kinds;
-}
-
-export function recordMatchesSourceKinds(
-  record: IndexedSourceEntry,
-  allowedKinds: ReadonlySet<SourceKind>
-): boolean {
-  return allowedKinds.has(record.kind);
-}
-
-/** Presets whose kind list includes this kind (for UI / descriptors). */
-export function presetsContainingKind(kind: SourceKind): SourcePresetId[] {
-  const out: SourcePresetId[] = [];
-  for (const preset of ALL_SOURCE_PRESET_IDS) {
-    const kinds = SOURCE_KINDS_BY_PRESET[preset];
-    if (kinds.includes(kind)) {
-      out.push(preset);
-    }
-  }
-  return out;
 }

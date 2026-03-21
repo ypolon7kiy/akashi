@@ -1,4 +1,4 @@
-import { isSourcesSnapshotPayload } from '../../../sidebar/bridge/sourceDescriptor';
+import { isSourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
 
 export interface SnapshotInboundDiagnostics {
   readonly messageType: string;

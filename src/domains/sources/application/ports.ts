@@ -1,9 +1,13 @@
-import type { SourceFacetTag, SourceIndexSnapshot, SourceKind, SourceScope } from '../domain/model';
+import type { SourceCategory } from '../domain/model';
+import type { SourceFacetTag, SourceIndexSnapshot, SourceScope } from '../domain/model';
+import type { SourcePresetId } from '../domain/sourcePresetDefinition';
 
 export interface DiscoveredSource {
+  /** Stable row id (`sourceRecordId` in `shared/sourceRecordId`); not always equal to `path`. */
   id: string;
   path: string;
-  kind: SourceKind;
+  preset: SourcePresetId;
+  category: SourceCategory;
   scope: SourceScope;
   origin: 'workspace' | 'user';
   /** Facet tags built at scan time; propagated to index rows and snapshots unchanged. */
@@ -13,7 +17,7 @@ export interface DiscoveredSource {
 export interface SourceScanOptions {
   includeHomeConfig?: boolean;
   /** When empty, the scanner yields no sources. */
-  allowedKinds: ReadonlySet<SourceKind>;
+  activePresets: ReadonlySet<SourcePresetId>;
 }
 
 export interface WorkspaceSourceScannerPort {

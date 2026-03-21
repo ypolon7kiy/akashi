@@ -1,4 +1,4 @@
-import React from 'react';
+import type { JSX } from 'react';
 import type { CameraAnglePreset } from '../domain/graphTypes';
 import {
   GRAPH_VIEW_CAMERA_DISTANCE_MAX,

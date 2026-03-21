@@ -1,6 +1,6 @@
 import { OrbitControls } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ElementRef, type FC } from 'react';
 import type { Camera3DConfig } from '../../../domain/graphTypes';
 import { CAMERA_CONSTANTS } from '../Constants';
 
@@ -10,13 +10,9 @@ interface CameraSystemProps {
   onRotationEnd?: () => void;
 }
 
-export const CameraSystem: React.FC<CameraSystemProps> = ({
-  config,
-  onRotationStart,
-  onRotationEnd,
-}) => {
+export const CameraSystem: FC<CameraSystemProps> = ({ config, onRotationStart, onRotationEnd }) => {
   const { camera } = useThree();
-  const controlsRef = useRef<unknown>(null);
+  const controlsRef = useRef<ElementRef<typeof OrbitControls>>(null);
 
   useEffect(() => {
     const controls = controlsRef.current as {

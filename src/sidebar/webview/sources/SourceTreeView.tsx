@@ -27,12 +27,17 @@ function TreeRows(props: TreeRowProps): JSX.Element {
   const { node, depth, expandedIds, onToggle, selectedFileId, onSelectFile } = props;
 
   if (node.type === 'file') {
-    const presetLine = node.presets.length > 0 ? `\nPresets: ${node.presets.join(', ')}` : '';
+    const presetLine =
+      node.presets.length > 0 ? `\nPresets: ${node.presets.join(', ')}` : '';
+    const categoriesLine =
+      node.categories.length > 1
+        ? `\nCategories: ${node.categories.join(', ')}`
+        : '';
     const categoryDisplay = sidebarCategoryLabel(node.categoryValue);
     const categoryMod = sidebarCategoryMetaModifier(node.categoryValue);
     const categoryHint =
       categoryDisplay !== node.categoryValue ? `\nCategory: ${node.categoryValue}` : '';
-    const title = `${node.path}\n${node.kind}${categoryHint}${presetLine}`;
+    const title = `${node.path}\n${node.categoryValue}${categoryHint}${presetLine}${categoriesLine}`;
     const pad = `calc(var(--akashi-tree-indent-base) + ${depth} * var(--akashi-tree-indent-step))`;
     const isSelected = selectedFileId === node.id;
     return (

@@ -1,6 +1,6 @@
 The `shared` folder is reserved for **cross-cutting utilities and types** reused across multiple domains.
 
-**Today this folder has no TypeScript modules** (only this `AGENTS.md`). Contracts that are specific to the sidebar ↔ host bridge live under `src/sidebar/bridge/`; domain ports stay inside each domain. When two or more domains need the same interface or DTO, add it here.
+Cross-domain DTOs live here when **domains** (or graph + sidebar) must share a type without depending on `sidebar/bridge` — for example [`types/sourcesSnapshotPayload.ts`](types/sourcesSnapshotPayload.ts). Contracts that are **only** for the sidebar ↔ host bridge may stay under `src/sidebar/bridge/` (often re-exporting from `shared/`). Domain ports stay inside each domain.
 
 - Use `shared` for truly generic code (e.g. functional helpers, result types, logging abstractions).
 - Keep shared pieces small and intentional to avoid turning this into a “misc” dump.

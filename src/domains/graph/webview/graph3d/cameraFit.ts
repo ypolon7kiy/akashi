@@ -103,7 +103,7 @@ export function cameraFitToBounds(
     padding = CAMERA_CONSTANTS.FIT_PADDING_LARGE;
   }
 
-  let fov = CAMERA_CONSTANTS.DEFAULT_FOV;
+  let fov: number = CAMERA_CONSTANTS.DEFAULT_FOV;
   const depthLevels = new Set(
     nodes.map((n) =>
       typeof n.layoutDepth === 'number' ? n.layoutDepth : typeof n.depth === 'number' ? n.depth : 0

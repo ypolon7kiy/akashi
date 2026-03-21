@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, type FC, type LegacyRef } from 'react';
 import * as THREE from 'three';
 import type { GraphEdge3D, GraphNode3D } from '../../../domain/graphTypes';
 import { calculateEdgeOpacity, calculateEdgeThickness } from '../edgeStyle';
@@ -14,7 +14,7 @@ interface EdgeRendererProps {
   thicknessScale?: number;
 }
 
-const EdgeRendererComponent: React.FC<EdgeRendererProps> = ({
+const EdgeRendererComponent: FC<EdgeRendererProps> = ({
   edge,
   sourceNode,
   targetNode,
@@ -93,7 +93,7 @@ const EdgeRendererComponent: React.FC<EdgeRendererProps> = ({
   }
 
   return (
-    <line ref={lineRef}>
+    <line ref={lineRef as unknown as LegacyRef<SVGLineElement>}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"

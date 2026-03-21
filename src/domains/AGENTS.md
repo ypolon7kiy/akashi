@@ -12,7 +12,7 @@ Create new domains by copying the **`example/`** structure for a minimal command
 | Domain | Layout | How it is reached |
 |--------|--------|-------------------|
 | **example** | `ui/` + `webview/` only (minimal reference slice). | Command opens `ExamplePanel`; webview posts simple messages to the panel host. |
-| **sources** | `domain/`, `application/`, `infrastructure/` (no `ui/` or `webview/` yet). | `SourcesService` is constructed in `extension.ts` and passed into `SidebarViewProvider`. The app-level sidebar webview drives indexing and snapshots via `src/sidebar/bridge/messages.ts`. Index is a **path catalog** (kinds + `stat` metadata); see `docs/sources-presets-and-indexing.md`. |
+| **sources** | `domain/`, `application/`, `infrastructure/` (no `ui/` or `webview/` yet). | `SourcesService` is constructed in `extension.ts` and passed into `SidebarViewProvider`. The app-level sidebar webview drives indexing and snapshots via `src/sidebar/bridge/messages.ts`. Index is a **path catalog** (preset, category, tags, and `stat` metadata only). |
 
 ---
 

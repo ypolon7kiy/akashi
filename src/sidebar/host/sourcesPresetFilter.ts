@@ -1,14 +1,9 @@
 import type { IndexedSourceEntry } from '../../domains/sources/domain/model';
-import {
-  recordMatchesSourceKinds,
-  sourceKindsForPresets,
-  type SourcePresetId,
-} from '../../domains/sources/domain/sourcePresets';
+import type { SourcePresetId } from '../../domains/sources/domain/sourcePresets';
 
 export function filterRecordsByPresets(
   records: IndexedSourceEntry[],
   active: ReadonlySet<SourcePresetId>
 ): IndexedSourceEntry[] {
-  const kinds = sourceKindsForPresets(active);
-  return records.filter((r) => recordMatchesSourceKinds(r, kinds));
+  return records.filter((r) => active.has(r.preset as SourcePresetId));
 }

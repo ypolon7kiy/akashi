@@ -1,10 +1,10 @@
-import type { SourceKind } from './model';
+import type { SourceCategory } from './model';
 import type { ToolUserRoots } from './toolUserRoots';
 
-/** VS Code workspace glob and which {@link SourceKind} values it can yield. */
+/** VS Code workspace glob and the category for every file matched by this preset's rule. */
 export interface WorkspaceGlobContribution {
   readonly glob: string;
-  readonly kinds: readonly SourceKind[];
+  readonly category: SourceCategory;
 }
 
 /**
@@ -12,32 +12,26 @@ export interface WorkspaceGlobContribution {
  */
 export interface HomePathsContext {
   readonly homeDir: string;
-  readonly allowedKinds: ReadonlySet<SourceKind>;
+  readonly activePresets: ReadonlySet<SourcePresetId>;
   readonly roots: ToolUserRoots;
-  readonly add: (p: string) => void;
+  readonly add: (filePath: string, presetId: SourcePresetId, category: SourceCategory) => void;
   readonly fileExists: (filePath: string) => Promise<boolean>;
   readonly collectShallowFilesWithSuffix: (dir: string, suffix: string) => Promise<string[]>;
   readonly collectFilesRecursiveUnderDir: (rootDir: string) => Promise<string[]>;
   readonly collectSkillMdRecursiveUnderDir: (rootDir: string) => Promise<string[]>;
 }
 
-/** One async unit of user-home path discovery; runs in parallel with sibling tasks. */
+/** One async unit of user-home path discovery for a single preset. */
 export type HomePathTask = (ctx: HomePathsContext) => Promise<void>;
 
 export type SourcePresetId = 'claude' | 'cursor' | 'antigravity' | 'codex';
 
 /**
- * One tool preset: kinds for settings union, workspace globs, user-home scan tasks, and
- * path classification (workspace / user) for tool-specific paths only.
- * Universal filenames (e.g. AGENTS.md) are handled in shared classifiers before these run.
+ * One tool preset: workspace globs and user-home scan tasks only.
+ * Each rule binds exactly one category; preset id is the owning preset.
  */
 export interface SourcePresetDefinition {
   readonly id: SourcePresetId;
-  readonly kinds: readonly SourceKind[];
   readonly workspaceGlobContributions: readonly WorkspaceGlobContribution[];
   readonly homePathTasks: readonly HomePathTask[];
-  /** Return a kind only for workspace paths this preset owns; otherwise `undefined`. */
-  readonly classifyWorkspacePath: (filePath: string) => SourceKind | undefined;
-  /** Return a kind only for user-scope paths this preset owns; otherwise `undefined`. */
-  readonly classifyUserPath: (filePath: string, roots: ToolUserRoots) => SourceKind | undefined;
 }

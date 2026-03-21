@@ -1,6 +1,6 @@
 import type { SourceFacetTag } from './model';
-import { SourceKind, SourceTagType, type SourceKind as SourceKindT } from './model';
-import { presetsContainingKind } from './sourcePresets';
+import { SourceTagType } from './model';
+import type { SourceCategory } from './model';
 
 /** Values for `type: 'locality'` — project tree vs user-home config. */
 export const SourceLocalityTagValue = {
@@ -8,9 +8,9 @@ export const SourceLocalityTagValue = {
   Global: 'global',
 } as const;
 
-/** Stable category ids for `type: 'category'`. */
+/** Stable category ids for `type: 'category'` (sidebar / graph). */
 export const SourceCategoryId = {
-  /** Instruction-style docs (AGENTS, CLAUDE.md, Copilot, overrides, etc.). */
+  /** Instruction-style docs (CLAUDE.md, GEMINI.md, tool-specific agent files, etc.). */
   LlmGuideline: 'context',
   /** Tool rule files: `.cursor/rules`, `.cursorrules`, `.claude/rules`, Codex `.rules`. */
   Rule: 'rule',
@@ -21,45 +21,6 @@ export const SourceCategoryId = {
   Unknown: 'unknown',
 } as const;
 
-export function sourceCategoryForKind(kind: SourceKindT): string {
-  switch (kind) {
-    case SourceKind.AgentsMd:
-    case SourceKind.DotAgentsMd:
-    case SourceKind.TeamGuideMd:
-    case SourceKind.ClaudeMd:
-    case SourceKind.GeminiMd:
-    case SourceKind.GithubCopilotInstructionsMd:
-    case SourceKind.CodexAgentsOverrideMd:
-      return SourceCategoryId.LlmGuideline;
-
-    case SourceKind.ClaudeRulesMd:
-    case SourceKind.CursorLegacyRules:
-    case SourceKind.CursorRulesMdc:
-    case SourceKind.CodexRulesFile:
-      return SourceCategoryId.Rule;
-
-    case SourceKind.AgentsSkillMd:
-    case SourceKind.CursorSkillMd:
-    case SourceKind.ClaudeSkillMd:
-    case SourceKind.CodexSkillMd:
-    case SourceKind.GeminiAntigravitySkillMd:
-      return SourceCategoryId.Skill;
-
-    case SourceKind.ClaudeHookFile:
-      return SourceCategoryId.Hook;
-
-    case SourceKind.ClaudeSettingsJson:
-    case SourceKind.CodexConfigToml:
-      return SourceCategoryId.Config;
-
-    case SourceKind.CursorMcpJson:
-      return SourceCategoryId.Mcp;
-
-    case SourceKind.Unknown:
-      return SourceCategoryId.Unknown;
-  }
-}
-
 function localityTagForOrigin(origin: 'workspace' | 'user'): SourceFacetTag {
   return {
     type: SourceTagType.Locality,
@@ -67,21 +28,24 @@ function localityTagForOrigin(origin: 'workspace' | 'user'): SourceFacetTag {
   };
 }
 
+export interface SourceFacetTagInput {
+  readonly category: SourceCategory;
+  readonly preset: string;
+  readonly origin: 'workspace' | 'user';
+}
+
 /**
- * Ordered facet tags: locality, category, then preset tags (preset ids sorted) for stable snapshots.
+ * Ordered facet tags: locality, category, preset — stable for snapshots.
  */
-export function buildSourceFacetTags(
-  kind: SourceKindT,
-  origin: 'workspace' | 'user'
-): readonly SourceFacetTag[] {
-  const locality = localityTagForOrigin(origin);
+export function buildSourceFacetTags(input: SourceFacetTagInput): readonly SourceFacetTag[] {
+  const locality = localityTagForOrigin(input.origin);
   const category: SourceFacetTag = {
     type: SourceTagType.Category,
-    value: sourceCategoryForKind(kind),
+    value: input.category,
   };
-  const presetIds = [...presetsContainingKind(kind)].sort();
-  const presetTags = presetIds.map(
-    (id): SourceFacetTag => ({ type: SourceTagType.Preset, value: id })
-  );
-  return [locality, category, ...presetTags];
+  const presetTag: SourceFacetTag = {
+    type: SourceTagType.Preset,
+    value: input.preset,
+  };
+  return [locality, category, presetTag];
 }

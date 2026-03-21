@@ -1,4 +1,4 @@
-import type { SourcesSnapshotPayload } from '../../../sidebar/bridge/sourceDescriptor';
+import type { SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
 import { applyGridLayout } from './gridLayout';
 import {
@@ -143,22 +143,21 @@ export function buildGraphFromSourcesPayload(
   const buckets = new Map<BucketKey, typeof payload.records>();
 
   for (const r of payload.records) {
-    if (r.presets.length === 0) {
+    const presetId = r.preset;
+    if (!presetId) {
       continue;
     }
-    for (const presetId of r.presets) {
-      if (enabled !== null && !enabled.has(presetId)) {
-        continue;
-      }
-      const loc = localityForRecord(r);
-      const key = sliceKey(presetId, loc);
-      let arr = buckets.get(key);
-      if (!arr) {
-        arr = [];
-        buckets.set(key, arr);
-      }
-      arr.push(r);
+    if (enabled !== null && !enabled.has(presetId)) {
+      continue;
     }
+    const loc = localityForRecord(r);
+    const key = sliceKey(presetId, loc);
+    let arr = buckets.get(key);
+    if (!arr) {
+      arr = [];
+      buckets.set(key, arr);
+    }
+    arr.push(r);
   }
 
   if (buckets.size === 0) {

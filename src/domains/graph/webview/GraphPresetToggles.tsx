@@ -1,4 +1,4 @@
-import React from 'react';
+import type { JSX } from 'react';
 
 export function GraphPresetToggles(props: {
   presetIds: readonly string[];

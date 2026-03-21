@@ -1,65 +1,66 @@
 import * as path from 'node:path';
-import { SourceKind, type SourceKind as SourceKindType } from '../../domain/model';
 import type { HomePathTask } from '../../domain/sourcePresetDefinition';
+import { SourceCategoryId } from '../../domain/sourceTags';
 
-function kindsIntersect(
-  allowed: ReadonlySet<SourceKindType>,
-  probe: readonly SourceKindType[]
-): boolean {
-  return probe.some((k) => allowed.has(k));
-}
+const PRESET_ID = 'claude' as const;
 
 export const claudeHomePathTasks: readonly HomePathTask[] = [
   async (ctx) => {
-    const { allowedKinds, roots, add, fileExists } = ctx;
-    const rows: { abs: string; kinds: readonly SourceKindType[] }[] = [
-      { abs: path.join(roots.claudeUserRoot, 'CLAUDE.md'), kinds: [SourceKind.ClaudeMd] },
+    const { activePresets, roots, add, fileExists } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
+    const rows: {
+      abs: string;
+      category: (typeof SourceCategoryId)[keyof typeof SourceCategoryId];
+    }[] = [
+      {
+        abs: path.join(roots.claudeUserRoot, 'CLAUDE.md'),
+        category: SourceCategoryId.LlmGuideline,
+      },
       {
         abs: path.join(roots.claudeUserRoot, 'settings.json'),
-        kinds: [SourceKind.ClaudeSettingsJson],
+        category: SourceCategoryId.Config,
       },
       {
         abs: path.join(roots.claudeUserRoot, 'settings.local.json'),
-        kinds: [SourceKind.ClaudeSettingsJson],
+        category: SourceCategoryId.Config,
       },
     ];
     for (const row of rows) {
-      if (!kindsIntersect(allowedKinds, row.kinds)) {
-        continue;
-      }
       if (await fileExists(row.abs)) {
-        add(row.abs);
+        add(row.abs, PRESET_ID, row.category);
       }
     }
   },
   async (ctx) => {
-    const { allowedKinds, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.ClaudeSkillMd])) {
+    const { activePresets, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const claudeSkills = path.join(roots.claudeUserRoot, 'skills');
     for (const f of await collectSkillMdRecursiveUnderDir(claudeSkills)) {
-      add(f);
+      add(f, PRESET_ID, SourceCategoryId.Skill);
     }
   },
   async (ctx) => {
-    const { allowedKinds, roots, add, collectShallowFilesWithSuffix } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.ClaudeRulesMd])) {
+    const { activePresets, roots, add, collectShallowFilesWithSuffix } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const rulesDir = path.join(roots.claudeUserRoot, 'rules');
     for (const f of await collectShallowFilesWithSuffix(rulesDir, '.md')) {
-      add(f);
+      add(f, PRESET_ID, SourceCategoryId.Rule);
     }
   },
   async (ctx) => {
-    const { allowedKinds, roots, add, collectFilesRecursiveUnderDir } = ctx;
-    if (!kindsIntersect(allowedKinds, [SourceKind.ClaudeHookFile])) {
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const hooksDir = path.join(roots.claudeUserRoot, 'hooks');
     for (const f of await collectFilesRecursiveUnderDir(hooksDir)) {
-      add(f);
+      add(f, PRESET_ID, SourceCategoryId.Hook);
     }
   },
 ];

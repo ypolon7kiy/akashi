@@ -6,27 +6,36 @@ import {
   graphLocalityNodeId,
   graphPresetNodeId,
 } from './buildGraphFromSourcesPayload';
-import type { SourcesSnapshotPayload } from '../../../sidebar/bridge/sourceDescriptor';
+import type { SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
+import { sourceRecordId } from '../../../shared/sourceRecordId';
+
+function record(
+  path: string,
+  preset: string,
+  origin: 'workspace' | 'user',
+  locality: 'project' | 'global'
+): SourcesSnapshotPayload['records'][number] {
+  return {
+    id: sourceRecordId(preset, origin, path),
+    path,
+    preset,
+    category: 'context',
+    scope: origin === 'user' ? 'user' : 'workspace',
+    origin,
+    tags: [
+      { type: 'locality', value: locality },
+      { type: 'category', value: 'context' },
+      { type: 'preset', value: preset },
+    ],
+    metadata: { byteLength: 10, updatedAt: '2025-01-01T00:00:00.000Z' },
+  };
+}
 
 const basePayload = (): SourcesSnapshotPayload => ({
   generatedAt: '2025-01-01T00:00:00.000Z',
   sourceCount: 1,
   workspaceFolders: [{ name: 'ws', path: '/ws' }],
-  records: [
-    {
-      id: '/ws/src/AGENTS.md',
-      path: '/ws/src/AGENTS.md',
-      kind: 'agents_md',
-      presets: ['cursor'],
-      scope: 'workspace',
-      origin: 'workspace',
-      tags: [
-        { type: 'locality', value: 'project' },
-        { type: 'category', value: 'context' },
-      ],
-      metadata: { byteLength: 10, updatedAt: '2025-01-01T00:00:00.000Z' },
-    },
-  ],
+  records: [record('/ws/src/CLAUDE.md', 'claude', 'workspace', 'project')],
 });
 
 describe('buildGraphFromSourcesPayload', () => {
@@ -40,29 +49,29 @@ describe('buildGraphFromSourcesPayload', () => {
     const payload = basePayload();
     const { nodes, edges } = buildGraphFromSourcesPayload(payload);
 
-    expect(nodes.find((n) => n.id === graphPresetNodeId('cursor'))?.type).toBe('preset');
-    expect(nodes.find((n) => n.id === graphLocalityNodeId('cursor', 'project'))?.type).toBe(
+    expect(nodes.find((n) => n.id === graphPresetNodeId('claude'))?.type).toBe('preset');
+    expect(nodes.find((n) => n.id === graphLocalityNodeId('claude', 'project'))?.type).toBe(
       'locality'
     );
 
-    const fWs = graphFolderNodeId('cursor', 'project', '/ws');
-    const fSrc = graphFolderNodeId('cursor', 'project', '/ws/src');
+    const fWs = graphFolderNodeId('claude', 'project', '/ws');
+    const fSrc = graphFolderNodeId('claude', 'project', '/ws/src');
     expect(nodes.some((n) => n.id === fWs && n.type === 'folder')).toBe(true);
     expect(nodes.some((n) => n.id === fSrc && n.type === 'folder')).toBe(true);
 
-    const fileId = graphFileNodeId('cursor', 'project', '/ws/src/AGENTS.md');
+    const fileId = graphFileNodeId('claude', 'project', '/ws/src/CLAUDE.md');
     const note = nodes.find((n) => n.id === fileId);
     expect(note?.type).toBe('note');
-    expect(note?.filesystemPath).toBe('/ws/src/AGENTS.md');
-    expect(note?.formattedTextLines).toEqual(['AGENTS.md']);
+    expect(note?.filesystemPath).toBe('/ws/src/CLAUDE.md');
+    expect(note?.formattedTextLines).toEqual(['CLAUDE.md']);
 
     expect(nodes.some((n) => n.type === 'tag')).toBe(false);
 
     expect(
       edges.some(
         (e) =>
-          e.source === graphPresetNodeId('cursor') &&
-          e.target === graphLocalityNodeId('cursor', 'project')
+          e.source === graphPresetNodeId('claude') &&
+          e.target === graphLocalityNodeId('claude', 'project')
       )
     ).toBe(true);
     expect(
@@ -70,24 +79,24 @@ describe('buildGraphFromSourcesPayload', () => {
         (e) =>
           e.type === 'contains' &&
           e.target === fileId &&
-          e.source === graphFolderNodeId('cursor', 'project', '/ws/src')
+          e.source === graphFolderNodeId('claude', 'project', '/ws/src')
       )
     ).toBe(true);
   });
 
-  it('duplicates file node per preset on the same record', () => {
+  it('two records same path different presets yield two file nodes', () => {
+    const path = '/ws/src/shared.md';
     const payload: SourcesSnapshotPayload = {
       ...basePayload(),
+      sourceCount: 2,
       records: [
-        {
-          ...basePayload().records[0],
-          presets: ['cursor', 'claude'],
-        },
+        record(path, 'cursor', 'workspace', 'project'),
+        record(path, 'claude', 'workspace', 'project'),
       ],
     };
     const { nodes } = buildGraphFromSourcesPayload(payload);
-    const cursorFile = graphFileNodeId('cursor', 'project', '/ws/src/AGENTS.md');
-    const claudeFile = graphFileNodeId('claude', 'project', '/ws/src/AGENTS.md');
+    const cursorFile = graphFileNodeId('cursor', 'project', path);
+    const claudeFile = graphFileNodeId('claude', 'project', path);
     expect(nodes.some((n) => n.id === cursorFile)).toBe(true);
     expect(nodes.some((n) => n.id === claudeFile)).toBe(true);
     expect(nodes.filter((n) => n.type === 'preset').length).toBe(2);
@@ -95,7 +104,7 @@ describe('buildGraphFromSourcesPayload', () => {
 
   it('applies grid spacing options to node positions', () => {
     const payload = basePayload();
-    const fileId = graphFileNodeId('cursor', 'project', '/ws/src/AGENTS.md');
+    const fileId = graphFileNodeId('claude', 'project', '/ws/src/CLAUDE.md');
     const defaultPos = buildGraphFromSourcesPayload(payload).nodes.find(
       (n) => n.id === fileId
     )?.position;
@@ -109,13 +118,13 @@ describe('buildGraphFromSourcesPayload', () => {
   });
 
   it('respects enabledPresets filter', () => {
+    const path = '/ws/x.md';
     const payload: SourcesSnapshotPayload = {
       ...basePayload(),
+      sourceCount: 2,
       records: [
-        {
-          ...basePayload().records[0],
-          presets: ['cursor', 'claude'],
-        },
+        record(path, 'cursor', 'workspace', 'project'),
+        record(path, 'claude', 'workspace', 'project'),
       ],
     };
     const { nodes } = buildGraphFromSourcesPayload(payload, {
@@ -132,13 +141,17 @@ describe('buildGraphFromSourcesPayload', () => {
       workspaceFolders: [{ name: 'ws', path: '/ws' }],
       records: [
         {
-          id: '/home/user/.cursor/mcp.json',
+          id: sourceRecordId('cursor', 'user', '/home/user/.cursor/mcp.json'),
           path: '/home/user/.cursor/mcp.json',
-          kind: 'cursor_mcp_json',
-          presets: ['cursor'],
+          preset: 'cursor',
+          category: 'mcp',
           scope: 'user',
           origin: 'user',
-          tags: [{ type: 'locality', value: 'global' }],
+          tags: [
+            { type: 'locality', value: 'global' },
+            { type: 'category', value: 'mcp' },
+            { type: 'preset', value: 'cursor' },
+          ],
           metadata: { byteLength: 1, updatedAt: '2025-01-01T00:00:00.000Z' },
         },
       ],

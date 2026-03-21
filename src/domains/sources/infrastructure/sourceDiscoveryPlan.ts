@@ -1,8 +1,10 @@
 import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { SourceKind as SourceKindType } from '../domain/model';
-import { HOME_PATH_TASKS, WORKSPACE_GLOB_DEFINITIONS } from '../registerSourcePresets';
+import type { SourceCategory } from '../domain/model';
+import type { SourcePresetId } from '../domain/sourcePresetDefinition';
+import { SOURCE_RECORD_ID_FIELD_SEP } from '../../../shared/sourceRecordId';
+import { HOME_PATH_TASKS, WORKSPACE_GLOB_SCAN_ROWS } from '../registerSourcePresets';
 
 export interface CollectHomeSourcePathsOptions {
   readonly claudeUserRoot: string;
@@ -11,21 +13,20 @@ export interface CollectHomeSourcePathsOptions {
   readonly codexUserRoot: string;
 }
 
-export { WORKSPACE_GLOB_DEFINITIONS };
+export interface HomeDiscoveredPath {
+  readonly path: string;
+  readonly presetId: SourcePresetId;
+  readonly category: SourceCategory;
+}
+
+export { WORKSPACE_GLOB_SCAN_ROWS };
 
 const SKIP_DIR_NAMES = new Set(['node_modules', '.git', 'dist']);
 
-export function kindsIntersect(
-  allowed: ReadonlySet<SourceKindType>,
-  probeKinds: readonly SourceKindType[]
-): boolean {
-  return probeKinds.some((k) => allowed.has(k));
-}
-
-export function selectWorkspaceGlobs(allowedKinds: ReadonlySet<SourceKindType>): string[] {
-  return WORKSPACE_GLOB_DEFINITIONS.filter((row) => kindsIntersect(allowedKinds, row.kinds)).map(
-    (row) => row.glob
-  );
+export function selectWorkspaceGlobRows(
+  activePresets: ReadonlySet<SourcePresetId>
+): typeof WORKSPACE_GLOB_SCAN_ROWS {
+  return WORKSPACE_GLOB_SCAN_ROWS.filter((row) => activePresets.has(row.presetId));
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
@@ -80,28 +81,28 @@ async function collectSkillMdRecursiveUnderDir(rootDir: string): Promise<string[
 }
 
 /**
- * Absolute paths under the user home directory to scan when `includeHomeConfig` is true,
- * filtered by {@link allowedKinds}. Runs {@link HOME_PATH_TASKS} concurrently (`Promise.all`)
- * then returns the deduped path list.
+ * Absolute paths under the user home directory when `includeHomeConfig` is true,
+ * each tagged with owning preset and category. Runs {@link HOME_PATH_TASKS} concurrently.
  */
 export async function collectHomeSourcePaths(
   homeDir: string,
-  allowedKinds: ReadonlySet<SourceKindType>,
+  activePresets: ReadonlySet<SourcePresetId>,
   options: CollectHomeSourcePathsOptions
-): Promise<string[]> {
-  const paths: string[] = [];
+): Promise<HomeDiscoveredPath[]> {
+  const out: HomeDiscoveredPath[] = [];
   const seen = new Set<string>();
 
-  const add = (p: string): void => {
-    if (!seen.has(p)) {
-      seen.add(p);
-      paths.push(p);
+  const add = (p: string, presetId: SourcePresetId, category: SourceCategory): void => {
+    const key = `${presetId}${SOURCE_RECORD_ID_FIELD_SEP}${p}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push({ path: p, presetId, category });
     }
   };
 
   const ctx = {
     homeDir,
-    allowedKinds,
+    activePresets,
     roots: {
       claudeUserRoot: options.claudeUserRoot,
       cursorUserRoot: options.cursorUserRoot,
@@ -117,5 +118,5 @@ export async function collectHomeSourcePaths(
 
   await Promise.all(HOME_PATH_TASKS.map((task) => task(ctx)));
 
-  return paths;
+  return out;
 }
