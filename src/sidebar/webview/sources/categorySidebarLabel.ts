@@ -2,25 +2,18 @@
  * Compact category badges for the sources tree meta column (category facet `value` strings).
  */
 
-const SIDEBAR_CATEGORY_META_MODIFIERS = [
-  'context',
-  'rule',
-  'skill',
-  'hook',
-  'config',
-  'mcp',
-  'unknown',
-] as const;
+import {
+  SIDEBAR_SOURCE_CATEGORY_KEYS,
+  type SidebarSourceCategoryKey,
+} from '../../bridge/sourceCategoryKeys';
 
-export type SidebarCategoryMetaModifier =
-  | (typeof SIDEBAR_CATEGORY_META_MODIFIERS)[number]
-  | 'fallback';
+export type SidebarCategoryMetaModifier = SidebarSourceCategoryKey;
 
-/** Whitelisted CSS suffix for `akashi-tree__meta--cat-*` (unknown / kind fallback → `fallback`). */
+/** Whitelisted CSS suffix for `akashi-tree__meta--cat-*` (missing category / kind fallback → `unknown`). */
 export function sidebarCategoryMetaModifier(categoryFacetValue: string): SidebarCategoryMetaModifier {
-  return (SIDEBAR_CATEGORY_META_MODIFIERS as readonly string[]).includes(categoryFacetValue)
-    ? (categoryFacetValue as (typeof SIDEBAR_CATEGORY_META_MODIFIERS)[number])
-    : 'fallback';
+  return (SIDEBAR_SOURCE_CATEGORY_KEYS as readonly string[]).includes(categoryFacetValue)
+    ? (categoryFacetValue as SidebarCategoryMetaModifier)
+    : 'unknown';
 }
 
 const SIDEBAR_CATEGORY_LABEL: Readonly<Record<string, string>> = {

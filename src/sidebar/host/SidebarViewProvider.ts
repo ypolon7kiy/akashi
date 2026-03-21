@@ -11,6 +11,10 @@ import {
   type SidebarRequestMessage,
   type SourcesResponseMessage,
 } from '../bridge/messages';
+import {
+  buildSidebarCategoryColorStyleBlock,
+  configurationAffectsSidebarCategoryColors,
+} from './sidebarCategoryColorStyle';
 import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
 
 function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
@@ -41,16 +45,18 @@ function getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const codiconCssUri = webview.asWebviewUri(
     vscode.Uri.joinPath(codiconsDistRoot(extensionUri), 'codicon.css')
   );
+  const categoryColorStyle = buildSidebarCategoryColorStyleBlock();
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource}; font-src ${webview.cspSource};">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource};">
   <title>Akashi Sidebar</title>
   <link rel="stylesheet" href="${codiconCssUri.toString()}">
   <link rel="stylesheet" href="${styleUri.toString()}${cacheQ}">
+  ${categoryColorStyle}
 </head>
 <body>
   <div id="root"></div>
@@ -98,12 +104,24 @@ export function createSidebarViewProvider(
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      const sourcesChanged = e.affectsConfiguration('akashi.sources');
-      if (!sourcesChanged) {
+      if (!e.affectsConfiguration('akashi.sources')) {
         return;
       }
       const w = activeView?.webview;
       if (!w) {
+        return;
+      }
+      if (configurationAffectsSidebarCategoryColors(e)) {
+        w.html = getHtml(w, context.extensionUri);
+      }
+      const indexingKeysChanged =
+        e.affectsConfiguration('akashi.sources.presets') ||
+        e.affectsConfiguration('akashi.sources.includeHomeConfig') ||
+        e.affectsConfiguration('akashi.sources.claudeConfigDir') ||
+        e.affectsConfiguration('akashi.sources.codexHome') ||
+        e.affectsConfiguration('akashi.sources.cursorConfigDir') ||
+        e.affectsConfiguration('akashi.sources.geminiConfigDir');
+      if (!indexingKeysChanged) {
         return;
       }
       void (async () => {

@@ -183,15 +183,11 @@
 }
 
 /*
- * Category tint: prefer chart + symbol tokens, always end with readable workbench colors.
- * Some themes omit or mis-tune symbolIcon vars in webviews; bare symbol-only rules looked “white”/invisible.
- *
- * context + rule share one badge color: users read both as “rules/guidelines” (AGENTS.md vs .cursor/rules).
- * Green chart was often faint; orange reads consistently next to other categories.
+ * Category badge defaults (theme tokens). Optional overrides: settings
+ * `akashi.sources.sidebar.categoryColor*` inject --akashi-source-cat-* on :root from the host.
  */
-.akashi-tree__meta--cat-context,
-.akashi-tree__meta--cat-rule {
-  color: var(
+:root {
+  --akashi-default-cat-context-rule: var(
     --vscode-charts-orange,
     var(
       --vscode-symbolIcon-stringForeground,
@@ -201,50 +197,35 @@
       )
     )
   );
-}
-
-.akashi-tree__meta--cat-skill {
-  color: var(
+  --akashi-default-cat-skill: var(
     --vscode-charts-purple,
     var(
       --vscode-symbolIcon-functionForeground,
       var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
     )
   );
-}
-
-.akashi-tree__meta--cat-hook {
-  color: var(
+  --akashi-default-cat-hook: var(
     --vscode-charts-red,
     var(
       --vscode-symbolIcon-eventForeground,
       var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
     )
   );
-}
-
-.akashi-tree__meta--cat-config {
-  color: var(
+  --akashi-default-cat-config: var(
     --vscode-charts-yellow,
     var(
       --vscode-symbolIcon-objectForeground,
       var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
     )
   );
-}
-
-.akashi-tree__meta--cat-mcp {
-  color: var(
+  --akashi-default-cat-mcp: var(
     --vscode-charts-blue,
     var(
       --vscode-symbolIcon-interfaceForeground,
       var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
     )
   );
-}
-
-.akashi-tree__meta--cat-unknown {
-  color: var(
+  --akashi-default-cat-unknown: var(
     --vscode-charts-foreground,
     var(
       --vscode-symbolIcon-miscForeground,
@@ -253,11 +234,32 @@
   );
 }
 
-.akashi-tree__meta--cat-fallback {
-  color: var(
-    --vscode-descriptionForeground,
-    var(--vscode-foreground, var(--akashi-text-muted))
-  );
+.akashi-tree__meta--cat-context {
+  color: var(--akashi-source-cat-context, var(--akashi-default-cat-context-rule));
+}
+
+.akashi-tree__meta--cat-rule {
+  color: var(--akashi-source-cat-rule, var(--akashi-default-cat-context-rule));
+}
+
+.akashi-tree__meta--cat-skill {
+  color: var(--akashi-source-cat-skill, var(--akashi-default-cat-skill));
+}
+
+.akashi-tree__meta--cat-hook {
+  color: var(--akashi-source-cat-hook, var(--akashi-default-cat-hook));
+}
+
+.akashi-tree__meta--cat-config {
+  color: var(--akashi-source-cat-config, var(--akashi-default-cat-config));
+}
+
+.akashi-tree__meta--cat-mcp {
+  color: var(--akashi-source-cat-mcp, var(--akashi-default-cat-mcp));
+}
+
+.akashi-tree__meta--cat-unknown {
+  color: var(--akashi-source-cat-unknown, var(--akashi-default-cat-unknown));
 }
 
 /* Selection: single list foreground for contrast (category tint suppressed). */

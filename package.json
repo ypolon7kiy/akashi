@@ -95,6 +95,58 @@
           "order": 60,
           "default": "",
           "description": "Gemini user config dir. Absolute or ~/…. Empty: GEMINI_CONFIG_DIR or ~/.gemini."
+        },
+        "akashi.sources.sidebar.fileColors": {
+          "type": "object",
+          "order": 70,
+          "title": "File colors",
+          "additionalProperties": false,
+          "properties": {
+            "context": {
+              "type": "string",
+              "format": "color",
+              "default": "#d18616"
+            },
+            "rule": {
+              "type": "string",
+              "format": "color",
+              "default": "#d18616"
+            },
+            "skill": {
+              "type": "string",
+              "format": "color",
+              "default": "#b180d7"
+            },
+            "hook": {
+              "type": "string",
+              "format": "color",
+              "default": "#f14c4c"
+            },
+            "config": {
+              "type": "string",
+              "format": "color",
+              "default": "#cca700"
+            },
+            "mcp": {
+              "type": "string",
+              "format": "color",
+              "default": "#3794ff"
+            },
+            "unknown": {
+              "type": "string",
+              "format": "color",
+              "default": "#cccccc"
+            }
+          },
+          "default": {
+            "context": "#d18616",
+            "rule": "#d18616",
+            "skill": "#b180d7",
+            "hook": "#f14c4c",
+            "config": "#cca700",
+            "mcp": "#3794ff",
+            "unknown": "#cccccc"
+          }
         }
       }
     }
