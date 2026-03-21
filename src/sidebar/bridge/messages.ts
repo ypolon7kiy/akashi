@@ -17,14 +17,11 @@ export const SidebarMessageType = {
 
 export type SidebarMessageKind = (typeof SidebarMessageType)[keyof typeof SidebarMessageType];
 
-/** Triggers a full workspace index; no filters or options in the message. */
+/** Triggers a full workspace index; indexing options come from workspace settings (`akashi.sources.*`). */
 export interface SourcesIndexWorkspaceRequestMessage {
   type: typeof SidebarMessageType.SourcesIndexWorkspaceRequest;
   /** UUID v4; use `newRequestId()` from webview-shared if posting manually. */
   requestId: string;
-  payload?: {
-    includeHomeConfig?: boolean;
-  };
 }
 
 export interface SourcesGetSnapshotRequestMessage {

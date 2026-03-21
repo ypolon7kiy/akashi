@@ -15,22 +15,18 @@ import { readPersistedSourcesState, type SidebarPersistedState } from './persist
 export interface SourcesSidebarState {
   sourceCount: number;
   lastUpdated: string | null;
-  includeHomeConfig: boolean;
   isIndexing: boolean;
   records: SourceDescriptor[];
   workspaceFolders: WorkspaceFolderInfo[];
   generatedAt: string | null;
-  setIncludeHomeConfig: (value: boolean) => void;
   handleShowExample: () => void;
   handleIndexSources: () => Promise<void>;
 }
 
 export function useSourcesSidebarState(): SourcesSidebarState {
   const persisted = readPersistedSourcesState();
-  const initialIncludeHomeConfig = persisted.includeHomeConfig ?? false;
   const [sourceCount, setSourceCount] = useState<number>(persisted.sourceCount ?? 0);
   const [lastUpdated, setLastUpdated] = useState<string | null>(persisted.lastUpdated ?? null);
-  const [includeHomeConfig, setIncludeHomeConfig] = useState<boolean>(initialIncludeHomeConfig);
   const [isIndexing, setIsIndexing] = useState<boolean>(false);
   const [records, setRecords] = useState<SourceDescriptor[]>([]);
   const [workspaceFolders, setWorkspaceFolders] = useState<WorkspaceFolderInfo[]>([]);
@@ -82,9 +78,6 @@ export function useSourcesSidebarState(): SourcesSidebarState {
         vscode,
         {
           type: SidebarMessageType.SourcesIndexWorkspaceRequest,
-          payload: {
-            includeHomeConfig,
-          },
         },
         SidebarMessageType.SourcesResponse
       );
@@ -97,7 +90,7 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     } finally {
       setIsIndexing(false);
     }
-  }, [applySnapshotPayload, includeHomeConfig, isIndexing]);
+  }, [applySnapshotPayload, isIndexing]);
 
   useEffect(() => {
     const vscode = getVscodeApi();
@@ -105,11 +98,10 @@ export function useSourcesSidebarState(): SourcesSidebarState {
       return;
     }
     vscode.setState({
-      includeHomeConfig,
       sourceCount,
       lastUpdated,
     } satisfies SidebarPersistedState);
-  }, [includeHomeConfig, lastUpdated, sourceCount]);
+  }, [lastUpdated, sourceCount]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent): void => {
@@ -151,9 +143,6 @@ export function useSourcesSidebarState(): SourcesSidebarState {
           vscode,
           {
             type: SidebarMessageType.SourcesIndexWorkspaceRequest,
-            payload: {
-              includeHomeConfig: initialIncludeHomeConfig,
-            },
           },
           SidebarMessageType.SourcesResponse
         );
@@ -169,17 +158,15 @@ export function useSourcesSidebarState(): SourcesSidebarState {
     };
 
     void hydrateAndRefresh();
-  }, [applySnapshotPayload, initialIncludeHomeConfig]);
+  }, [applySnapshotPayload]);
 
   return {
     sourceCount,
     lastUpdated,
-    includeHomeConfig,
     isIndexing,
     records,
     workspaceFolders,
     generatedAt,
-    setIncludeHomeConfig,
     handleShowExample,
     handleIndexSources,
   };

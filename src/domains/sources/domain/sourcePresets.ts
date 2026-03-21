@@ -9,6 +9,7 @@ export const SourcePresetId = {
   Claude: 'claude',
   Cursor: 'cursor',
   Antigravity: 'antigravity',
+  Codex: 'codex',
 } as const;
 
 export type SourcePresetId = (typeof SourcePresetId)[keyof typeof SourcePresetId];
@@ -20,6 +21,7 @@ export const ALL_SOURCE_PRESET_IDS: readonly SourcePresetId[] = [
   SourcePresetId.Claude,
   SourcePresetId.Cursor,
   SourcePresetId.Antigravity,
+  SourcePresetId.Codex,
 ];
 
 /** For each preset, which indexed source kinds it includes. */
@@ -33,7 +35,6 @@ export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly So
     K.ClaudeSettingsJson,
     K.ClaudeRulesMd,
     K.ClaudeHookFile,
-    K.CodexConfigToml,
   ],
   [SourcePresetId.Cursor]: [
     K.AgentsMd,
@@ -50,6 +51,15 @@ export const SOURCE_KINDS_BY_PRESET: Readonly<Record<SourcePresetId, readonly So
     K.TeamGuideMd,
     K.GithubCopilotInstructionsMd,
     K.GeminiMd,
+  ],
+  [SourcePresetId.Codex]: [
+    K.AgentsMd,
+    K.DotAgentsMd,
+    K.TeamGuideMd,
+    K.GithubCopilotInstructionsMd,
+    K.CodexConfigToml,
+    K.CodexAgentsOverrideMd,
+    K.CodexRulesFile,
   ],
 };
 

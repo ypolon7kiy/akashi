@@ -9,6 +9,7 @@ import type {
 } from '../application/ports';
 import { SourceKind, SourceScope } from '../domain/model';
 import { collectHomeSourcePaths, selectWorkspaceGlobs } from './sourceDiscoveryPlan';
+import { readCodexHomeSettingPath } from './vscodeCodexHomeSetting';
 
 export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort {
   public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
@@ -47,7 +48,10 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
     allowedKinds: ReadonlySet<SourceKind>
   ): Promise<DiscoveredSource[]> {
     const home = os.homedir();
-    const paths = await collectHomeSourcePaths(home, allowedKinds);
+    const fromSetting = readCodexHomeSettingPath();
+    const paths = await collectHomeSourcePaths(home, allowedKinds, {
+      extraCodexHomeRoots: fromSetting ? [fromSetting] : [],
+    });
     return paths
       .map((p) => this.toDiscoveredSource(p, 'user'))
       .filter((s) => isAllowedDiscovered(s, allowedKinds));
@@ -84,6 +88,9 @@ function inferSourceKind(filePath: string): SourceKind {
   if (basename === 'TEAM_GUIDE.md' || basename === 'team_guide.md') {
     return SourceKind.TeamGuideMd;
   }
+  if (basename === 'AGENTS.override.md') {
+    return SourceKind.CodexAgentsOverrideMd;
+  }
   if (basename === 'CLAUDE.md' || basename === 'claude.md') {
     return SourceKind.ClaudeMd;
   }
@@ -113,6 +120,9 @@ function inferSourceKind(filePath: string): SourceKind {
   }
   if (basename === 'config.toml' && normalized.includes('/.codex/')) {
     return SourceKind.CodexConfigToml;
+  }
+  if (basename.endsWith('.rules') && normalized.includes('/.codex/rules/')) {
+    return SourceKind.CodexRulesFile;
   }
   if (basename === 'copilot-instructions.md' && normalized.includes('/.github/')) {
     return SourceKind.GithubCopilotInstructionsMd;

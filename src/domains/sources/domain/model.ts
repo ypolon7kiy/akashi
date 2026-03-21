@@ -7,7 +7,7 @@
  * Claude Code: .claude/settings.json, .claude/settings.local.json, .claude/rules/*.md, .claude/hooks/** (+ ~/.claude/settings.json); discovery lives in `VscodeWorkspaceSourceScanner`.
  * Cursor: .cursorrules, .cursor/rules/*.mdc, .cursor/mcp.json (+ ~/.cursor/mcp.json)
  * Copilot: .github/copilot-instructions.md
- * Codex: ~/.codex/config.toml
+ * Codex: .codex/config.toml (project or ~/.codex / $CODEX_HOME / setting akashi.sources.codexHome), AGENTS.override.md (any dir), .codex/rules/*.rules; not indexed: auth.json, history, logs/sessions.
  */
 export const SourceKind = {
   /** `AGENTS.md` / `agents.md` — universal agent instructions (repo, nested dirs). */
@@ -38,8 +38,12 @@ export const SourceKind = {
   /** `.github/copilot-instructions.md` — GitHub Copilot guidance. */
   GithubCopilotInstructionsMd: 'github_copilot_instructions_md',
 
-  /** `~/.codex/config.toml` — Codex config (e.g. fallback doc names). */
+  /** `.codex/config.toml` (project or `~/.codex/config.toml`) — Codex TOML config. */
   CodexConfigToml: 'codex_config_toml',
+  /** `AGENTS.override.md` — Codex per-directory instruction override (global, nested, or under `.codex/`). */
+  CodexAgentsOverrideMd: 'codex_agents_override_md',
+  /** `.codex/rules/*.rules` — Codex Starlark exec-policy rules (e.g. `default.rules`). */
+  CodexRulesFile: 'codex_rules_file',
 
   /** Matched path but no known convention (extend patterns / inference). */
   Unknown: 'unknown',

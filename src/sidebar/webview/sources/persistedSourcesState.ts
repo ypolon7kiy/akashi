@@ -1,7 +1,6 @@
 import { getVscodeApi } from '../../../webview-shared/api';
 
 export interface SidebarPersistedState {
-  includeHomeConfig?: boolean;
   sourceCount?: number;
   lastUpdated?: string | null;
 }

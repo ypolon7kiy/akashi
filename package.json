@@ -49,11 +49,21 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["claude", "cursor", "antigravity"]
+            "enum": ["claude", "cursor", "antigravity", "codex"]
           },
-          "default": ["claude", "cursor", "antigravity"],
+          "default": ["claude", "cursor", "antigravity", "codex"],
           "uniqueItems": true,
           "description": "Tool presets for the Source Index sidebar. Only source kinds belonging to an enabled preset are shown. Cross-tool docs such as AGENTS.md are included on every preset."
+        },
+        "akashi.sources.includeHomeConfig": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, the Source Index includes tool configuration files from your user home directory (e.g. ~/.claude) in addition to the workspace."
+        },
+        "akashi.sources.codexHome": {
+          "type": "string",
+          "default": "",
+          "description": "Optional extra Codex CLI config directory for the Source Index (when home config is enabled). Same contents as ~/.codex: AGENTS.md, config.toml, AGENTS.override.md, rules/*.rules. Use an absolute path or prefix with ~ (e.g. ~/.local/share/codex-profile). Leave empty to rely on ~/.codex and the CODEX_HOME environment variable only."
         }
       }
     }

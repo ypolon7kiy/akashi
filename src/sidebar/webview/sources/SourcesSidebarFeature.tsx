@@ -7,12 +7,10 @@ export function SourcesSidebarFeature(): JSX.Element {
   const {
     sourceCount,
     lastUpdated,
-    includeHomeConfig,
     isIndexing,
     records,
     workspaceFolders,
     generatedAt,
-    setIncludeHomeConfig,
     handleShowExample,
     handleIndexSources,
   } = useSourcesSidebarState();
@@ -34,15 +32,6 @@ export function SourcesSidebarFeature(): JSX.Element {
           <span className="akashi-value">{sourceCount}</span>
         </div>
         <div className="akashi-divider" />
-        <label className="akashi-checkbox">
-          <input
-            type="checkbox"
-            checked={includeHomeConfig}
-            disabled={isIndexing}
-            onChange={(event) => setIncludeHomeConfig(event.currentTarget.checked)}
-          />
-          <span>Include home configs</span>
-        </label>
         {lastUpdated ? (
           <p className="akashi-muted">Last indexed at {lastUpdated}</p>
         ) : snapshotHint ? (
@@ -53,7 +42,8 @@ export function SourcesSidebarFeature(): JSX.Element {
       <section className="akashi-tree-panel" aria-label="Indexed sources">
         <h2 className="akashi-tree-panel__title">Indexed sources</h2>
         <p className="akashi-muted akashi-tree-panel__hint">
-          Filtered by Akashi presets (Settings → search &quot;Akashi&quot; → Sources presets).
+          Filtered by Akashi presets; home-directory configs use &quot;Sources: Include Home
+          Config&quot; (Settings → search &quot;Akashi&quot;).
         </p>
         <div className="akashi-tree-panel__scroll">
           <SourceTreeView

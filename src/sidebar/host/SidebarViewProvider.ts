@@ -19,6 +19,12 @@ import {
 } from '../bridge/messages';
 import { filterRecordsByPresets } from './sourcesPresetFilter';
 
+function readIncludeHomeConfig(): boolean {
+  return (
+    vscode.workspace.getConfiguration('akashi.sources').get<boolean>('includeHomeConfig') ?? true
+  );
+}
+
 function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist');
 }
@@ -58,8 +64,6 @@ export function createSidebarViewProvider(
   getActiveSourcePresets: ActiveSourcePresetsGetter
 ): vscode.WebviewViewProvider {
   let activeView: vscode.WebviewView | undefined;
-  /** Last successful sidebar index request; used when re-indexing after preset changes. */
-  let lastIncludeHomeConfig = false;
 
   async function postFilteredSnapshotPush(webview: vscode.Webview): Promise<void> {
     const snap = await sourcesService.getLastSnapshot();
@@ -76,7 +80,10 @@ export function createSidebarViewProvider(
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration('akashi.sources.presets')) {
+      const presetsChanged = e.affectsConfiguration('akashi.sources.presets');
+      const homeConfigChanged = e.affectsConfiguration('akashi.sources.includeHomeConfig');
+      const codexHomeChanged = e.affectsConfiguration('akashi.sources.codexHome');
+      if (!presetsChanged && !homeConfigChanged && !codexHomeChanged) {
         return;
       }
       const w = activeView?.webview;
@@ -85,10 +92,10 @@ export function createSidebarViewProvider(
       }
       void (async () => {
         try {
-          await sourcesService.indexWorkspace({ includeHomeConfig: lastIncludeHomeConfig });
+          await sourcesService.indexWorkspace({ includeHomeConfig: readIncludeHomeConfig() });
         } catch (err) {
           appendLine(
-            `[Akashi][Sources] Re-index after preset change failed: ${err instanceof Error ? err.message : String(err)}`
+            `[Akashi][Sources] Re-index after sources settings change failed: ${err instanceof Error ? err.message : String(err)}`
           );
         }
         await postFilteredSnapshotPush(w);
@@ -176,8 +183,7 @@ export function createSidebarViewProvider(
           }
 
           if (typedMessage.type === SidebarMessageType.SourcesIndexWorkspaceRequest) {
-            const includeHome = typedMessage.payload?.includeHomeConfig ?? false;
-            lastIncludeHomeConfig = includeHome;
+            const includeHome = readIncludeHomeConfig();
             logSourcesCommand(typedMessage.type, requestId, {
               includeHomeConfig: includeHome,
             });
@@ -267,10 +273,7 @@ function logInboundSidebarMessage(message: unknown): void {
   if (requestId) {
     const parts: string[] = [];
     if (type === SidebarMessageType.SourcesIndexWorkspaceRequest) {
-      const pl = m.payload as { includeHomeConfig?: unknown } | undefined;
-      if (pl && typeof pl.includeHomeConfig === 'boolean') {
-        parts.push(`includeHomeConfig=${pl.includeHomeConfig}`);
-      }
+      parts.push(`includeHomeConfig=${readIncludeHomeConfig()}`);
     }
     const extra = parts.length > 0 ? ` ${parts.join(' ')}` : '';
     appendLine(`[Akashi] Sidebar: received message type=${type} requestId=${requestId}${extra}`);

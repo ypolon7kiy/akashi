@@ -56,6 +56,26 @@ export const WORKSPACE_GLOB_DEFINITIONS: readonly {
     glob: '**/.github/copilot-instructions.md',
     kinds: [SourceKind.GithubCopilotInstructionsMd],
   },
+  {
+    glob: '**/.codex/AGENTS.md',
+    kinds: [SourceKind.AgentsMd],
+  },
+  {
+    glob: '**/.codex/agents.md',
+    kinds: [SourceKind.AgentsMd],
+  },
+  {
+    glob: '**/.codex/config.toml',
+    kinds: [SourceKind.CodexConfigToml],
+  },
+  {
+    glob: '**/AGENTS.override.md',
+    kinds: [SourceKind.CodexAgentsOverrideMd],
+  },
+  {
+    glob: '**/.codex/rules/*.rules',
+    kinds: [SourceKind.CodexRulesFile],
+  },
 ];
 
 export function selectWorkspaceGlobs(allowedKinds: ReadonlySet<SourceKindType>): string[] {
@@ -111,12 +131,50 @@ async function collectShallowFilesWithSuffix(dir: string, suffix: string): Promi
 }
 
 /**
+ * Codex CLI “home” directory (default `~/.codex`, or `CODEX_HOME`): `AGENTS.md`, `config.toml`,
+ * `AGENTS.override.md`, and shallow `rules/*.rules`.
+ */
+async function collectCodexHomeDirectoryPaths(
+  codexHomeDir: string,
+  allowedKinds: ReadonlySet<SourceKindType>,
+  add: (p: string) => void
+): Promise<void> {
+  const files: { segments: string[]; kinds: readonly SourceKindType[] }[] = [
+    { segments: ['AGENTS.md'], kinds: [SourceKind.AgentsMd] },
+    { segments: ['agents.md'], kinds: [SourceKind.AgentsMd] },
+    { segments: ['config.toml'], kinds: [SourceKind.CodexConfigToml] },
+    { segments: ['AGENTS.override.md'], kinds: [SourceKind.CodexAgentsOverrideMd] },
+  ];
+  for (const row of files) {
+    if (!kindsIntersect(allowedKinds, row.kinds)) {
+      continue;
+    }
+    const abs = path.join(codexHomeDir, ...row.segments);
+    if (await fileExists(abs)) {
+      add(abs);
+    }
+  }
+  if (kindsIntersect(allowedKinds, [SourceKind.CodexRulesFile])) {
+    const rulesDir = path.join(codexHomeDir, 'rules');
+    for (const f of await collectShallowFilesWithSuffix(rulesDir, '.rules')) {
+      add(f);
+    }
+  }
+}
+
+export interface CollectHomeSourcePathsOptions {
+  /** Extra Codex CLI home directories (absolute, normalized), e.g. from `akashi.sources.codexHome`. */
+  readonly extraCodexHomeRoots?: readonly string[];
+}
+
+/**
  * Absolute paths under the user home directory to scan when `includeHomeConfig` is true,
  * filtered by {@link allowedKinds}.
  */
 export async function collectHomeSourcePaths(
   homeDir: string,
-  allowedKinds: ReadonlySet<SourceKindType>
+  allowedKinds: ReadonlySet<SourceKindType>,
+  options?: CollectHomeSourcePathsOptions
 ): Promise<string[]> {
   const paths: string[] = [];
   const seen = new Set<string>();
@@ -130,7 +188,6 @@ export async function collectHomeSourcePaths(
 
   const homeFiles: { segments: string[]; kinds: readonly SourceKindType[] }[] = [
     { segments: ['.cursor', 'mcp.json'], kinds: [SourceKind.CursorMcpJson] },
-    { segments: ['.codex', 'config.toml'], kinds: [SourceKind.CodexConfigToml] },
     { segments: ['.claude', 'CLAUDE.md'], kinds: [SourceKind.ClaudeMd] },
     { segments: ['.claude', 'settings.json'], kinds: [SourceKind.ClaudeSettingsJson] },
     { segments: ['.claude', 'settings.local.json'], kinds: [SourceKind.ClaudeSettingsJson] },
@@ -149,6 +206,23 @@ export async function collectHomeSourcePaths(
     if (await fileExists(abs)) {
       add(abs);
     }
+  }
+
+  const codexHomeRoots = new Set<string>();
+  codexHomeRoots.add(path.normalize(path.join(homeDir, '.codex')));
+  const codexHomeEnv = process.env.CODEX_HOME?.trim();
+  if (codexHomeEnv && path.isAbsolute(codexHomeEnv)) {
+    codexHomeRoots.add(path.normalize(codexHomeEnv));
+  }
+  if (options?.extraCodexHomeRoots) {
+    for (const r of options.extraCodexHomeRoots) {
+      if (path.isAbsolute(r)) {
+        codexHomeRoots.add(path.normalize(r));
+      }
+    }
+  }
+  for (const root of codexHomeRoots) {
+    await collectCodexHomeDirectoryPaths(root, allowedKinds, add);
   }
 
   if (kindsIntersect(allowedKinds, [SourceKind.CursorLegacyRules])) {
