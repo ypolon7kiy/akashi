@@ -43,6 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
     queueMicrotask(() => {
       void vscode.commands.executeCommand('workbench.view.extension.akashi');
       void vscode.commands.executeCommand('akashi.sidebar.focus');
+      Graph2DPanel.createOrShow(context, graphEnv);
       getLog()?.show(false);
     });
   }
