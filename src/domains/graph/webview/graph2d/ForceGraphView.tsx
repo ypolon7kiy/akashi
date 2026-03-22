@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { JSX } from 'react';
+import type { JSX, MutableRefObject } from 'react';
 import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from 'd3-force';
 import type { Simulation } from 'd3-force';
 import { inferLayoutDepth } from '../../application/gridLayout';
@@ -55,9 +55,10 @@ function seedRing(nodes: SimNode[], prev: Map<string, { x: number; y: number }>)
   }
 }
 
-/** Compact grid spacing between preset hubs (simulation units). */
-const HUB_CELL_W = 210;
-const HUB_CELL_H = 190;
+/** Ring radius scale when multiple preset hubs share the view (simulation units). */
+const HUB_RING_BASE_R = 260;
+/** Minimum ring radius so nearby hubs do not overlap clusters (simulation units). */
+const HUB_RING_MIN_R = 340;
 /** Preset sits above cell anchor (smaller y = higher on screen). */
 const PRESET_OFFSET_Y = 78;
 const LOCALITY_DY = 46;
@@ -82,7 +83,8 @@ function targetYRelToPreset(node: GraphNode3D, all: readonly GraphNode3D[]): num
 }
 
 /**
- * Preset hubs on a tight grid; within each cluster: preset top, locality row, then depth rows.
+ * Preset hubs: one enabled preset sits at the origin; several presets are spaced evenly on a ring around it (no default “main” id).
+ * Within each cluster: preset top, locality row, then depth rows.
  */
 function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: number }>): void {
   const presets = nodes.filter((n) => n.type === 'preset').sort((a, b) => a.id.localeCompare(b.id));
@@ -95,22 +97,32 @@ function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: 
   }
 
   const placed = new Set<string>();
-  const P = presets.length;
-  const cols = Math.max(1, Math.ceil(Math.sqrt(P)));
-  const rows = Math.ceil(P / cols);
+  const presetIds = [...new Set(presets.map((p) => p.graphPresetId).filter(Boolean) as string[])].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  if (presetIds.length === 0) {
+    seedRing(nodes, prev);
+    for (const n of nodes) {
+      delete n.clusterRel;
+    }
+    return;
+  }
+
+  const P = presetIds.length;
 
   const anchorByPresetId = new Map<string, { ax: number; ay: number }>();
-  for (let i = 0; i < P; i++) {
-    const p = presets[i];
-    const pid = p.graphPresetId;
-    if (!pid) {
-      continue;
+  if (P === 1) {
+    anchorByPresetId.set(presetIds[0], { ax: 0, ay: 0 });
+  } else {
+    const ringRadius = Math.max(HUB_RING_MIN_R, HUB_RING_BASE_R * Math.sqrt(P));
+    for (let i = 0; i < P; i++) {
+      const id = presetIds[i];
+      const angle = -Math.PI / 2 + (2 * Math.PI * i) / P;
+      anchorByPresetId.set(id, {
+        ax: ringRadius * Math.cos(angle),
+        ay: ringRadius * Math.sin(angle),
+      });
     }
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const ax = (col - (cols - 1) / 2) * HUB_CELL_W;
-    const ay = (row - (rows - 1) / 2) * HUB_CELL_H;
-    anchorByPresetId.set(pid, { ax, ay });
   }
 
   for (const n of nodes) {
@@ -342,6 +354,23 @@ export interface ForceGraphSimProps {
   collidePadding: number;
 }
 
+function resetPanZoomToCenterWorldOrigin(
+  wrap: HTMLDivElement | null,
+  transformRef: MutableRefObject<{ tx: number; ty: number; k: number }>,
+  wrapLastSizeRef: MutableRefObject<{ w: number; h: number } | null>
+): void {
+  if (!wrap) {
+    return;
+  }
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (w < 2 || h < 2) {
+    return;
+  }
+  transformRef.current = { k: 1, tx: w / 2, ty: h / 2 };
+  wrapLastSizeRef.current = { w, h };
+}
+
 function updateSimulationForces(sim: Simulation<SimNode, SimLink>, p: ForceGraphSimProps): void {
   /* d3-force Simulation.force() is typed as a generic Force; call sites are the named forces we registered. */
   /* eslint-disable @typescript-eslint/no-unsafe-call -- force mutators */
@@ -377,6 +406,7 @@ export function ForceGraphView(props: {
   const simNodesRef = useRef<SimNode[]>([]);
   const posCacheRef = useRef(new Map<string, { x: number; y: number }>());
   const transformRef = useRef({ tx: 0, ty: 0, k: 1 });
+  const wrapLastSizeRef = useRef<{ w: number; h: number } | null>(null);
   const draggingRef = useRef<{
     id: string;
     offsetX: number;
@@ -528,6 +558,7 @@ export function ForceGraphView(props: {
     simNodesRef.current = [];
 
     if (props.nodes.length === 0) {
+      resetPanZoomToCenterWorldOrigin(wrapRef.current, transformRef, wrapLastSizeRef);
       drawRef.current();
       return;
     }
@@ -587,6 +618,8 @@ export function ForceGraphView(props: {
 
     simRef.current = sim;
     simNodesRef.current = simNodes;
+    resetPanZoomToCenterWorldOrigin(wrapRef.current, transformRef, wrapLastSizeRef);
+    drawRef.current();
 
     return () => {
       sim.stop();
@@ -615,7 +648,22 @@ export function ForceGraphView(props: {
     if (!wrap) {
       return;
     }
-    const ro = new ResizeObserver(() => drawRef.current());
+    const ro = new ResizeObserver(() => {
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      if (w < 2 || h < 2) {
+        return;
+      }
+      const prev = wrapLastSizeRef.current;
+      if (prev) {
+        transformRef.current.tx += (w - prev.w) / 2;
+        transformRef.current.ty += (h - prev.h) / 2;
+      } else {
+        transformRef.current = { k: 1, tx: w / 2, ty: h / 2 };
+      }
+      wrapLastSizeRef.current = { w, h };
+      drawRef.current();
+    });
     ro.observe(wrap);
     drawRef.current();
     return () => ro.disconnect();
