@@ -26,6 +26,9 @@ type SimLink = GraphEdge3D & {
   target: string | SimNode;
 };
 
+/** Movement past this distance while panning/dragging suppresses the next context menu. */
+const CONTEXT_MENU_SUPPRESS_DRAG_PX = 5;
+
 function hashId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) {
@@ -413,6 +416,8 @@ export function ForceGraphView(props: {
     offsetY: number;
   } | null>(null);
   const panRef = useRef<{ sx: number; sy: number; tx0: number; ty0: number } | null>(null);
+  const pointerGestureOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressContextMenuAfterGestureRef = useRef(false);
   const [pointedId, setPointedId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -724,6 +729,8 @@ export function ForceGraphView(props: {
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      suppressContextMenuAfterGestureRef.current = false;
+      pointerGestureOriginRef.current = { x: e.clientX, y: e.clientY };
       const { wx, wy } = clientToWorld(e.clientX, e.clientY);
       const hit = pickNode(wx, wy);
       if (hit) {
@@ -755,6 +762,13 @@ export function ForceGraphView(props: {
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
+      const origin = pointerGestureOriginRef.current;
+      if (origin && (draggingRef.current || panRef.current)) {
+        const moved = Math.hypot(e.clientX - origin.x, e.clientY - origin.y);
+        if (moved >= CONTEXT_MENU_SUPPRESS_DRAG_PX) {
+          suppressContextMenuAfterGestureRef.current = true;
+        }
+      }
       if (draggingRef.current) {
         const { wx, wy } = clientToWorld(e.clientX, e.clientY);
         const hit = simNodesRef.current.find((n) => n.id === draggingRef.current?.id);
@@ -813,6 +827,12 @@ export function ForceGraphView(props: {
 
   const onContextMenu = useCallback(
     (e: React.MouseEvent) => {
+      if (suppressContextMenuAfterGestureRef.current) {
+        suppressContextMenuAfterGestureRef.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       const { wx, wy } = clientToWorld(e.clientX, e.clientY);
       const hit = pickNode(wx, wy);
       if (!hit) {
