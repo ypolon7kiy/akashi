@@ -6,9 +6,9 @@ const WORKSPACE_GLOBS = [
   { glob: '**/AGENTS.md', category: SourceCategoryId.LlmGuideline },
   { glob: '**/agents.md', category: SourceCategoryId.LlmGuideline },
   { glob: '**/.cursorrules', category: SourceCategoryId.Rule },
-  { glob: '**/.cursor/rules/*.mdc', category: SourceCategoryId.Rule },
+  { glob: '**/.cursor/rules/**/*.mdc', category: SourceCategoryId.Rule },
   { glob: '**/.cursor/mcp.json', category: SourceCategoryId.Mcp },
-  { glob: '**/.cursor/skills/**/SKILL.md', category: SourceCategoryId.Skill },
+  { glob: '**/.cursor/skills/**/*', category: SourceCategoryId.Skill },
 ] as const;
 
 export const cursorPresetDefinition: SourcePresetDefinition = {

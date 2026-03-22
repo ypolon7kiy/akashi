@@ -16,12 +16,12 @@ export const cursorHomePathTasks: readonly HomePathTask[] = [
     }
   },
   async (ctx) => {
-    const { activePresets, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const cursorSkills = path.join(roots.cursorUserRoot, 'skills');
-    for (const f of await collectSkillMdRecursiveUnderDir(cursorSkills)) {
+    for (const f of await collectFilesRecursiveUnderDir(cursorSkills)) {
       add(f, PRESET_ID, SourceCategoryId.Skill);
     }
   },
@@ -36,13 +36,15 @@ export const cursorHomePathTasks: readonly HomePathTask[] = [
     }
   },
   async (ctx) => {
-    const { activePresets, roots, add, collectShallowFilesWithSuffix } = ctx;
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const rulesDir = path.join(roots.cursorUserRoot, 'rules');
-    for (const f of await collectShallowFilesWithSuffix(rulesDir, '.mdc')) {
-      add(f, PRESET_ID, SourceCategoryId.Rule);
+    for (const f of await collectFilesRecursiveUnderDir(rulesDir)) {
+      if (f.toLowerCase().endsWith('.mdc')) {
+        add(f, PRESET_ID, SourceCategoryId.Rule);
+      }
     }
   },
 ];

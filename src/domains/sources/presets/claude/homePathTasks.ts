@@ -34,23 +34,25 @@ export const claudeHomePathTasks: readonly HomePathTask[] = [
     }
   },
   async (ctx) => {
-    const { activePresets, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const claudeSkills = path.join(roots.claudeUserRoot, 'skills');
-    for (const f of await collectSkillMdRecursiveUnderDir(claudeSkills)) {
+    for (const f of await collectFilesRecursiveUnderDir(claudeSkills)) {
       add(f, PRESET_ID, SourceCategoryId.Skill);
     }
   },
   async (ctx) => {
-    const { activePresets, roots, add, collectShallowFilesWithSuffix } = ctx;
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const rulesDir = path.join(roots.claudeUserRoot, 'rules');
-    for (const f of await collectShallowFilesWithSuffix(rulesDir, '.md')) {
-      add(f, PRESET_ID, SourceCategoryId.Rule);
+    for (const f of await collectFilesRecursiveUnderDir(rulesDir)) {
+      if (f.toLowerCase().endsWith('.md')) {
+        add(f, PRESET_ID, SourceCategoryId.Rule);
+      }
     }
   },
   async (ctx) => {
@@ -61,6 +63,16 @@ export const claudeHomePathTasks: readonly HomePathTask[] = [
     const hooksDir = path.join(roots.claudeUserRoot, 'hooks');
     for (const f of await collectFilesRecursiveUnderDir(hooksDir)) {
       add(f, PRESET_ID, SourceCategoryId.Hook);
+    }
+  },
+  async (ctx) => {
+    const { activePresets, homeDir, add, fileExists } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
+    const abs = path.join(homeDir, '.claude.json');
+    if (await fileExists(abs)) {
+      add(abs, PRESET_ID, SourceCategoryId.Config);
     }
   },
 ];

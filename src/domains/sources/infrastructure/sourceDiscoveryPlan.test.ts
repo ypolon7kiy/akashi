@@ -41,9 +41,13 @@ describe('WORKSPACE_GLOB_SCAN_ROWS', () => {
     expect(settings?.category).toBe('config');
   });
 
-  it('assigns cursor mcp glob', () => {
-    const mcp = WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.glob.includes('mcp.json'));
-    expect(mcp?.presetId).toBe('cursor');
-    expect(mcp?.category).toBe('mcp');
+  it('assigns mcp globs for cursor and claude', () => {
+    const cursorMcp = WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.glob === '**/.cursor/mcp.json');
+    expect(cursorMcp?.presetId).toBe('cursor');
+    expect(cursorMcp?.category).toBe('mcp');
+
+    const claudeMcp = WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.glob === '**/.mcp.json');
+    expect(claudeMcp?.presetId).toBe('claude');
+    expect(claudeMcp?.category).toBe('mcp');
   });
 });
