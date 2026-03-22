@@ -11,9 +11,7 @@ describe('sourceRecordId', () => {
 
   it('differs by origin for same path and preset', () => {
     const p = '/home/.cursor/mcp.json';
-    expect(sourceRecordId('cursor', 'workspace', p)).not.toBe(
-      sourceRecordId('cursor', 'user', p)
-    );
+    expect(sourceRecordId('cursor', 'workspace', p)).not.toBe(sourceRecordId('cursor', 'user', p));
   });
 
   it('is stable across calls', () => {

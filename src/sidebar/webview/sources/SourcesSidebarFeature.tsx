@@ -1,5 +1,5 @@
-import './sources-tree.css';
-import { SourceTreeView } from './SourceTreeView';
+import './tree/sources-tree.css';
+import { SourceTreeView } from './tree/SourceTreeView';
 import { useSourcesSidebarState } from './useSourcesSidebarState';
 
 export function SourcesSidebarFeature(): JSX.Element {

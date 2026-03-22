@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeSidebarCategoryColorValue } from './sidebarCategoryColorSanitize';
+import { sanitizeSidebarCategoryColorValue } from '../../../host/styling/sidebarCategoryColorSanitize';
 
 describe('sanitizeSidebarCategoryColorValue', () => {
   it('accepts hex and var(--vscode-…)', () => {

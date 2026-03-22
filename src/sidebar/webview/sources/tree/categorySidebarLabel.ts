@@ -5,7 +5,7 @@
 import {
   SIDEBAR_SOURCE_CATEGORY_KEYS,
   type SidebarSourceCategoryKey,
-} from '../../bridge/sourceCategoryKeys';
+} from '../../../bridge/sourceCategoryKeys';
 
 export type SidebarCategoryMetaModifier = SidebarSourceCategoryKey;
 

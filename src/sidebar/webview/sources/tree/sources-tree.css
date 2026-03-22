@@ -245,3 +245,113 @@
 .akashi-tree__row--selected .akashi-tree__meta {
   color: var(--vscode-list-activeSelectionForeground, var(--akashi-text-muted));
 }
+
+/* Explorer-parity: tree keyboard focus + file operations */
+.akashi-tree--with-fs {
+  position: relative;
+}
+
+.akashi-tree__focus-root {
+  outline: none;
+}
+
+.akashi-tree__focus-root:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, var(--akashi-focus));
+  outline-offset: -1px;
+}
+
+.akashi-tree__fs-error {
+  margin: 0 0 var(--akashi-space-2);
+  padding: var(--akashi-space-2) var(--akashi-space-3);
+  font-size: var(--vscode-font-size);
+  line-height: 1.35;
+  color: var(--vscode-errorForeground, var(--akashi-text));
+  background: var(
+    --vscode-inputValidation-errorBackground,
+    color-mix(in srgb, var(--vscode-errorForeground, #f44) 12%, transparent)
+  );
+  border-radius: var(--akashi-radius-sm);
+}
+
+.akashi-tree__rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 var(--akashi-space-1) 0 0;
+  padding: 1px var(--akashi-space-2);
+  font: inherit;
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-input-foreground, var(--akashi-text));
+  background: var(--vscode-input-background, var(--akashi-surface-2));
+  border: 1px solid var(--vscode-input-border, var(--akashi-border));
+  border-radius: var(--akashi-radius-sm);
+}
+
+.akashi-tree__rename-input:focus {
+  outline: 1px solid var(--vscode-focusBorder, var(--akashi-focus));
+  outline-offset: -1px;
+}
+
+.akashi-tree__row--drop-target {
+  background: var(
+    --vscode-list-dropBackground,
+    color-mix(in srgb, var(--vscode-list-activeSelectionBackground, var(--akashi-accent)) 35%, transparent)
+  );
+}
+
+.akashi-tree-context {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+  font-size: var(--vscode-font-size);
+  line-height: calc(var(--vscode-font-size) * 1.375);
+  color: var(--vscode-menu-foreground, var(--akashi-text));
+  background: var(--vscode-menu-background, var(--vscode-sideBar-background, var(--akashi-surface)));
+  border: 1px solid var(--vscode-menu-border, var(--akashi-border));
+  border-radius: var(--akashi-radius-sm);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--akashi-text) 18%, transparent);
+}
+
+.akashi-tree-context__sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--vscode-menu-separatorBackground, var(--akashi-border));
+}
+
+.akashi-tree-context__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 2px 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.akashi-tree-context__item:hover,
+.akashi-tree-context__item:focus-visible {
+  background: var(
+    --vscode-menu-selectionBackground,
+    var(--vscode-list-hoverBackground, color-mix(in srgb, var(--akashi-text) 8%, transparent))
+  );
+  color: var(--vscode-menu-selectionForeground, inherit);
+  outline: none;
+}
+
+.akashi-tree-context__item .codicon {
+  flex: 0 0 16px;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.akashi-tree-context__item--danger {
+  color: var(--vscode-errorForeground, inherit);
+}

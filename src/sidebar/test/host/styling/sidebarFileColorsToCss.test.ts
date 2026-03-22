@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fileColorsObjectToCssLines } from './sidebarFileColorsToCss';
+import { fileColorsObjectToCssLines } from '../../../host/styling/sidebarFileColorsToCss';
 
 describe('fileColorsObjectToCssLines', () => {
   it('maps known keys to CSS vars and skips invalid or empty', () => {

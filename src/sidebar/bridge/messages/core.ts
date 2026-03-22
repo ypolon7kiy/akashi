@@ -1,12 +1,14 @@
 /**
- * Sidebar ↔ extension host message types.
- * Single source of truth for the sidebar webview and SidebarViewProvider.
+ * Non–file-system sidebar ↔ host message types.
  */
 
-import type { SourcesSnapshotPayload } from './sourceDescriptor';
+import type { SourcesSnapshotPayload } from '../sourceDescriptor';
 
-export const SidebarMessageType = {
+export const SidebarCoreMessageType = {
   SourcesOpenPath: 'sources/openPath',
+  SourcesRevealInExplorer: 'sources/revealInExplorer',
+  /** Wire string matches workbench command id `revealFileInOS` (capital OS). */
+  SourcesRevealFileInOs: 'sources/revealFileInOS',
   SourcesIndexWorkspaceRequest: 'sources/indexWorkspace',
   SourcesGetSnapshotRequest: 'sources/getSnapshot',
   SourcesResponse: 'sources/response',
@@ -16,30 +18,38 @@ export const SidebarMessageType = {
   SourcesIndexingState: 'sources/indexingState',
 } as const;
 
-export type SidebarMessageKind = (typeof SidebarMessageType)[keyof typeof SidebarMessageType];
-
 /** Triggers a full workspace index; indexing options come from workspace settings (`akashi.presets`, `akashi.includeHomeConfig`, `akashi.homePathOverrides`). */
 export interface SourcesIndexWorkspaceRequestMessage {
-  type: typeof SidebarMessageType.SourcesIndexWorkspaceRequest;
+  type: typeof SidebarCoreMessageType.SourcesIndexWorkspaceRequest;
   /** UUID v4; use `newRequestId()` from webview-shared if posting manually. */
   requestId: string;
 }
 
 export interface SourcesGetSnapshotRequestMessage {
-  type: typeof SidebarMessageType.SourcesGetSnapshotRequest;
+  type: typeof SidebarCoreMessageType.SourcesGetSnapshotRequest;
   requestId: string;
 }
 
 /** Open a source file in the editor (internal webview → host; not a contributed command). */
 export interface SourcesOpenPathMessage {
-  type: typeof SidebarMessageType.SourcesOpenPath;
+  type: typeof SidebarCoreMessageType.SourcesOpenPath;
   payload: {
     path: string;
   };
 }
 
+export interface SourcesRevealInExplorerMessage {
+  type: typeof SidebarCoreMessageType.SourcesRevealInExplorer;
+  payload: { path: string };
+}
+
+export interface SourcesRevealFileInOsMessage {
+  type: typeof SidebarCoreMessageType.SourcesRevealFileInOs;
+  payload: { path: string };
+}
+
 export interface SourcesResponseMessage {
-  type: typeof SidebarMessageType.SourcesResponse;
+  type: typeof SidebarCoreMessageType.SourcesResponse;
   /** Echo of the request’s UUID v4. */
   requestId: string;
   ok: boolean;
@@ -48,16 +58,18 @@ export interface SourcesResponseMessage {
 }
 
 export interface SourcesSnapshotPushMessage {
-  type: typeof SidebarMessageType.SourcesSnapshotPush;
+  type: typeof SidebarCoreMessageType.SourcesSnapshotPush;
   payload: SourcesSnapshotPayload | null;
 }
 
 export interface SourcesIndexingStateMessage {
-  type: typeof SidebarMessageType.SourcesIndexingState;
+  type: typeof SidebarCoreMessageType.SourcesIndexingState;
   busy: boolean;
 }
 
-export type SidebarRequestMessage =
+export type SidebarCoreRequestMessage =
   | SourcesIndexWorkspaceRequestMessage
   | SourcesGetSnapshotRequestMessage
-  | SourcesOpenPathMessage;
+  | SourcesOpenPathMessage
+  | SourcesRevealInExplorerMessage
+  | SourcesRevealFileInOsMessage;

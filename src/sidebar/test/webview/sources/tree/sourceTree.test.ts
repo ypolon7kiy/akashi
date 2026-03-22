@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { sourceRecordId } from '../../../shared/sourceRecordId';
-import { buildSourceTree, type TreeNode } from './sourceTree';
-import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
+import { sourceRecordId } from '../../../../../shared/sourceRecordId';
+import { buildSourceTree, type TreeNode } from '../../../../webview/sources/tree/sourceTree';
+import type { SourceDescriptor, WorkspaceFolderInfo } from '../../../../bridge/sourceDescriptor';
 
-function descriptor(
-  path: string,
-  preset: string,
-  origin: 'workspace' | 'user'
-): SourceDescriptor {
+function descriptor(path: string, preset: string, origin: 'workspace' | 'user'): SourceDescriptor {
   return {
     id: sourceRecordId(preset, origin, path),
     path,
@@ -38,11 +34,15 @@ describe('buildSourceTree', () => {
     if (fooRoot?.type !== 'folder') {
       return;
     }
-    const files = fooRoot.children.filter((c): c is Extract<TreeNode, { type: 'file' }> => c.type === 'file');
+    const files = fooRoot.children.filter(
+      (c): c is Extract<TreeNode, { type: 'file' }> => c.type === 'file'
+    );
     expect(files).toHaveLength(1);
-    expect(files[0]!.presets).toEqual(['claude', 'cursor']);
-    expect(files[0]!.label).toBe('shared.md (claude, cursor)');
-    expect(files[0]!.path).toBe(p);
-    expect(files[0]!.id).toBe(`ws:foo:file:${encodeURIComponent(p.replace(/\\/g, '/'))}`);
+    expect(files[0].presets).toEqual(['claude', 'cursor']);
+    expect(files[0].label).toBe('shared.md (claude, cursor)');
+    expect(files[0].fileBaseName).toBe('shared.md');
+    expect(files[0].path).toBe(p);
+    expect(files[0].id).toBe(`ws:foo:file:${encodeURIComponent(p.replace(/\\/g, '/'))}`);
+    expect(fooRoot.dirPath).toBe('/projects/foo');
   });
 });

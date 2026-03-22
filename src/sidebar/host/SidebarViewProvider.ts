@@ -10,8 +10,20 @@ import {
   type SidebarRequestMessage,
   type SourcesResponseMessage,
 } from '../bridge/messages';
-import { buildSidebarCategoryColorStyleBlock } from './sidebarCategoryColorStyle';
-import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
+import { buildSidebarCategoryColorStyleBlock } from './styling/sidebarCategoryColorStyle';
+import {
+  handleSidebarFsCreateFile,
+  handleSidebarFsDelete,
+  handleSidebarFsRename,
+  SIDEBAR_FS_CANCELLED,
+} from './fs/handleSourcesFsRequest';
+import {
+  parseInboundSourcesFsCreateFile,
+  parseInboundSourcesFsDelete,
+  parseInboundSourcesFsRename,
+} from './fs/sidebarInboundFsPayload';
+import { revealPathInExplorer, revealPathInFileOs } from './revealPathInWorkbench';
+import { buildSourcesSnapshotPayload } from './sources/sourcesSnapshotPayload';
 
 function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist');
@@ -97,7 +109,9 @@ export function createSidebarViewProvider(
   }
 
   /** Shared path: full index, push snapshot to sidebar webview if visible, notify graph. */
-  async function refreshSourcesIndexFromHost(opts?: { notifyWebviewBusy?: boolean }): Promise<void> {
+  async function refreshSourcesIndexFromHost(opts?: {
+    notifyWebviewBusy?: boolean;
+  }): Promise<void> {
     const w = activeView?.webview;
     const showBusy = Boolean(opts?.notifyWebviewBusy && w);
     if (showBusy) {
@@ -114,6 +128,45 @@ export function createSidebarViewProvider(
         await w!.postMessage({ type: SidebarMessageType.SourcesIndexingState, busy: false });
       }
     }
+  }
+
+  type FsHandlerResult = { ok: true } | { ok: false; error: string };
+
+  async function completeSidebarFsMutation(
+    webview: vscode.Webview,
+    requestId: string,
+    result: FsHandlerResult
+  ): Promise<void> {
+    if (!result.ok && result.error === SIDEBAR_FS_CANCELLED) {
+      const response: SourcesResponseMessage = {
+        type: SidebarMessageType.SourcesResponse,
+        requestId,
+        ok: true,
+        payload: { cancelled: true },
+      };
+      await postSourcesResponse(webview, response);
+      logSourcesResponse(response);
+      return;
+    }
+    if (!result.ok) {
+      const response: SourcesResponseMessage = {
+        type: SidebarMessageType.SourcesResponse,
+        requestId,
+        ok: false,
+        error: result.error,
+      };
+      await postSourcesResponse(webview, response);
+      logSourcesResponse(response);
+      return;
+    }
+    await refreshSourcesIndexFromHost();
+    const response: SourcesResponseMessage = {
+      type: SidebarMessageType.SourcesResponse,
+      requestId,
+      ok: true,
+    };
+    await postSourcesResponse(webview, response);
+    logSourcesResponse(response);
   }
 
   context.subscriptions.push(
@@ -218,6 +271,16 @@ export function createSidebarViewProvider(
           return;
         }
 
+        if (typedMessage?.type === SidebarMessageType.SourcesRevealInExplorer) {
+          await revealPathInExplorer(typedMessage.payload?.path);
+          return;
+        }
+
+        if (typedMessage?.type === SidebarMessageType.SourcesRevealFileInOs) {
+          await revealPathInFileOs(typedMessage.payload?.path);
+          return;
+        }
+
         const requestId = (typedMessage as { requestId?: string }).requestId;
         if (!requestId) {
           return;
@@ -266,6 +329,67 @@ export function createSidebarViewProvider(
             };
             await postSourcesResponse(webviewView.webview, response);
             logSourcesResponse(response, `sourceCount=${payload?.sourceCount ?? 0} (filtered)`);
+            return;
+          }
+
+          if (typedMessage.type === SidebarMessageType.SourcesFsRename) {
+            logSourcesCommand(typedMessage.type, requestId);
+            const parsed = parseInboundSourcesFsRename(message);
+            if (!parsed) {
+              await postSourcesResponse(webviewView.webview, {
+                type: SidebarMessageType.SourcesResponse,
+                requestId,
+                ok: false,
+                error: 'Invalid rename payload',
+              });
+              return;
+            }
+            const result = await handleSidebarFsRename({
+              fromPath: parsed.fromPath,
+              toPath: parsed.toPath,
+              confirmDragAndDrop: parsed.confirmDragAndDrop,
+            });
+            await completeSidebarFsMutation(webviewView.webview, requestId, result);
+            return;
+          }
+
+          if (typedMessage.type === SidebarMessageType.SourcesFsDelete) {
+            logSourcesCommand(typedMessage.type, requestId);
+            const parsed = parseInboundSourcesFsDelete(message);
+            if (!parsed) {
+              await postSourcesResponse(webviewView.webview, {
+                type: SidebarMessageType.SourcesResponse,
+                requestId,
+                ok: false,
+                error: 'Invalid delete payload',
+              });
+              return;
+            }
+            const result = await handleSidebarFsDelete({
+              path: parsed.path,
+              isDirectory: parsed.isDirectory,
+            });
+            await completeSidebarFsMutation(webviewView.webview, requestId, result);
+            return;
+          }
+
+          if (typedMessage.type === SidebarMessageType.SourcesFsCreateFile) {
+            logSourcesCommand(typedMessage.type, requestId);
+            const parsed = parseInboundSourcesFsCreateFile(message);
+            if (!parsed) {
+              await postSourcesResponse(webviewView.webview, {
+                type: SidebarMessageType.SourcesResponse,
+                requestId,
+                ok: false,
+                error: 'Invalid create file payload',
+              });
+              return;
+            }
+            const result = await handleSidebarFsCreateFile({
+              parentPath: parsed.parentPath,
+              fileName: parsed.fileName,
+            });
+            await completeSidebarFsMutation(webviewView.webview, requestId, result);
             return;
           }
         } catch (error) {
@@ -326,7 +450,11 @@ function logInboundSidebarMessage(message: unknown): void {
   }
   const m = message as Record<string, unknown>;
   const type = typeof m.type === 'string' ? m.type : '?';
-  if (type === SidebarMessageType.SourcesOpenPath) {
+  if (
+    type === SidebarMessageType.SourcesOpenPath ||
+    type === SidebarMessageType.SourcesRevealInExplorer ||
+    type === SidebarMessageType.SourcesRevealFileInOs
+  ) {
     const p = (m.payload as { path?: unknown } | undefined)?.path;
     const pathLen = typeof p === 'string' ? p.length : 0;
     appendLine(`[Akashi] Sidebar: received message type=${type} pathLength=${pathLen}`);

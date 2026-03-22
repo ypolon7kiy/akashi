@@ -1,5 +1,5 @@
-import { SourceTagType } from '../../../domains/sources/domain/model';
-import type { SourceDescriptor, WorkspaceFolderInfo } from '../../bridge/sourceDescriptor';
+import { SourceTagType } from '../../../../domains/sources/domain/model';
+import type { SourceDescriptor, WorkspaceFolderInfo } from '../../../bridge/sourceDescriptor';
 
 function categoryValueFromTags(
   tags: readonly { readonly type: string; readonly value: string }[]
@@ -9,11 +9,23 @@ function categoryValueFromTags(
 }
 
 export type TreeNode =
-  | { type: 'folder'; id: string; label: string; children: TreeNode[] }
+  | {
+      type: 'folder';
+      id: string;
+      label: string;
+      /**
+       * Absolute directory path for FS operations. Omitted for synthetic grouping roots
+       * (“Workspace (other)”, “User configuration”) — only nested children are operable.
+       */
+      dirPath?: string;
+      children: TreeNode[];
+    }
   | {
       type: 'file';
       id: string;
       label: string;
+      /** File name on disk (Trie leaf key); `label` may add preset suffixes. */
+      fileBaseName: string;
       path: string;
       /** Category id for badges / CSS (first descriptor after preset/id sort when they differ). */
       categoryValue: string;
@@ -90,7 +102,7 @@ function ensureDir(map: TrieMap, segment: string): TrieMap {
   if (existing?.kind === 'file') {
     const moved = existing.descriptors;
     const childMap: TrieMap = new Map();
-    const name = basename(moved[0]!.path);
+    const name = basename(moved[0].path);
     childMap.set(name, { kind: 'file', descriptors: [...moved] });
     map.set(segment, { kind: 'dir', children: childMap });
     return childMap;
@@ -149,35 +161,74 @@ function categoryForDescriptor(d: SourceDescriptor): string {
   return d.category ?? categoryValueFromTags(d.tags) ?? 'unknown';
 }
 
-function trieToTreeNodes(map: TrieMap, idPrefix: string): TreeNode[] {
+/** Build absolute dir path from parent + one trie segment (webview-safe, forward slashes). */
+export function joinDirSegment(parentDirFsPath: string, segment: string): string {
+  const seg = segment.replace(/\\/g, '/');
+  if (!parentDirFsPath) {
+    if (/^[A-Za-z]:$/.test(seg)) {
+      return `${seg}/`;
+    }
+    return seg.startsWith('/') ? seg : `/${seg}`;
+  }
+  const base = parentDirFsPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  return `${base}/${seg}`;
+}
+
+/** Parent directory of a file or folder path (webview-safe). */
+export function dirnameFsPath(fsPath: string): string {
+  const n = fsPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  const i = n.lastIndexOf('/');
+  if (i < 0) {
+    return '.';
+  }
+  if (i === 0) {
+    return '/';
+  }
+  const head = n.slice(0, i);
+  if (/^[A-Za-z]:$/.test(head)) {
+    return `${head}/`;
+  }
+  return head;
+}
+
+export function basenameFsPath(fsPath: string): string {
+  const n = fsPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  const j = n.lastIndexOf('/');
+  return j < 0 ? n : n.slice(j + 1);
+}
+
+function trieToTreeNodes(map: TrieMap, idPrefix: string, parentDirFsPath: string): TreeNode[] {
   const nodes: TreeNode[] = [];
   for (const [name, entry] of map.entries()) {
     if (entry.kind === 'file') {
       const list = [...entry.descriptors].sort(
         (a, b) => a.preset.localeCompare(b.preset) || a.id.localeCompare(b.id)
       );
-      const path = list[0]!.path;
+      const path = list[0].path;
       const presets = [...new Set(list.map((d) => d.preset))].sort((a, b) => a.localeCompare(b));
       const categories = [...new Set(list.map(categoryForDescriptor))].sort((a, b) =>
         a.localeCompare(b)
       );
-      const first = list[0]!;
+      const first = list[0];
       nodes.push({
         type: 'file',
         id: `${idPrefix}:file:${encodeURIComponent(normalizeFsPath(path))}`,
         label: presets.length > 1 ? `${name} (${presets.join(', ')})` : name,
+        fileBaseName: name,
         path,
         categoryValue: categoryForDescriptor(first),
         presets,
         categories,
       });
     } else {
+      const dirPath = joinDirSegment(parentDirFsPath, name);
       const childId = `${idPrefix}:dir:${name}`;
-      const children = trieToTreeNodes(entry.children, childId);
+      const children = trieToTreeNodes(entry.children, childId, dirPath);
       nodes.push({
         type: 'folder',
         id: childId,
         label: name,
+        dirPath,
         children,
       });
     }
@@ -252,14 +303,16 @@ export function buildSourceTree(
     if (!bucket) {
       continue;
     }
-    const children = trieToTreeNodes(bucket.trie, `ws:${f.name}`);
+    const wsPath = normalizeFsPath(f.path);
+    const children = trieToTreeNodes(bucket.trie, `ws:${f.name}`, wsPath);
     if (children.length === 0) {
       continue;
     }
     roots.push({
       type: 'folder',
-      id: `root:ws:${normalizeFsPath(f.path)}`,
+      id: `root:ws:${wsPath}`,
       label: f.name,
+      dirPath: wsPath,
       children: sortTreeRoots(children),
     });
   }
@@ -269,7 +322,7 @@ export function buildSourceTree(
     for (const r of unmatchedWorkspace) {
       insertAbsolutePathTrie(otherTrie, r.path, r);
     }
-    const children = trieToTreeNodes(otherTrie, 'root:other');
+    const children = trieToTreeNodes(otherTrie, 'root:other', '');
     roots.push({
       type: 'folder',
       id: 'root:workspace-other',
@@ -287,7 +340,7 @@ export function buildSourceTree(
       type: 'folder',
       id: 'root:user',
       label: 'User configuration',
-      children: sortTreeRoots(trieToTreeNodes(userTrie, 'root:user')),
+      children: sortTreeRoots(trieToTreeNodes(userTrie, 'root:user', '')),
     });
   }
 

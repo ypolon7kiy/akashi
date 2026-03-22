@@ -1,5 +1,5 @@
-import type { IndexedSourceEntry } from '../../domains/sources/domain/model';
-import type { SourcePresetId } from '../../domains/sources/domain/sourcePresets';
+import type { IndexedSourceEntry } from '../../../domains/sources/domain/model';
+import type { SourcePresetId } from '../../../domains/sources/domain/sourcePresets';
 
 export function filterRecordsByPresets(
   records: IndexedSourceEntry[],

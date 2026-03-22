@@ -1,10 +1,13 @@
-import type { IndexedSourceEntry, SourceIndexSnapshot } from '../../domains/sources/domain/model';
-import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
+import type {
+  IndexedSourceEntry,
+  SourceIndexSnapshot,
+} from '../../../domains/sources/domain/model';
+import type { ActiveSourcePresetsGetter } from '../../../domains/sources/domain/sourcePresets';
 import type {
   SourceDescriptor,
   SourcesSnapshotPayload,
   WorkspaceFolderInfo,
-} from '../bridge/sourceDescriptor';
+} from '../../bridge/sourceDescriptor';
 import { filterRecordsByPresets } from './sourcesPresetFilter';
 
 export function buildSourcesSnapshotPayload(

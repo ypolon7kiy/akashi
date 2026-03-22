@@ -6,7 +6,7 @@ import { readActiveSourcePresets } from './domains/sources/infrastructure/vscode
 import type { ActiveSourcePresetsGetter } from './domains/sources/domain/sourcePresets';
 import { appendLine, getLog, initLog } from './log';
 import type { WorkspaceFolderInfo } from './sidebar/bridge/sourceDescriptor';
-import { buildSourcesSnapshotPayload } from './sidebar/host/sourcesSnapshotPayload';
+import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
 
 function snapshotWorkspaceFolders(): WorkspaceFolderInfo[] {

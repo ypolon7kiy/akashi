@@ -1,4 +1,4 @@
-import { SIDEBAR_SOURCE_CATEGORY_KEYS } from '../bridge/sourceCategoryKeys';
+import { SIDEBAR_SOURCE_CATEGORY_KEYS } from '../../bridge/sourceCategoryKeys';
 import { sanitizeSidebarCategoryColorValue } from './sidebarCategoryColorSanitize';
 
 /** Pure: `akashi.sidebar.fileColors` → CSS declaration lines. */

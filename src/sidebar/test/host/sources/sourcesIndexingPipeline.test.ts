@@ -2,24 +2,27 @@
  * Matrix E2E: mock disk (scanner) → SourcesService.indexWorkspace → buildSourcesSnapshotPayload.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { SourcesService } from '../../domains/sources/application/SourcesService';
-import type { DiscoveredSource } from '../../domains/sources/application/ports';
-import type { SourceCategory } from '../../domains/sources/domain/model';
-import { SourceScope } from '../../domains/sources/domain/model';
-import type { SourceIndexSnapshot } from '../../domains/sources/domain/model';
+import { SourcesService } from '../../../../domains/sources/application/SourcesService';
+import type { DiscoveredSource } from '../../../../domains/sources/application/ports';
+import type { SourceCategory } from '../../../../domains/sources/domain/model';
+import { SourceScope } from '../../../../domains/sources/domain/model';
+import type { SourceIndexSnapshot } from '../../../../domains/sources/domain/model';
 import {
   ALL_SOURCE_PRESET_IDS,
   type SourcePresetId,
-} from '../../domains/sources/domain/sourcePresets';
+} from '../../../../domains/sources/domain/sourcePresets';
 import {
   buildSourceFacetTags,
   SourceCategoryId,
   SourceLocalityTagValue,
-} from '../../domains/sources/domain/sourceTags';
-import { SourceTagType } from '../../domains/sources/domain/model';
-import { sourceRecordId } from '../../shared/sourceRecordId';
-import { isSourcesSnapshotPayload, type WorkspaceFolderInfo } from '../bridge/sourceDescriptor';
-import { buildSourcesSnapshotPayload } from './sourcesSnapshotPayload';
+} from '../../../../domains/sources/domain/sourceTags';
+import { SourceTagType } from '../../../../domains/sources/domain/model';
+import { sourceRecordId } from '../../../../shared/sourceRecordId';
+import {
+  isSourcesSnapshotPayload,
+  type WorkspaceFolderInfo,
+} from '../../../bridge/sourceDescriptor';
+import { buildSourcesSnapshotPayload } from '../../../host/sources/sourcesSnapshotPayload';
 
 const STAT = { byteLength: 10, updatedAt: '2025-01-01T00:00:00.000Z' };
 
