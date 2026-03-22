@@ -12,7 +12,7 @@ async function collectCodexHomeDirectoryPaths(
     category: (typeof SourceCategoryId)[keyof typeof SourceCategoryId]
   ) => void,
   fileExists: (p: string) => Promise<boolean>,
-  collectShallowFilesWithSuffix: (dir: string, suffix: string) => Promise<string[]>
+  collectFilesRecursiveUnderDir: (dir: string) => Promise<string[]>
 ): Promise<void> {
   const files: {
     segments: string[];
@@ -30,28 +30,40 @@ async function collectCodexHomeDirectoryPaths(
     }
   }
   const rulesDir = path.join(codexHomeDir, 'rules');
-  for (const f of await collectShallowFilesWithSuffix(rulesDir, '.rules')) {
-    add(f, PRESET_ID, SourceCategoryId.Rule);
+  for (const f of await collectFilesRecursiveUnderDir(rulesDir)) {
+    if (f.toLowerCase().endsWith('.rules')) {
+      add(f, PRESET_ID, SourceCategoryId.Rule);
+    }
   }
 }
 
 export const codexHomePathTasks: readonly HomePathTask[] = [
   async (ctx) => {
-    const { activePresets, roots, add, fileExists, collectShallowFilesWithSuffix } = ctx;
+    const { activePresets, roots, add, fileExists, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const codexRoot = path.normalize(roots.codexUserRoot);
-    await collectCodexHomeDirectoryPaths(codexRoot, add, fileExists, collectShallowFilesWithSuffix);
+    await collectCodexHomeDirectoryPaths(codexRoot, add, fileExists, collectFilesRecursiveUnderDir);
   },
   async (ctx) => {
-    const { activePresets, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
     const codexRoot = path.normalize(roots.codexUserRoot);
     const codexSkills = path.join(codexRoot, 'skills');
-    for (const f of await collectSkillMdRecursiveUnderDir(codexSkills)) {
+    for (const f of await collectFilesRecursiveUnderDir(codexSkills)) {
+      add(f, PRESET_ID, SourceCategoryId.Skill);
+    }
+  },
+  async (ctx) => {
+    const { activePresets, homeDir, add, collectFilesRecursiveUnderDir } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
+    const userAgentsSkills = path.join(homeDir, '.agents', 'skills');
+    for (const f of await collectFilesRecursiveUnderDir(userAgentsSkills)) {
       add(f, PRESET_ID, SourceCategoryId.Skill);
     }
   },

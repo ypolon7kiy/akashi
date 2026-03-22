@@ -16,6 +16,16 @@ export const cursorHomePathTasks: readonly HomePathTask[] = [
     }
   },
   async (ctx) => {
+    const { activePresets, roots, add, fileExists } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
+    const abs = path.join(roots.cursorUserRoot, 'hooks.json');
+    if (await fileExists(abs)) {
+      add(abs, PRESET_ID, SourceCategoryId.Hook);
+    }
+  },
+  async (ctx) => {
     const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;
@@ -42,7 +52,8 @@ export const cursorHomePathTasks: readonly HomePathTask[] = [
     }
     const rulesDir = path.join(roots.cursorUserRoot, 'rules');
     for (const f of await collectFilesRecursiveUnderDir(rulesDir)) {
-      if (f.toLowerCase().endsWith('.mdc')) {
+      const lower = f.toLowerCase();
+      if (lower.endsWith('.mdc') || lower.endsWith('.md')) {
         add(f, PRESET_ID, SourceCategoryId.Rule);
       }
     }

@@ -34,9 +34,9 @@ import { VscodeWorkspaceSourceScanner } from './VscodeWorkspaceSourceScanner';
 describe('VscodeWorkspaceSourceScanner', () => {
   const wsRulePath = '/ws/.cursor/rules/x.mdc';
 
-  /** Only globs that target recursive .cursor/rules .mdc files should return the rule path; other patterns return []. */
+  // Return the sample rule path for workspace globs under .cursor/rules that target .mdc or .md rule files.
   function findFilesForCursorRulePath(glob: string): Promise<{ fsPath: string }[]> {
-    if (glob.includes('rules') && glob.includes('mdc')) {
+    if (glob.includes('.cursor/rules') && (glob.includes('mdc') || glob.endsWith('.md'))) {
       return Promise.resolve([{ fsPath: wsRulePath }]);
     }
     return Promise.resolve([]);

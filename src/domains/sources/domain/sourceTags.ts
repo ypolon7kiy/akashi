@@ -10,9 +10,9 @@ export const SourceLocalityTagValue = {
 
 /** Stable category ids for `type: 'category'` (sidebar / graph). */
 export const SourceCategoryId = {
-  /** Instruction-style docs (CLAUDE.md, GEMINI.md, tool-specific agent files, etc.). */
+  /** Instruction-style docs (CLAUDE.md, GEMINI.md, Codex `AGENTS.md` / `.agents.md` fallbacks, etc.). */
   LlmGuideline: 'context',
-  /** Tool rule files: `.cursor/rules`, `.cursorrules`, `.claude/rules`, Codex `.rules`. */
+  /** Tool rule files: `.cursor/rules`, `.cursorrules`, `.claude/rules`, Codex `.codex/rules/*.rules`. */
   Rule: 'rule',
   Skill: 'skill',
   Hook: 'hook',

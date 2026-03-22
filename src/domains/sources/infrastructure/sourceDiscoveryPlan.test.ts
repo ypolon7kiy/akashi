@@ -50,4 +50,23 @@ describe('WORKSPACE_GLOB_SCAN_ROWS', () => {
     expect(claudeMcp?.presetId).toBe('claude');
     expect(claudeMcp?.category).toBe('mcp');
   });
+
+  it('assigns cursor preset globs for rules markdown, hooks, and .agents skills', () => {
+    const cursor = (g: string) =>
+      WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.presetId === 'cursor' && r.glob === g);
+
+    expect(cursor('**/.cursor/rules/**/*.md')?.category).toBe('rule');
+    expect(cursor('**/.cursor/hooks.json')?.category).toBe('hook');
+    expect(cursor('**/.agents/skills/**/*')?.category).toBe('skill');
+  });
+
+  it('assigns codex preset globs for recursive rules, skill bundles, and instruction fallbacks', () => {
+    const codex = (g: string) =>
+      WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.presetId === 'codex' && r.glob === g);
+
+    expect(codex('**/.codex/rules/**/*.rules')?.category).toBe('rule');
+    expect(codex('**/.codex/skills/**/*')?.category).toBe('skill');
+    expect(codex('**/.agents/skills/**/*')?.category).toBe('skill');
+    expect(codex('**/.agents.md')?.category).toBe('context');
+  });
 });
