@@ -68,6 +68,7 @@ export function useSourcesSidebarState(): SourcesSidebarState {
         return;
       }
 
+      let hadIndexedRows = false;
       try {
         const snapshotResponse = await postRequest<SourcesResponseMessage>(
           vscode,
@@ -76,29 +77,42 @@ export function useSourcesSidebarState(): SourcesSidebarState {
         );
         if (snapshotResponse.ok) {
           applySnapshotPayload(snapshotResponse.payload);
+          const p = snapshotResponse.payload;
+          hadIndexedRows =
+            p != null && isSourcesSnapshotPayload(p) && p.records.length > 0;
         }
       } catch {
         // Keep existing UI state and continue with background refresh.
       }
 
-      setMountIndexBusy(true);
-      try {
-        const refreshResponse = await postRequest<SourcesResponseMessage>(
-          vscode,
-          {
-            type: SidebarMessageType.SourcesIndexWorkspaceRequest,
-          },
-          SidebarMessageType.SourcesResponse
-        );
-        if (!refreshResponse.ok) {
-          return;
-        }
-        applySnapshotPayload(refreshResponse.payload);
-      } catch {
-        // Keep existing values on transient indexing failures.
-      } finally {
-        setMountIndexBusy(false);
+      if (!hadIndexedRows) {
+        setMountIndexBusy(true);
       }
+
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      });
+
+      void postRequest<SourcesResponseMessage>(
+        vscode,
+        { type: SidebarMessageType.SourcesIndexWorkspaceRequest },
+        SidebarMessageType.SourcesResponse
+      )
+        .then((refreshResponse) => {
+          if (refreshResponse.ok) {
+            applySnapshotPayload(refreshResponse.payload);
+          }
+        })
+        .catch(() => {
+          // Keep existing values on transient indexing failures.
+        })
+        .finally(() => {
+          if (!hadIndexedRows) {
+            setMountIndexBusy(false);
+          }
+        });
     };
 
     void hydrateAndRefresh();

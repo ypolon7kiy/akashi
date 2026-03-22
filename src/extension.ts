@@ -5,24 +5,16 @@ import { createSourcesService } from './domains/sources/infrastructure/createSou
 import { readActiveSourcePresets } from './domains/sources/infrastructure/vscodeSourcePresetConfig';
 import type { ActiveSourcePresetsGetter } from './domains/sources/domain/sourcePresets';
 import { appendLine, getLog, initLog } from './log';
-import type { WorkspaceFolderInfo } from './sidebar/bridge/sourceDescriptor';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
-
-function snapshotWorkspaceFolders(): WorkspaceFolderInfo[] {
-  return (
-    vscode.workspace.workspaceFolders?.map((f) => ({
-      name: f.name,
-      path: f.uri.fsPath,
-    })) ?? []
-  );
-}
+import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
 
 export function activate(context: vscode.ExtensionContext): void {
   initLog(context);
   appendLine('[Akashi] Extension activating...');
   const getActiveSourcePresets: ActiveSourcePresetsGetter = readActiveSourcePresets;
   const sourcesService = createSourcesService(context, getActiveSourcePresets);
+  void sourcesService.getLastSnapshot();
 
   const graphEnv: GraphPanelEnvironment = {
     getGraphPayload: async () => {

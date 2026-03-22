@@ -221,3 +221,52 @@ export async function handleSidebarFsCreateFile(payload: {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
+
+export async function handleSidebarFsCreateFolder(payload: {
+  parentPath: string;
+  folderName: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parentN = path.normalize(payload.parentPath);
+  const nameErr = validateSourceFileBaseName(payload.folderName);
+  if (nameErr) {
+    return { ok: false, error: nameErr };
+  }
+  const base = payload.folderName.trim();
+  if (!isPathAllowedForSidebarFs(parentN)) {
+    return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
+  }
+
+  const parentUri = vscode.Uri.file(parentN);
+  try {
+    const pst = await vscode.workspace.fs.stat(parentUri);
+    if (pst.type !== vscode.FileType.Directory) {
+      return { ok: false, error: 'Parent is not a folder.' };
+    }
+  } catch {
+    return { ok: false, error: 'Destination folder does not exist.' };
+  }
+
+  const folderPath = path.normalize(path.join(parentN, base));
+  const parentOfFolder = path.dirname(folderPath);
+  if (parentOfFolder !== parentN) {
+    return { ok: false, error: 'Enter a valid name.' };
+  }
+  if (!isPathAllowedForSidebarFs(folderPath) || !isPathAllowedForSidebarFs(parentOfFolder)) {
+    return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
+  }
+
+  const folderUri = vscode.Uri.file(folderPath);
+  try {
+    await vscode.workspace.fs.stat(folderUri);
+    return { ok: false, error: 'A file or folder with that name already exists.' };
+  } catch {
+    // absent — ok
+  }
+
+  try {
+    await vscode.workspace.fs.createDirectory(folderUri);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
