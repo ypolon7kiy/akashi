@@ -67,6 +67,8 @@ describe('buildSourceTree', () => {
     expect(files[0].path).toBe(p);
     expect(files[0].id).toBe(`ws:foo:file:${encodeURIComponent(p.replace(/\\/g, '/'))}`);
     expect(fooRoot.dirPath).toBe('/projects/foo');
+    expect(fooRoot.indexingOrigin).toBe('workspace');
+    expect(files[0].indexingOrigin).toBe('workspace');
   });
 });
 
@@ -112,5 +114,57 @@ describe('folder presetId / categoryId propagation', () => {
     const roots = buildSourceTree(records, folders);
     const mixedFolder = findFolder(roots, 'mixed');
     expect(mixedFolder?.categoryId).toBeUndefined();
+  });
+});
+
+describe('indexingOrigin', () => {
+  it('marks workspace subtree nodes as workspace', () => {
+    const folders: WorkspaceFolderInfo[] = [{ name: 'app', path: '/ws/app' }];
+    const records = [
+      descriptor('/ws/app/.claude/skills/a.md', 'claude', 'workspace', 'skill'),
+      descriptor('/ws/app/.claude/skills/b.md', 'claude', 'workspace', 'skill'),
+    ];
+    const roots = buildSourceTree(records, folders);
+    const appRoot = roots.find((r) => r.label === 'app');
+    expect(appRoot?.type).toBe('folder');
+    if (appRoot?.type !== 'folder') {
+      return;
+    }
+    expect(appRoot.indexingOrigin).toBe('workspace');
+    const skillsFolder = findFolder(roots, 'skills');
+    expect(skillsFolder?.indexingOrigin).toBe('workspace');
+  });
+
+  it('marks user subtree nodes as user', () => {
+    const folders: WorkspaceFolderInfo[] = [{ name: 'app', path: '/ws/app' }];
+    const userPath = '/home/tester/.codex/skills/g.md';
+    const records = [descriptor(userPath, 'codex', 'user', 'skill')];
+    const roots = buildSourceTree(records, folders);
+    const userRoot = roots.find((r) => r.label === 'User configuration');
+    expect(userRoot?.type).toBe('folder');
+    if (userRoot?.type !== 'folder') {
+      return;
+    }
+    expect(userRoot.indexingOrigin).toBe('user');
+    const skillsFolder = findFolder(roots, 'skills');
+    expect(skillsFolder?.indexingOrigin).toBe('user');
+    const files = skillsFolder?.children.filter(
+      (c): c is Extract<TreeNode, { type: 'file' }> => c.type === 'file'
+    );
+    expect(files).toHaveLength(1);
+    expect(files?.[0].indexingOrigin).toBe('user');
+  });
+
+  /**
+   * Artifact menu scope must follow the tree branch (`indexingOrigin`), not an aggregate of
+   * `SourceDescriptor.scope` under the folder (which can be ambiguous).
+   */
+  it('keeps workspace indexingOrigin when descriptor scope values would disagree', () => {
+    const folders: WorkspaceFolderInfo[] = [{ name: 'app', path: '/ws/app' }];
+    const a = descriptor('/ws/app/mixed/x.md', 'claude', 'workspace', 'skill');
+    const b = { ...descriptor('/ws/app/mixed/y.md', 'claude', 'workspace', 'rule'), scope: 'user' as const };
+    const roots = buildSourceTree([a, b], folders);
+    const mixedFolder = findFolder(roots, 'mixed');
+    expect(mixedFolder?.indexingOrigin).toBe('workspace');
   });
 });

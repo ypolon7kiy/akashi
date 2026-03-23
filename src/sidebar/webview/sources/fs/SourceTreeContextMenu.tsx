@@ -183,8 +183,8 @@ export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.El
             ? (() => {
                 const relevantTemplates = ARTIFACT_TEMPLATE_DESCRIPTORS.filter(
                   (t) =>
+                    t.scope === node.indexingOrigin &&
                     t.presetId === node.presetId &&
-                    (!node.scope || t.scope === node.scope) &&
                     (!node.categoryId || t.categoryId === node.categoryId)
                 );
                 if (relevantTemplates.length === 0) {

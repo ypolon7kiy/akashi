@@ -29,10 +29,10 @@ export type TreeNode =
        */
       categoryId?: string;
       /**
-       * Set when every leaf descriptor in this subtree shares a single scope.
-       * Used to filter artifact templates to workspace vs user scope.
+       * Which top-level indexing branch this node belongs to (matches `SourceDescriptor.origin`
+       * split in `buildSourceTree`). Used to filter artifact templates by `template.scope`.
        */
-      scope?: 'workspace' | 'user';
+      indexingOrigin: 'workspace' | 'user';
       children: TreeNode[];
     }
   | {
@@ -48,6 +48,7 @@ export type TreeNode =
       presets: readonly string[];
       /** Distinct category ids across merged descriptors, sorted (for tooltip when length > 1). */
       categories: readonly string[];
+      indexingOrigin: 'workspace' | 'user';
     };
 
 type TrieEntry =
@@ -176,30 +177,23 @@ function categoryForDescriptor(d: SourceDescriptor): string {
   return d.category ?? categoryValueFromTags(d.tags) ?? 'unknown';
 }
 
-/** Collects distinct presets, categories, and scopes across all leaf descriptors in a trie subtree. */
-function collectTrieMeta(map: TrieMap): {
-  presets: Set<string>;
-  categories: Set<string>;
-  scopes: Set<string>;
-} {
+/** Collects distinct presets and categories across all leaf descriptors in a trie subtree. */
+function collectTrieMeta(map: TrieMap): { presets: Set<string>; categories: Set<string> } {
   const presets = new Set<string>();
   const categories = new Set<string>();
-  const scopes = new Set<string>();
   for (const entry of map.values()) {
     if (entry.kind === 'file') {
       for (const d of entry.descriptors) {
         presets.add(d.preset);
         categories.add(categoryForDescriptor(d));
-        if (d.scope) scopes.add(d.scope);
       }
     } else {
       const sub = collectTrieMeta(entry.children);
       for (const p of sub.presets) presets.add(p);
       for (const c of sub.categories) categories.add(c);
-      for (const s of sub.scopes) scopes.add(s);
     }
   }
-  return { presets, categories, scopes };
+  return { presets, categories };
 }
 
 /** Build absolute dir path from parent + one trie segment (webview-safe, forward slashes). */
@@ -238,7 +232,12 @@ export function basenameFsPath(fsPath: string): string {
   return j < 0 ? n : n.slice(j + 1);
 }
 
-function trieToTreeNodes(map: TrieMap, idPrefix: string, parentDirFsPath: string): TreeNode[] {
+function trieToTreeNodes(
+  map: TrieMap,
+  idPrefix: string,
+  parentDirFsPath: string,
+  indexingOrigin: 'workspace' | 'user'
+): TreeNode[] {
   const nodes: TreeNode[] = [];
   for (const [name, entry] of map.entries()) {
     if (entry.kind === 'file') {
@@ -260,13 +259,13 @@ function trieToTreeNodes(map: TrieMap, idPrefix: string, parentDirFsPath: string
         categoryValue: categoryForDescriptor(first),
         presets,
         categories,
+        indexingOrigin,
       });
     } else {
       const dirPath = joinDirSegment(parentDirFsPath, name);
       const childId = `${idPrefix}:dir:${name}`;
-      const children = trieToTreeNodes(entry.children, childId, dirPath);
+      const children = trieToTreeNodes(entry.children, childId, dirPath, indexingOrigin);
       const meta = collectTrieMeta(entry.children);
-      const scopeVal = meta.scopes.size === 1 ? [...meta.scopes][0] : undefined;
       nodes.push({
         type: 'folder',
         id: childId,
@@ -274,7 +273,7 @@ function trieToTreeNodes(map: TrieMap, idPrefix: string, parentDirFsPath: string
         dirPath,
         presetId: meta.presets.size === 1 ? [...meta.presets][0] : undefined,
         categoryId: meta.categories.size === 1 ? [...meta.categories][0] : undefined,
-        scope: scopeVal === 'workspace' || scopeVal === 'user' ? scopeVal : undefined,
+        indexingOrigin,
         children,
       });
     }
@@ -350,7 +349,7 @@ export function buildSourceTree(
       continue;
     }
     const wsPath = normalizeFsPath(f.path);
-    const children = trieToTreeNodes(bucket.trie, `ws:${f.name}`, wsPath);
+    const children = trieToTreeNodes(bucket.trie, `ws:${f.name}`, wsPath, 'workspace');
     if (children.length === 0) {
       continue;
     }
@@ -359,6 +358,7 @@ export function buildSourceTree(
       id: `root:ws:${wsPath}`,
       label: f.name,
       dirPath: wsPath,
+      indexingOrigin: 'workspace',
       children: sortTreeRoots(children),
     });
   }
@@ -368,11 +368,12 @@ export function buildSourceTree(
     for (const r of unmatchedWorkspace) {
       insertAbsolutePathTrie(otherTrie, r.path, r);
     }
-    const children = trieToTreeNodes(otherTrie, 'root:other', '');
+    const children = trieToTreeNodes(otherTrie, 'root:other', '', 'workspace');
     roots.push({
       type: 'folder',
       id: 'root:workspace-other',
       label: 'Workspace (other)',
+      indexingOrigin: 'workspace',
       children: sortTreeRoots(children),
     });
   }
@@ -386,7 +387,8 @@ export function buildSourceTree(
       type: 'folder',
       id: 'root:user',
       label: 'User configuration',
-      children: sortTreeRoots(trieToTreeNodes(userTrie, 'root:user', '')),
+      indexingOrigin: 'user',
+      children: sortTreeRoots(trieToTreeNodes(userTrie, 'root:user', '', 'user')),
     });
   }
 
