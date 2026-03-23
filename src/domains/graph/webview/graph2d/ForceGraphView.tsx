@@ -8,6 +8,7 @@ import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { getHoverColor, getNodeColor } from '../graphNodeColors';
 import { readCanvasThemeColors } from './canvasThemeColors';
 import { pickContrastingTierLabelColor } from './tierLabelContrast';
+import { zoomScaledCanvasFontPx } from './labelZoom';
 import { Graph2DMessageType } from './messages';
 import { getVscodeApi } from '../../../../webview-shared/api';
 
@@ -23,8 +24,7 @@ export type SimNode = GraphNode3D & {
   /** Preset / locality / category: circle radius that fits the inside label (+ padding). */
   displayRadius?: number;
   /**
-   * Tier inside label: bold size in CSS px at zoom k=1; when drawing, use `tierLabelFontPx / k`
-   * so apparent size stays stable while the node scales with zoom (same rule as before).
+   * Tier inside label baseline in CSS px at zoom k=1.
    */
   tierLabelFontPx?: number;
 };
@@ -95,6 +95,7 @@ const EDGE_POINTED_LINE_WIDTH = 1.8;
 /** Base width in CSS px at k=1 for non-pointed edges; strength adds `EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE * strength`. */
 const EDGE_IDLE_LINE_WIDTH_BASE = 0.8;
 const EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE = 0.8;
+const NODE_LABEL_FONT_BASE_PX = 11;
 
 function targetYRelToPreset(node: GraphNode3D, all: readonly GraphNode3D[]): number {
   if (node.type === 'preset') {
@@ -442,7 +443,7 @@ function clearCanvasShadow(ctx: CanvasRenderingContext2D): void {
 }
 
 /**
- * Measure at identity CTM (k=1 CSS px). Draw uses `bold ${tierLabelFontPx / k}px` under `scale(k)`.
+ * Measure at identity CTM (k=1 CSS px). Draw uses this baseline under `scale(k)` so text scales with zoom.
  */
 function computeTierLabelLayout(
   measCtx: CanvasRenderingContext2D,
@@ -451,7 +452,6 @@ function computeTierLabelLayout(
   fontFamily: string,
   pad: number
 ): { displayRadius: number; tierLabelFontPx: number } {
-
   const fits = (fontPx: number, rad: number): boolean => {
     measCtx.font = `bold ${fontPx}px ${fontFamily}`;
     const m = measCtx.measureText(label);
@@ -673,7 +673,7 @@ export function ForceGraphView(props: {
       }
     }
 
-    const labelFontPx = Math.max(10, 11 / k);
+    const labelFontPx = zoomScaledCanvasFontPx(NODE_LABEL_FONT_BASE_PX);
     const ff = resolveUiFontFamily();
     ctx.font = `${labelFontPx}px ${ff}`;
     ctx.textAlign = 'center';
@@ -723,7 +723,7 @@ export function ForceGraphView(props: {
       if (vis) {
         if (isTierNode) {
           const innerLabel = truncateTierLabel(n.label);
-          const innerFontPx = (n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN) / k;
+          const innerFontPx = zoomScaledCanvasFontPx(n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN);
           ctx.font = `bold ${innerFontPx}px ${ff}`;
           ctx.fillStyle = pickContrastingTierLabelColor(fillColor, '#ffffff', '#000000');
           ctx.globalAlpha = vis ? 0.95 : 0.12;
