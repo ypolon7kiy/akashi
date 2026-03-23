@@ -1,4 +1,4 @@
-import type { SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
+import type { SourceDescriptor, SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
 import { applyGridLayout } from './gridLayout';
 import { dirnamePath, toPosix } from './pathUtils';
@@ -106,6 +106,50 @@ function fileNodeSize(byteLength: number): number {
   return 0.5 + Math.min(0.3, byteLength / 10000);
 }
 
+/** Grid / force layout: folder tier under category. */
+const LAYOUT_DEPTH_FOLDER = 3;
+/** File nodes when parent is a folder node. */
+const LAYOUT_DEPTH_FILE_UNDER_FOLDER = 4;
+/** File nodes when attached directly from category (singleton directory). */
+const LAYOUT_DEPTH_FILE_DIRECT = 3;
+
+const DEFAULT_MIN_FILES_FOR_FOLDER_NODE = 2;
+
+/**
+ * Group source records by parent directory path (`dirname` of `path`).
+ * Key is POSIX-normalized absolute dir string (may be empty for root-level files).
+ */
+export function groupSourceRecordsByParentDir(
+  records: readonly SourceDescriptor[]
+): Map<string, SourceDescriptor[]> {
+  const byDir = new Map<string, SourceDescriptor[]>();
+  for (const r of records) {
+    const dir = dirnamePath(r.path);
+    let arr = byDir.get(dir);
+    if (!arr) {
+      arr = [];
+      byDir.set(dir, arr);
+    }
+    arr.push(r);
+  }
+  return byDir;
+}
+
+/** When true, insert a folder node between category and these files. */
+export function useFolderNodeForDirectory(
+  recordCountInDir: number,
+  minFilesForFolderNode: number
+): boolean {
+  return recordCountInDir >= minFilesForFolderNode;
+}
+
+function folderNodeDisplayLabel(absoluteDirPath: string): string {
+  if (absoluteDirPath === '') {
+    return '(root)';
+  }
+  return truncateLabel(baseName(absoluteDirPath));
+}
+
 export interface BuildSourcesGraphOptions {
   /** If set, only buckets for these preset ids are built. */
   enabledPresets?: ReadonlySet<string> | null;
@@ -118,6 +162,11 @@ export interface BuildSourcesGraphOptions {
    * Default true.
    */
   applyGridLayout?: boolean;
+  /**
+   * Minimum files sharing a directory under one category before adding a folder node.
+   * Below this, category connects directly to the file. Default {@link DEFAULT_MIN_FILES_FOR_FOLDER_NODE}.
+   */
+  minFilesForFolderNode?: number;
 }
 
 export interface SourcesGraphModel {
@@ -137,8 +186,8 @@ const EDGE_TIER = {
 } as const;
 
 /**
- * Build positioned graph: preset → locality (project/global) → category → file.
- * Category nodes group files by their source category (context, rule, skill, hook, config, mcp).
+ * Build positioned graph: preset → locality → category → (optional folder) → file.
+ * Folder nodes group files in the same directory when at least `minFilesForFolderNode` share it.
  */
 export function buildGraphFromSourcesPayload(
   payload: SourcesSnapshotPayload | null,
@@ -149,6 +198,8 @@ export function buildGraphFromSourcesPayload(
   }
 
   const enabled = options?.enabledPresets ?? null;
+  const minFilesForFolderNode =
+    options?.minFilesForFolderNode ?? DEFAULT_MIN_FILES_FOR_FOLDER_NODE;
 
   type BucketKey = string;
   const buckets = new Map<BucketKey, typeof payload.records>();
@@ -244,7 +295,6 @@ export function buildGraphFromSourcesPayload(
         graphPresetId: presetId,
         graphLocality: locality,
         graphSliceKey: key,
-        childCount: 0, // updated below
       });
       addEdge(preId, locId, 'contains', 'spine');
     }
@@ -261,20 +311,14 @@ export function buildGraphFromSourcesPayload(
       arr.push(r);
     }
 
-    // Update locality childCount
-    const locNode = nodes.find((n) => n.id === locId);
-    if (locNode) {
-      locNode.childCount = byCategory.size;
-    }
-
     // --- Category nodes (tier 2) ---
     for (const [cat, catRecords] of byCategory) {
       const catId = graphCategoryNodeId(presetId, locality, cat);
       const label = categoryLabel(cat);
       nodes.push({
         id: catId,
-        label: `${label} (${catRecords.length})`,
-        formattedTextLines: [label, `${catRecords.length}`],
+        label,
+        formattedTextLines: [label],
         type: 'category',
         position: [0, 0, 0],
         size: 1.2,
@@ -286,34 +330,92 @@ export function buildGraphFromSourcesPayload(
         graphLocality: locality,
         graphSliceKey: key,
         graphCategoryId: cat,
-        childCount: catRecords.length,
       });
       addEdge(locId, catId, 'contains', 'branch');
 
-      // --- File nodes (tier 3) ---
-      for (const r of catRecords) {
-        const path = r.path;
-        const nid = graphFileNodeId(presetId, locality, path);
-        const fileLabel = truncateLabel(baseName(path));
-        nodes.push({
-          id: nid,
-          label: fileLabel,
-          formattedTextLines: [fileLabel],
-          type: 'note',
-          position: [0, 0, 0],
-          size: fileNodeSize(r.metadata.byteLength),
-          isSelected: false,
-          isPointed: false,
-          isVisible: true,
-          layoutDepth: 3,
-          folderPath: dirnamePath(path) || undefined,
-          filesystemPath: path,
-          graphPresetId: presetId,
-          graphLocality: locality,
-          graphSliceKey: key,
-          graphCategoryId: cat,
-        });
-        addEdge(catId, nid, 'contains', 'leaf');
+      const byParentDir = groupSourceRecordsByParentDir(catRecords);
+
+      for (const [, dirRecords] of byParentDir) {
+        const useFolder = useFolderNodeForDirectory(dirRecords.length, minFilesForFolderNode);
+
+        if (useFolder) {
+          const dirPath = dirnamePath(dirRecords[0].path);
+          const folId = graphFolderNodeId(presetId, locality, dirPath);
+          const dirPosix = toPosix(dirPath);
+          const folLabel = folderNodeDisplayLabel(dirPath);
+          const folLines =
+            dirPath === '' ? [folLabel] : [folLabel, truncateLabel(dirPosix, 48)];
+
+          nodes.push({
+            id: folId,
+            label: folLabel,
+            formattedTextLines: folLines,
+            type: 'folder',
+            position: [0, 0, 0],
+            size: 1,
+            isSelected: false,
+            isPointed: false,
+            isVisible: true,
+            layoutDepth: LAYOUT_DEPTH_FOLDER,
+            folderPath: dirPath || undefined,
+            filesystemPath: dirPath === '' ? undefined : dirPath,
+            graphPresetId: presetId,
+            graphLocality: locality,
+            graphSliceKey: key,
+            graphCategoryId: cat,
+          });
+          addEdge(catId, folId, 'contains', 'leaf');
+
+          for (const r of dirRecords) {
+            const path = r.path;
+            const nid = graphFileNodeId(presetId, locality, path);
+            const fileLabel = truncateLabel(baseName(path));
+            nodes.push({
+              id: nid,
+              label: fileLabel,
+              formattedTextLines: [fileLabel],
+              type: 'note',
+              position: [0, 0, 0],
+              size: fileNodeSize(r.metadata.byteLength),
+              isSelected: false,
+              isPointed: false,
+              isVisible: true,
+              layoutDepth: LAYOUT_DEPTH_FILE_UNDER_FOLDER,
+              folderPath: dirnamePath(path) || undefined,
+              filesystemPath: path,
+              graphPresetId: presetId,
+              graphLocality: locality,
+              graphSliceKey: key,
+              graphCategoryId: cat,
+            });
+            addEdge(folId, nid, 'contains', 'leaf');
+          }
+        } else {
+          for (const r of dirRecords) {
+            const path = r.path;
+            const nid = graphFileNodeId(presetId, locality, path);
+            const fileLabel = truncateLabel(baseName(path));
+            nodes.push({
+              id: nid,
+              label: fileLabel,
+              formattedTextLines: [fileLabel],
+              type: 'note',
+              position: [0, 0, 0],
+              size: fileNodeSize(r.metadata.byteLength),
+              isSelected: false,
+              isPointed: false,
+              isVisible: true,
+              layoutDepth: LAYOUT_DEPTH_FILE_DIRECT,
+              folderPath: dirnamePath(path) || undefined,
+              filesystemPath: path,
+              graphPresetId: presetId,
+              graphLocality: locality,
+              graphSliceKey: key,
+              graphCategoryId: cat,
+            });
+            addEdge(catId, nid, 'contains', 'leaf');
+          }
+        }
       }
     }
   }

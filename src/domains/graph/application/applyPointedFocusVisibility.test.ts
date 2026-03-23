@@ -4,6 +4,7 @@ import { applyPointedFocusVisibility } from './applyPointedFocusVisibility';
 import {
   graphCategoryNodeId,
   graphFileNodeId,
+  graphFolderNodeId,
   graphLocalityNodeId,
   graphPresetNodeId,
 } from './buildGraphFromSourcesPayload';
@@ -151,5 +152,103 @@ describe('applyPointedFocusVisibility', () => {
     const { nodes: outN } = applyPointedFocusVisibility(nodes, edges, presetCursor);
     const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
     expect(vis).toEqual(new Set(nodes.map((x) => x.id)));
+  });
+});
+
+describe('applyPointedFocusVisibility with folder tier', () => {
+  const presetCursor = graphPresetNodeId('cursor');
+  const locProj = graphLocalityNodeId('cursor', 'project');
+  const sk = 'cursor:project';
+  const catCtx = graphCategoryNodeId('cursor', 'project', 'context');
+  const folSrc = graphFolderNodeId('cursor', 'project', '/ws/src');
+  const nA = graphFileNodeId('cursor', 'project', '/ws/src/a.md');
+  const nB = graphFileNodeId('cursor', 'project', '/ws/src/b.md');
+
+  const nodesFolder: GraphNode3D[] = [
+    n({
+      id: presetCursor,
+      type: 'preset',
+      graphPresetId: 'cursor',
+      layoutDepth: 0,
+    }),
+    n({
+      id: locProj,
+      type: 'locality',
+      graphPresetId: 'cursor',
+      graphLocality: 'project',
+      graphSliceKey: sk,
+      layoutDepth: 1,
+    }),
+    n({
+      id: catCtx,
+      type: 'category',
+      graphPresetId: 'cursor',
+      graphLocality: 'project',
+      graphSliceKey: sk,
+      graphCategoryId: 'context',
+      layoutDepth: 2,
+    }),
+    n({
+      id: folSrc,
+      type: 'folder',
+      graphPresetId: 'cursor',
+      graphLocality: 'project',
+      graphSliceKey: sk,
+      graphCategoryId: 'context',
+      layoutDepth: 3,
+    }),
+    n({
+      id: nA,
+      type: 'note',
+      filesystemPath: '/ws/src/a.md',
+      graphPresetId: 'cursor',
+      graphLocality: 'project',
+      graphSliceKey: sk,
+      graphCategoryId: 'context',
+      layoutDepth: 4,
+    }),
+    n({
+      id: nB,
+      type: 'note',
+      filesystemPath: '/ws/src/b.md',
+      graphPresetId: 'cursor',
+      graphLocality: 'project',
+      graphSliceKey: sk,
+      graphCategoryId: 'context',
+      layoutDepth: 4,
+    }),
+  ];
+
+  const edgesFolder: GraphEdge3D[] = [
+    e({
+      id: 'f0',
+      source: presetCursor,
+      target: locProj,
+      type: 'contains',
+      strength: 1,
+      opacity: 0.7,
+    }),
+    e({ id: 'f1', source: locProj, target: catCtx, type: 'contains', strength: 0.8, opacity: 0.6 }),
+    e({ id: 'f2', source: catCtx, target: folSrc, type: 'contains', strength: 0.5, opacity: 0.4 }),
+    e({ id: 'f3', source: folSrc, target: nA, type: 'contains', strength: 0.5, opacity: 0.4 }),
+    e({ id: 'f4', source: folSrc, target: nB, type: 'contains', strength: 0.5, opacity: 0.4 }),
+  ];
+
+  it('note: shows folder, category, locality, preset', () => {
+    const { nodes: outN } = applyPointedFocusVisibility(nodesFolder, edgesFolder, nA);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([nA, folSrc, catCtx, locProj, presetCursor]));
+  });
+
+  it('category: shows folder, both notes, locality, preset', () => {
+    const { nodes: outN } = applyPointedFocusVisibility(nodesFolder, edgesFolder, catCtx);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([catCtx, folSrc, nA, nB, locProj, presetCursor]));
+  });
+
+  it('folder: shows both notes, category, locality, preset', () => {
+    const { nodes: outN } = applyPointedFocusVisibility(nodesFolder, edgesFolder, folSrc);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([folSrc, nA, nB, catCtx, locProj, presetCursor]));
   });
 });

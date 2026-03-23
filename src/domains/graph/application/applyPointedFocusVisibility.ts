@@ -1,10 +1,43 @@
 import type { GraphEdge3D, GraphNode3D } from '../domain/graphTypes';
 
+/** Single parent along `contains` edges (tree-shaped graph from builder). */
+function parentContainsSource(
+  edges: readonly GraphEdge3D[],
+  nodeId: string
+): string | null {
+  for (const e of edges) {
+    if (e.type === 'contains' && e.target === nodeId) {
+      return e.source;
+    }
+  }
+  return null;
+}
+
+function addLocalityAndPreset(
+  visible: Set<string>,
+  nodes: readonly GraphNode3D[],
+  graphSliceKey: string | undefined,
+  graphPresetId: string | undefined
+): void {
+  if (graphSliceKey) {
+    const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === graphSliceKey);
+    if (loc) {
+      visible.add(loc.id);
+    }
+  }
+  if (graphPresetId) {
+    const pre = nodes.find((n) => n.type === 'preset' && n.graphPresetId === graphPresetId);
+    if (pre) {
+      visible.add(pre.id);
+    }
+  }
+}
+
 /**
  * When hovering a node, restrict visibility to a focused subgraph.
  * If pointedId is null or unknown, all nodes and edges stay visible.
  *
- * Hierarchy: preset → locality → category → file (note).
+ * Hierarchy: preset → locality → category → optional folder → file (note).
  */
 export function applyPointedFocusVisibility(
   nodes: GraphNode3D[],
@@ -60,56 +93,34 @@ export function applyPointedFocusVisibility(
       }
     }
   } else if (pointed.type === 'category') {
-    // Show category, its child files, parent locality, parent preset
     visible.add(pointed.id);
     const sk = pointed.graphSliceKey;
     const catId = pointed.graphCategoryId;
     for (const n of nodes) {
-      if (n.type === 'note' && n.graphSliceKey === sk && n.graphCategoryId === catId) {
+      if (n.graphSliceKey !== sk || n.graphCategoryId !== catId) {
+        continue;
+      }
+      if (n.type === 'note' || n.type === 'folder') {
         visible.add(n.id);
       }
     }
-    if (sk) {
-      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === sk);
-      if (loc) {
-        visible.add(loc.id);
-      }
-    }
-    if (pointed.graphPresetId) {
-      const pre = nodes.find(
-        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
-      );
-      if (pre) {
-        visible.add(pre.id);
-      }
-    }
+    addLocalityAndPreset(visible, nodes, sk, pointed.graphPresetId);
   } else if (pointed.type === 'note') {
-    // Show file, parent category, parent locality, parent preset
     visible.add(pointed.id);
-    const sk = pointed.graphSliceKey;
-    const catId = pointed.graphCategoryId;
-    if (sk && catId) {
-      const catNode = nodes.find(
-        (n) => n.type === 'category' && n.graphSliceKey === sk && n.graphCategoryId === catId
-      );
-      if (catNode) {
-        visible.add(catNode.id);
+    let cur: string | null = pointed.id;
+    for (;;) {
+      const src = parentContainsSource(edges, cur);
+      if (!src) {
+        break;
       }
-    }
-    if (sk) {
-      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === sk);
-      if (loc) {
-        visible.add(loc.id);
+      visible.add(src);
+      const pn = nodeById.get(src);
+      if (pn?.type === 'category') {
+        break;
       }
+      cur = src;
     }
-    if (pointed.graphPresetId) {
-      const pre = nodes.find(
-        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
-      );
-      if (pre) {
-        visible.add(pre.id);
-      }
-    }
+    addLocalityAndPreset(visible, nodes, pointed.graphSliceKey, pointed.graphPresetId);
     // Also show tags connected via 'contains'
     for (const e of edges) {
       if (e.type !== 'contains') {
@@ -136,23 +147,21 @@ export function applyPointedFocusVisibility(
       }
     }
   } else if (pointed.type === 'folder') {
-    // Legacy folder support: show folder, its slice locality + preset
     visible.add(pointed.id);
-    const sk = pointed.graphSliceKey;
-    if (sk) {
-      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === sk);
-      if (loc) {
-        visible.add(loc.id);
+    for (const e of edges) {
+      if (e.type !== 'contains' || e.source !== pointed.id) {
+        continue;
+      }
+      const t = nodeById.get(e.target);
+      if (t?.type === 'note') {
+        visible.add(e.target);
       }
     }
-    if (pointed.graphPresetId) {
-      const pre = nodes.find(
-        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
-      );
-      if (pre) {
-        visible.add(pre.id);
-      }
+    const catId = parentContainsSource(edges, pointed.id);
+    if (catId) {
+      visible.add(catId);
     }
+    addLocalityAndPreset(visible, nodes, pointed.graphSliceKey, pointed.graphPresetId);
   } else {
     // Fallback: show direct neighbors
     visible.add(pointed.id);

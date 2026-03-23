@@ -33,18 +33,18 @@ export function inferLayoutDepth(node: GraphNode3D, _all: readonly GraphNode3D[]
     case 'category':
       return 2;
     case 'folder':
-      return 2 + (typeof node.depth === 'number' ? node.depth : 0);
+      return 3;
     case 'note':
-      return 3;
-    case 'tag':
       return 4;
+    case 'tag':
+      return 5;
     default:
-      return 3;
+      return 4;
   }
 }
 
 /**
- * Grid layout by `layoutDepth` (preset top → locality → category → notes → tags).
+ * Grid layout by `layoutDepth` (preset top → locality → category → folder → notes → tags).
  */
 export function applyGridLayout(
   nodes: GraphNode3D[],

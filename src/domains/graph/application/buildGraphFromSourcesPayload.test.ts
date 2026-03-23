@@ -3,8 +3,11 @@ import {
   buildGraphFromSourcesPayload,
   graphCategoryNodeId,
   graphFileNodeId,
+  graphFolderNodeId,
   graphLocalityNodeId,
   graphPresetNodeId,
+  groupSourceRecordsByParentDir,
+  useFolderNodeForDirectory,
 } from './buildGraphFromSourcesPayload';
 import type { SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
 import { sourceRecordId } from '../../../shared/sourceRecordId';
@@ -47,7 +50,7 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(g.edges).toEqual([]);
   });
 
-  it('builds preset → locality → category → file hierarchy', () => {
+  it('builds preset → locality → category → file for singleton directory (no folder node)', () => {
     const payload = basePayload();
     const { nodes, edges } = buildGraphFromSourcesPayload(payload);
 
@@ -65,17 +68,16 @@ describe('buildGraphFromSourcesPayload', () => {
     const catNode = nodes.find((n) => n.id === catId);
     expect(catNode?.type).toBe('category');
     expect(catNode?.graphCategoryId).toBe('context');
-    expect(catNode?.childCount).toBe(1);
-    expect(catNode?.label).toBe('Context (1)');
+    expect(catNode?.label).toBe('Context');
 
     // File node
     const fileId = graphFileNodeId('claude', 'project', '/ws/src/CLAUDE.md');
     const note = nodes.find((n) => n.id === fileId);
     expect(note?.type).toBe('note');
+    expect(note?.layoutDepth).toBe(3);
     expect(note?.filesystemPath).toBe('/ws/src/CLAUDE.md');
     expect(note?.graphCategoryId).toBe('context');
 
-    // No folder nodes (replaced by category)
     expect(nodes.some((n) => n.type === 'folder')).toBe(false);
 
     // Edge: preset → locality (spine)
@@ -113,15 +115,58 @@ describe('buildGraphFromSourcesPayload', () => {
         record('/ws/.claude/rules/b.md', 'claude', 'workspace', 'project', 'rule'),
       ],
     };
-    const { nodes } = buildGraphFromSourcesPayload(payload);
+    const { nodes, edges } = buildGraphFromSourcesPayload(payload);
 
     const contextCat = nodes.find(
       (n) => n.id === graphCategoryNodeId('claude', 'project', 'context')
     );
     const ruleCat = nodes.find((n) => n.id === graphCategoryNodeId('claude', 'project', 'rule'));
-    expect(contextCat?.childCount).toBe(1);
-    expect(ruleCat?.childCount).toBe(2);
-    expect(ruleCat?.label).toBe('Rules (2)');
+    expect(contextCat?.label).toBe('Context');
+    expect(ruleCat?.label).toBe('Rules');
+
+    const rulesDir = '/ws/.claude/rules';
+    const folId = graphFolderNodeId('claude', 'project', rulesDir);
+    expect(nodes.some((n) => n.id === folId && n.type === 'folder')).toBe(true);
+    expect(
+      edges.some(
+        (e) =>
+          e.type === 'contains' &&
+          e.source === graphCategoryNodeId('claude', 'project', 'rule') &&
+          e.target === folId
+      )
+    ).toBe(true);
+    const fileA = graphFileNodeId('claude', 'project', '/ws/.claude/rules/a.md');
+    const fileB = graphFileNodeId('claude', 'project', '/ws/.claude/rules/b.md');
+    expect(nodes.find((n) => n.id === fileA)?.layoutDepth).toBe(4);
+    expect(nodes.find((n) => n.id === fileB)?.layoutDepth).toBe(4);
+    expect(edges.some((e) => e.source === folId && e.target === fileA)).toBe(true);
+    expect(edges.some((e) => e.source === folId && e.target === fileB)).toBe(true);
+  });
+
+  it('respects minFilesForFolderNode to skip folder tier', () => {
+    const payload: SourcesSnapshotPayload = {
+      ...basePayload(),
+      sourceCount: 2,
+      records: [
+        record('/ws/.claude/rules/a.md', 'claude', 'workspace', 'project', 'rule'),
+        record('/ws/.claude/rules/b.md', 'claude', 'workspace', 'project', 'rule'),
+      ],
+    };
+    const { nodes } = buildGraphFromSourcesPayload(payload, { minFilesForFolderNode: 3 });
+    expect(nodes.some((n) => n.type === 'folder')).toBe(false);
+  });
+
+  it('groupSourceRecordsByParentDir and useFolderNodeForDirectory', () => {
+    const recs = [
+      record('/ws/a/x.md', 'claude', 'workspace', 'project'),
+      record('/ws/a/y.md', 'claude', 'workspace', 'project'),
+      record('/ws/b/z.md', 'claude', 'workspace', 'project'),
+    ];
+    const g = groupSourceRecordsByParentDir(recs);
+    expect(g.get('/ws/a')?.length).toBe(2);
+    expect(g.get('/ws/b')?.length).toBe(1);
+    expect(useFolderNodeForDirectory(2, 2)).toBe(true);
+    expect(useFolderNodeForDirectory(1, 2)).toBe(false);
   });
 
   it('two records same path different presets yield two file nodes', () => {
@@ -242,11 +287,49 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(localityToCategory).toBeDefined();
     expect(categoryToFile).toBeDefined();
 
-    // Spine > branch > leaf
+    // Spine > branch > leaf (category→file is still leaf tier for singleton)
     expect(presetToLocality!.strength).toBeGreaterThan(localityToCategory!.strength);
     expect(localityToCategory!.strength).toBeGreaterThan(categoryToFile!.strength);
     expect(presetToLocality!.opacity).toBeGreaterThan(localityToCategory!.opacity);
     expect(localityToCategory!.opacity).toBeGreaterThan(categoryToFile!.opacity);
+  });
+
+  it('edge tiers stay monotonic when folder tier is present', () => {
+    const payload: SourcesSnapshotPayload = {
+      ...basePayload(),
+      sourceCount: 2,
+      records: [
+        record('/ws/.claude/rules/a.md', 'claude', 'workspace', 'project', 'rule'),
+        record('/ws/.claude/rules/b.md', 'claude', 'workspace', 'project', 'rule'),
+      ],
+    };
+    const { edges } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
+    const catId = graphCategoryNodeId('claude', 'project', 'rule');
+    const folId = graphFolderNodeId('claude', 'project', '/ws/.claude/rules');
+    const presetToLocality = edges.find(
+      (e) =>
+        e.source === graphPresetNodeId('claude') &&
+        e.target === graphLocalityNodeId('claude', 'project')
+    );
+    const localityToCategory = edges.find(
+      (e) =>
+        e.source === graphLocalityNodeId('claude', 'project') && e.target === catId
+    );
+    const categoryToFolder = edges.find(
+      (e) => e.source === catId && e.target === folId && e.type === 'contains'
+    );
+    const folderToFile = edges.find(
+      (e) =>
+        e.source === folId &&
+        e.target === graphFileNodeId('claude', 'project', '/ws/.claude/rules/a.md')
+    );
+    expect(presetToLocality).toBeDefined();
+    expect(localityToCategory).toBeDefined();
+    expect(categoryToFolder).toBeDefined();
+    expect(folderToFile).toBeDefined();
+    expect(presetToLocality!.strength).toBeGreaterThan(localityToCategory!.strength);
+    expect(localityToCategory!.strength).toBeGreaterThan(categoryToFolder!.strength);
+    expect(categoryToFolder!.strength).toBeGreaterThanOrEqual(folderToFile!.strength);
   });
 
   it('file node size scales with byteLength', () => {
