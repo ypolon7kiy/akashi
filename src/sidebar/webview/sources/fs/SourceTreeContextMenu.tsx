@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { getVscodeApi } from '../../../../webview-shared/api';
 import { SidebarMessageType } from '../../../bridge/messages';
+import { ARTIFACT_TEMPLATE_DESCRIPTORS } from '../artifacts/artifactTemplateDescriptors';
 import type { TreeNode } from '../tree/sourceTree';
 import { fsOperablePath } from './sourceTreeExplorerModel';
 
@@ -16,6 +17,12 @@ export interface SourceTreeContextMenuProps {
   readonly contextMenu: SourceTreeContextMenuState | null;
   readonly onClose: () => void;
   readonly beginCreateFile: (node: TreeNode) => void;
+  readonly beginCreateArtifact: (
+    node: TreeNode,
+    templateId: string,
+    suggestedExtension: string,
+    fixedFileName?: string
+  ) => void;
   readonly beginRename: (node: TreeNode) => void;
   readonly runDelete: (path: string, isDirectory: boolean) => void;
 }
@@ -36,7 +43,15 @@ function clampMenuPosition(
 }
 
 export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.Element | null {
-  const { menuRef, contextMenu, onClose, beginCreateFile, beginRename, runDelete } = props;
+  const {
+    menuRef,
+    contextMenu,
+    onClose,
+    beginCreateFile,
+    beginCreateArtifact,
+    beginRename,
+    runDelete,
+  } = props;
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useLayoutEffect(() => {
@@ -164,6 +179,34 @@ export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.El
             <span className="codicon codicon-new-file" aria-hidden />
             New File
           </button>
+          {node.type === 'folder' && node.presetId
+            ? (() => {
+                const relevantTemplates = ARTIFACT_TEMPLATE_DESCRIPTORS.filter(
+                  (t) =>
+                    t.presetId === node.presetId &&
+                    (!node.scope || t.scope === node.scope) &&
+                    (!node.categoryId || t.categoryId === node.categoryId)
+                );
+                if (relevantTemplates.length === 0) {
+                  return null;
+                }
+                return relevantTemplates.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="akashi-tree-context__item"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      beginCreateArtifact(node, t.id, t.suggestedExtension, t.fixedFileName);
+                    }}
+                  >
+                    <span className="codicon codicon-new-file" aria-hidden />
+                    {t.label}
+                  </button>
+                ));
+              })()
+            : null}
           <div className="akashi-tree-context__sep" role="separator" />
         </>
       ) : null}

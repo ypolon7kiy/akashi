@@ -1,4 +1,7 @@
-import type { SourceDescriptor, SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
+import type {
+  SourceDescriptor,
+  SourcesSnapshotPayload,
+} from '../../../shared/types/sourcesSnapshotPayload';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
 import { applyGridLayout } from './gridLayout';
 import { dirnamePath, toPosix } from './pathUtils';
@@ -198,8 +201,7 @@ export function buildGraphFromSourcesPayload(
   }
 
   const enabled = options?.enabledPresets ?? null;
-  const minFilesForFolderNode =
-    options?.minFilesForFolderNode ?? DEFAULT_MIN_FILES_FOR_FOLDER_NODE;
+  const minFilesForFolderNode = options?.minFilesForFolderNode ?? DEFAULT_MIN_FILES_FOR_FOLDER_NODE;
 
   type BucketKey = string;
   const buckets = new Map<BucketKey, typeof payload.records>();
@@ -352,8 +354,7 @@ export function buildGraphFromSourcesPayload(
           const folId = graphFolderNodeId(presetId, locality, dirPath);
           const dirPosix = toPosix(dirPath);
           const folLabel = folderNodeDisplayLabel(dirPath);
-          const folLines =
-            dirPath === '' ? [folLabel] : [folLabel, truncateLabel(dirPosix, 48)];
+          const folLines = dirPath === '' ? [folLabel] : [folLabel, truncateLabel(dirPosix, 48)];
 
           nodes.push({
             id: folId,

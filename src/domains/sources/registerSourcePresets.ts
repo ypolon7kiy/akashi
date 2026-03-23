@@ -4,10 +4,15 @@ import type {
   SourcePresetDefinition,
   SourcePresetId,
 } from './domain/sourcePresetDefinition';
+import type { ArtifactTemplate } from './domain/artifactTemplate';
 import { antigravityPresetDefinition } from './presets/antigravity/preset';
 import { claudePresetDefinition } from './presets/claude/preset';
 import { codexPresetDefinition } from './presets/codex/preset';
 import { cursorPresetDefinition } from './presets/cursor/preset';
+import { claudeArtifactTemplates } from './presets/claude/artifactTemplates';
+import { cursorArtifactTemplates } from './presets/cursor/artifactTemplates';
+import { codexArtifactTemplates } from './presets/codex/artifactTemplates';
+import { antigravityArtifactTemplates } from './presets/antigravity/artifactTemplates';
 
 /**
  * Registration order is stable for logging; each preset is independent for discovery.
@@ -54,3 +59,31 @@ export const WORKSPACE_GLOB_SCAN_ROWS: readonly WorkspaceGlobScanRow[] =
 export const HOME_PATH_TASKS: readonly HomePathTask[] = SOURCE_PRESET_DEFINITIONS.flatMap((p) => [
   ...p.homePathTasks,
 ]);
+
+// ---------------------------------------------------------------------------
+// Artifact creation registry
+// ---------------------------------------------------------------------------
+
+export const ARTIFACT_TEMPLATES: readonly ArtifactTemplate[] = [
+  ...claudeArtifactTemplates,
+  ...cursorArtifactTemplates,
+  ...codexArtifactTemplates,
+  ...antigravityArtifactTemplates,
+];
+
+/**
+ * Returns artifact templates for the given preset and scope.
+ * Graph nodes use this with `{ presetId, scope }` decoded from node metadata —
+ * no sidebar or webview types required.
+ */
+export function getArtifactTemplatesForContext(
+  presetId: SourcePresetId,
+  scope: 'workspace' | 'user'
+): readonly ArtifactTemplate[] {
+  return ARTIFACT_TEMPLATES.filter((t) => t.presetId === presetId && t.scope === scope);
+}
+
+/** Look up a template by exact id — used host-side to validate incoming RPC payloads. */
+export function findArtifactTemplateById(id: string): ArtifactTemplate | undefined {
+  return ARTIFACT_TEMPLATES.find((t) => t.id === id);
+}

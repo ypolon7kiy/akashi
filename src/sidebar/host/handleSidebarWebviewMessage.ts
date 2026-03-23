@@ -9,11 +9,13 @@ import {
   type SourcesResponseMessage,
 } from '../bridge/messages';
 import {
+  handleSidebarFsCreateArtifact,
   handleSidebarFsCreateFile,
   handleSidebarFsDelete,
   handleSidebarFsRename,
 } from './fs/handleSourcesFsRequest';
 import {
+  parseInboundSourcesFsCreateArtifact,
   parseInboundSourcesFsCreateFile,
   parseInboundSourcesFsDelete,
   parseInboundSourcesFsRename,
@@ -177,6 +179,27 @@ export async function handleSidebarWebviewMessage(
       const result = await handleSidebarFsCreateFile({
         parentPath: parsed.parentPath,
         fileName: parsed.fileName,
+      });
+      await actions.completeSidebarFsMutation(webview, requestId, result);
+      return;
+    }
+
+    if (typedMessage.type === SidebarMessageType.SourcesFsCreateArtifact) {
+      logSourcesCommand(typedMessage.type, requestId);
+      const parsed = parseInboundSourcesFsCreateArtifact(message);
+      if (!parsed) {
+        await postSourcesResponse(webview, {
+          type: SidebarMessageType.SourcesResponse,
+          requestId,
+          ok: false,
+          error: 'Invalid create artifact payload',
+        });
+        return;
+      }
+      const result = await handleSidebarFsCreateArtifact({
+        templateId: parsed.templateId,
+        fileName: parsed.fileName,
+        workspaceRoot: parsed.workspaceRoot,
       });
       await actions.completeSidebarFsMutation(webview, requestId, result);
       return;

@@ -1,6 +1,9 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { resolveArtifactCreation } from '../../../domains/sources/application/createArtifact';
+import { findArtifactTemplateById } from '../../../domains/sources/registerSourcePresets';
+import { readToolUserRoots } from '../../../domains/sources/infrastructure/providerUserRoots';
 import { validateSourceFileBaseName } from '../../bridge/validateSourceFileBaseName';
 
 /**
@@ -216,6 +219,63 @@ export async function handleSidebarFsCreateFile(payload: {
 
   try {
     await vscode.workspace.fs.writeFile(fileUri, new Uint8Array());
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function handleSidebarFsCreateArtifact(payload: {
+  templateId: string;
+  fileName: string;
+  workspaceRoot: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const template = findArtifactTemplateById(payload.templateId);
+  if (!template) {
+    return { ok: false, error: `Unknown artifact template: ${payload.templateId}` };
+  }
+
+  const nameErr = validateSourceFileBaseName(payload.fileName.trim());
+  if (nameErr) {
+    return { ok: false, error: nameErr };
+  }
+
+  const roots = readToolUserRoots(os.homedir());
+  const resolvedDir = template.targetDirResolver(payload.workspaceRoot, roots);
+
+  const resolved = resolveArtifactCreation({
+    template,
+    fileName: payload.fileName,
+    resolvedDir,
+  });
+  if (!resolved.ok) {
+    return resolved;
+  }
+
+  const { absolutePath, content } = resolved;
+
+  if (!isPathAllowedForSidebarFs(absolutePath)) {
+    return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
+  }
+
+  const fileUri = vscode.Uri.file(absolutePath);
+  try {
+    await vscode.workspace.fs.stat(fileUri);
+    return { ok: false, error: 'A file or folder with that name already exists.' };
+  } catch {
+    // absent — ok
+  }
+
+  // Create any missing parent directories (the preset dir may not exist yet).
+  const parentUri = vscode.Uri.file(path.dirname(absolutePath));
+  try {
+    await vscode.workspace.fs.createDirectory(parentUri);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+
+  try {
+    await vscode.workspace.fs.writeFile(fileUri, Buffer.from(content, 'utf8'));
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

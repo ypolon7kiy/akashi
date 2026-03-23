@@ -1,10 +1,7 @@
 import type { GraphEdge3D, GraphNode3D } from '../domain/graphTypes';
 
 /** Single parent along `contains` edges (tree-shaped graph from builder). */
-function parentContainsSource(
-  edges: readonly GraphEdge3D[],
-  nodeId: string
-): string | null {
+function parentContainsSource(edges: readonly GraphEdge3D[], nodeId: string): string | null {
   for (const e of edges) {
     if (e.type === 'contains' && e.target === nodeId) {
       return e.source;
@@ -126,7 +123,13 @@ export function applyPointedFocusVisibility(
       }
       cur = src;
     }
-    addLocalityAndPreset(visible, localityBySliceKey, presetByPresetId, pointed.graphSliceKey, pointed.graphPresetId);
+    addLocalityAndPreset(
+      visible,
+      localityBySliceKey,
+      presetByPresetId,
+      pointed.graphSliceKey,
+      pointed.graphPresetId
+    );
     // Also show tags connected via 'contains'
     for (const e of edges) {
       if (e.type !== 'contains') {
@@ -167,7 +170,13 @@ export function applyPointedFocusVisibility(
     if (catId) {
       visible.add(catId);
     }
-    addLocalityAndPreset(visible, localityBySliceKey, presetByPresetId, pointed.graphSliceKey, pointed.graphPresetId);
+    addLocalityAndPreset(
+      visible,
+      localityBySliceKey,
+      presetByPresetId,
+      pointed.graphSliceKey,
+      pointed.graphPresetId
+    );
   } else {
     // Fallback: show direct neighbors
     visible.add(pointed.id);

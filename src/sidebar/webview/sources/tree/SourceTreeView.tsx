@@ -51,6 +51,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
 
   const fs = useSourceTreeFsState({
     roots,
+    workspaceFolders,
     setSelectedId,
     setContextMenu,
     setExpandedIds,
@@ -89,6 +90,13 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
       fs.createFileInputRef.current.select();
     }
   }, [fs.creatingFileParentId, fs.createFileInputRef]);
+
+  useEffect(() => {
+    if (fs.creatingArtifactState && fs.createArtifactInputRef.current) {
+      fs.createArtifactInputRef.current.focus();
+      fs.createArtifactInputRef.current.select();
+    }
+  }, [fs.creatingArtifactState, fs.createArtifactInputRef]);
 
   useEffect(() => {
     if (!contextMenu) {
@@ -155,6 +163,11 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
       setNewFileDraft: fs.setNewFileDraft,
       onCreateFileKeyDown: fs.onCreateFileKeyDown,
       createFileInputRef: fs.createFileInputRef,
+      creatingArtifactState: fs.creatingArtifactState,
+      artifactNameDraft: fs.artifactNameDraft,
+      setArtifactNameDraft: fs.setArtifactNameDraft,
+      onCreateArtifactKeyDown: fs.onCreateArtifactKeyDown,
+      createArtifactInputRef: fs.createArtifactInputRef,
       onRowContextMenu,
       onDragStartRow: dnd.onDragStartRow,
       onDragOverFolder: dnd.onDragOverFolder,
@@ -177,6 +190,11 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
       fs.setNewFileDraft,
       fs.onCreateFileKeyDown,
       fs.createFileInputRef,
+      fs.creatingArtifactState,
+      fs.artifactNameDraft,
+      fs.setArtifactNameDraft,
+      fs.onCreateArtifactKeyDown,
+      fs.createArtifactInputRef,
       onRowContextMenu,
       dnd.onDragStartRow,
       dnd.onDragOverFolder,
@@ -188,7 +206,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
 
   const onTreeKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (fs.renamingNodeId || fs.creatingFileParentId) {
+      if (fs.renamingNodeId || fs.creatingFileParentId || fs.creatingArtifactState) {
         return;
       }
       const visible = collectVisibleTreeNodes(roots, expandedIds);
@@ -298,6 +316,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     [
       fs.renamingNodeId,
       fs.creatingFileParentId,
+      fs.creatingArtifactState,
       fs.beginRename,
       fs.queueDelete,
       selectedId,
@@ -311,7 +330,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     if (isBusy) {
       return <div className="akashi-tree akashi-tree--empty" />;
     }
-    return <div className="akashi-tree akashi-tree--empty"/>;
+    return <div className="akashi-tree akashi-tree--empty" />;
   }
 
   return (
@@ -328,7 +347,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         role="tree"
         aria-label="Indexed sources"
         aria-activedescendant={
-          selectedId && !fs.renamingNodeId && !fs.creatingFileParentId
+          selectedId && !fs.renamingNodeId && !fs.creatingFileParentId && !fs.creatingArtifactState
             ? treeItemDomId(selectedId)
             : undefined
         }
@@ -346,6 +365,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         contextMenu={contextMenu}
         onClose={() => setContextMenu(null)}
         beginCreateFile={fs.beginCreateFile}
+        beginCreateArtifact={fs.beginCreateArtifact}
         beginRename={fs.beginRename}
         runDelete={fs.queueDelete}
       />

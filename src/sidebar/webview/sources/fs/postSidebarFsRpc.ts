@@ -82,3 +82,25 @@ export async function postSidebarFsCreateFile(
     return { kind: 'error', message: e instanceof Error ? e.message : 'Create file failed' };
   }
 }
+
+export async function postSidebarFsCreateArtifact(
+  vscode: VscodeApi,
+  templateId: string,
+  fileName: string,
+  workspaceRoot: string
+): Promise<SidebarFsRpcOutcome> {
+  try {
+    const r = await postRequest<SourcesResponseMessage>(
+      vscode,
+      {
+        type: SidebarMessageType.SourcesFsCreateArtifact,
+        payload: { templateId, fileName, workspaceRoot },
+      },
+      SidebarMessageType.SourcesResponse,
+      FS_RPC_TIMEOUT_MS
+    );
+    return interpretFsResponse(r);
+  } catch (e) {
+    return { kind: 'error', message: e instanceof Error ? e.message : 'Create artifact failed' };
+  }
+}

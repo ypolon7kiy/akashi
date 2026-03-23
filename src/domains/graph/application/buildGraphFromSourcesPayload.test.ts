@@ -312,8 +312,7 @@ describe('buildGraphFromSourcesPayload', () => {
         e.target === graphLocalityNodeId('claude', 'project')
     );
     const localityToCategory = edges.find(
-      (e) =>
-        e.source === graphLocalityNodeId('claude', 'project') && e.target === catId
+      (e) => e.source === graphLocalityNodeId('claude', 'project') && e.target === catId
     );
     const categoryToFolder = edges.find(
       (e) => e.source === catId && e.target === folId && e.type === 'contains'

@@ -21,9 +21,9 @@ function parseHex3(body: string): Rgb | null {
   if (body.length !== 3 || !/^[0-9a-fA-F]{3}$/.test(body)) {
     return null;
   }
-  const r = parseInt(body[0]! + body[0]!, 16);
-  const g = parseInt(body[1]! + body[1]!, 16);
-  const b = parseInt(body[2]! + body[2]!, 16);
+  const r = parseInt(body[0] + body[0], 16);
+  const g = parseInt(body[1] + body[1], 16);
+  const b = parseInt(body[2] + body[2], 16);
   if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
     return null;
   }
@@ -69,17 +69,17 @@ export function parseCssColorToRgb(input: string): Rgb | null {
     }
     return null;
   }
-  const m = s.match(/^rgba?\(\s*([^)]+)\s*\)$/i);
+  const m = /^rgba?\(\s*([^)]+)\s*\)$/i.exec(s);
   if (!m) {
     return null;
   }
-  const parts = m[1]!.split(/\s*,\s*/);
+  const parts = m[1].split(/\s*,\s*/);
   if (parts.length < 3) {
     return null;
   }
-  const r = parseRgbChannel(parts[0]!);
-  const g = parseRgbChannel(parts[1]!);
-  const b = parseRgbChannel(parts[2]!);
+  const r = parseRgbChannel(parts[0]);
+  const g = parseRgbChannel(parts[1]);
+  const b = parseRgbChannel(parts[2]);
   if (r === null || g === null || b === null) {
     return null;
   }

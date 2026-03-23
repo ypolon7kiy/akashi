@@ -20,9 +20,8 @@ export function pickContrastingTierLabelColor(
     return cached;
   }
   const rgb = parseCssColorToRgb(fillCss);
-  const result = !rgb || relativeLuminanceRgb(rgb) <= TIER_LABEL_LUMINANCE_THRESHOLD
-    ? lightText
-    : darkText;
+  const result =
+    !rgb || relativeLuminanceRgb(rgb) <= TIER_LABEL_LUMINANCE_THRESHOLD ? lightText : darkText;
   _contrastCache.set(key, result);
   return result;
 }

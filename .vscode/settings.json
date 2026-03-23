@@ -1,0 +1,6 @@
+{
+  // Selecting text in the integrated terminal copies to the clipboard immediately.
+  // On Linux, middle-click usually pastes the PRIMARY selection (from selecting anywhere);
+  // this setting helps when an app only reads the regular clipboard.
+  "terminal.integrated.copyOnSelection": true
+}

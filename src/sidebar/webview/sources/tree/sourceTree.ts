@@ -18,6 +18,21 @@ export type TreeNode =
        * (“Workspace (other)”, “User configuration”) — only nested children are operable.
        */
       dirPath?: string;
+      /**
+       * Set when every leaf descriptor in this subtree belongs to a single preset.
+       * Enables artifact creation menu items in the context menu.
+       */
+      presetId?: string;
+      /**
+       * Set when every leaf descriptor in this subtree also shares a single category.
+       * Narrows the artifact menu to only matching templates.
+       */
+      categoryId?: string;
+      /**
+       * Set when every leaf descriptor in this subtree shares a single scope.
+       * Used to filter artifact templates to workspace vs user scope.
+       */
+      scope?: 'workspace' | 'user';
       children: TreeNode[];
     }
   | {
@@ -161,6 +176,32 @@ function categoryForDescriptor(d: SourceDescriptor): string {
   return d.category ?? categoryValueFromTags(d.tags) ?? 'unknown';
 }
 
+/** Collects distinct presets, categories, and scopes across all leaf descriptors in a trie subtree. */
+function collectTrieMeta(map: TrieMap): {
+  presets: Set<string>;
+  categories: Set<string>;
+  scopes: Set<string>;
+} {
+  const presets = new Set<string>();
+  const categories = new Set<string>();
+  const scopes = new Set<string>();
+  for (const entry of map.values()) {
+    if (entry.kind === 'file') {
+      for (const d of entry.descriptors) {
+        presets.add(d.preset);
+        categories.add(categoryForDescriptor(d));
+        if (d.scope) scopes.add(d.scope);
+      }
+    } else {
+      const sub = collectTrieMeta(entry.children);
+      for (const p of sub.presets) presets.add(p);
+      for (const c of sub.categories) categories.add(c);
+      for (const s of sub.scopes) scopes.add(s);
+    }
+  }
+  return { presets, categories, scopes };
+}
+
 /** Build absolute dir path from parent + one trie segment (webview-safe, forward slashes). */
 export function joinDirSegment(parentDirFsPath: string, segment: string): string {
   const seg = segment.replace(/\\/g, '/');
@@ -224,11 +265,16 @@ function trieToTreeNodes(map: TrieMap, idPrefix: string, parentDirFsPath: string
       const dirPath = joinDirSegment(parentDirFsPath, name);
       const childId = `${idPrefix}:dir:${name}`;
       const children = trieToTreeNodes(entry.children, childId, dirPath);
+      const meta = collectTrieMeta(entry.children);
+      const scopeVal = meta.scopes.size === 1 ? [...meta.scopes][0] : undefined;
       nodes.push({
         type: 'folder',
         id: childId,
         label: name,
         dirPath,
+        presetId: meta.presets.size === 1 ? [...meta.presets][0] : undefined,
+        categoryId: meta.categories.size === 1 ? [...meta.categories][0] : undefined,
+        scope: scopeVal === 'workspace' || scopeVal === 'user' ? scopeVal : undefined,
         children,
       });
     }
