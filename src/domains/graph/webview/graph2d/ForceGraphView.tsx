@@ -5,8 +5,9 @@ import type { Simulation } from 'd3-force';
 import { inferLayoutDepth } from '../../application/gridLayout';
 import { applyPointedFocusVisibility } from '../../application/applyPointedFocusVisibility';
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
-import { getNodeColor } from '../graphNodeColors';
+import { getHoverColor, getNodeColor } from '../graphNodeColors';
 import { readCanvasThemeColors } from './canvasThemeColors';
+import { pickContrastingTierLabelColor } from './tierLabelContrast';
 import { Graph2DMessageType } from './messages';
 import { getVscodeApi } from '../../../../webview-shared/api';
 
@@ -79,6 +80,21 @@ const CONTENT_BASE_DY = 180;
 const CONTENT_ROW_STEP = 40;
 const COL_STEP = 24;
 const SLICE_SHIFT = 48;
+
+/** CSS px at k=1; divide by k when drawing under scale(k). */
+const NODE_RIM_LINE_WIDTH = 3.6;
+const NODE_INNER_STROKE_WIDTH = 1.35;
+const NODE_INNER_STROKE_WIDTH_FOCUSED = 2.6;
+const TIER_NODE_SHADOW_BLUR = 7;
+const TIER_NODE_SHADOW_OFFSET_Y = 1.5;
+
+/** Default alpha for non-pointed edges when `edge.opacity` is omitted (idle graph readability). */
+const EDGE_DEFAULT_BASE_OPACITY = 0.55;
+/** Edge stroke width in CSS px at zoom k=1 when the edge is pointed (highlighted). */
+const EDGE_POINTED_LINE_WIDTH = 1.8;
+/** Base width in CSS px at k=1 for non-pointed edges; strength adds `EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE * strength`. */
+const EDGE_IDLE_LINE_WIDTH_BASE = 0.8;
+const EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE = 0.8;
 
 function targetYRelToPreset(node: GraphNode3D, all: readonly GraphNode3D[]): number {
   if (node.type === 'preset') {
@@ -409,9 +425,21 @@ function isTierGraphNode(n: GraphNode3D): boolean {
   return n.type === 'preset' || n.type === 'locality' || n.type === 'category';
 }
 
-const TIER_LABEL_PAD = 3;
+const TIER_LABEL_PAD_DEFAULT = 5;
+const TIER_LABEL_PAD_CATEGORY = 6;
 const TIER_LABEL_FONT_MIN = 8;
 const TIER_LABEL_FONT_MAX = 13;
+
+function tierLabelPadFor(n: GraphNode3D): number {
+  return n.type === 'category' ? TIER_LABEL_PAD_CATEGORY : TIER_LABEL_PAD_DEFAULT;
+}
+
+function clearCanvasShadow(ctx: CanvasRenderingContext2D): void {
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+}
 
 /**
  * Measure at identity CTM (k=1 CSS px). Draw uses `bold ${tierLabelFontPx / k}px` under `scale(k)`.
@@ -420,9 +448,9 @@ function computeTierLabelLayout(
   measCtx: CanvasRenderingContext2D,
   label: string,
   baseRadius: number,
-  fontFamily: string
+  fontFamily: string,
+  pad: number
 ): { displayRadius: number; tierLabelFontPx: number } {
-  const pad = TIER_LABEL_PAD;
 
   const fits = (fontPx: number, rad: number): boolean => {
     measCtx.font = `bold ${fontPx}px ${fontFamily}`;
@@ -460,6 +488,23 @@ function computeTierLabelLayout(
   }
 
   return { displayRadius: r, tierLabelFontPx: fontPx };
+}
+
+/** Radius needed for a fixed bold label size (identity CTM); used to sync locality/category font to preset. */
+function minDisplayRadiusForTierLabel(
+  measCtx: CanvasRenderingContext2D,
+  label: string,
+  fontPx: number,
+  fontFamily: string,
+  pad: number,
+  baseRadius: number
+): number {
+  measCtx.font = `bold ${fontPx}px ${fontFamily}`;
+  const m = measCtx.measureText(label);
+  const w2 = m.width / 2;
+  const asc = m.actualBoundingBoxAscent ?? fontPx * 0.72;
+  const desc = m.actualBoundingBoxDescent ?? fontPx * 0.22;
+  return Math.max(baseRadius, w2 + pad, asc + pad, desc + pad);
 }
 
 function simNodeRadius(n: SimNode): number {
@@ -599,13 +644,14 @@ export function ForceGraphView(props: {
     ctx.scale(k, k);
 
     const theme = readCanvasThemeColors();
+    const simById = new Map(simNodes.map((n) => [n.id, n]));
 
     if (props.showEdges) {
       for (const e of props.edges) {
         const meta = focusEdgeById.get(e.id);
         const vis = meta?.isVisible !== false;
-        const src = simNodes.find((n) => n.id === e.source);
-        const tgt = simNodes.find((n) => n.id === e.target);
+        const src = simById.get(e.source);
+        const tgt = simById.get(e.target);
         if (!src || !tgt || src.x === undefined || src.y === undefined) {
           continue;
         }
@@ -617,9 +663,11 @@ export function ForceGraphView(props: {
         ctx.moveTo(src.x, src.y);
         ctx.lineTo(tgt.x, tgt.y);
         ctx.strokeStyle = ep ? theme.edgeHighlight : theme.edge;
-        const edgeBaseOpacity = e.opacity ?? 0.55;
+        const edgeBaseOpacity = e.opacity ?? EDGE_DEFAULT_BASE_OPACITY;
         ctx.globalAlpha = vis ? (ep ? 0.9 : edgeBaseOpacity) : 0.08;
-        ctx.lineWidth = ep ? 1.8 / k : (0.8 + e.strength * 0.8) / k;
+        ctx.lineWidth = ep
+          ? EDGE_POINTED_LINE_WIDTH / k
+          : (EDGE_IDLE_LINE_WIDTH_BASE + e.strength * EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE) / k;
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
@@ -639,25 +687,45 @@ export function ForceGraphView(props: {
       }
       const r = simNodeRadius(n);
       const np = n.id === pointedId;
+      const isTierNode = isTierGraphNode(n);
+      const fillColor = np ? getHoverColor(n.type, n) : getNodeColor(n.type, n);
+
+      const rimAlpha = vis ? 1 : 0.12;
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = getNodeColor(n.type, n);
+      ctx.strokeStyle = theme.nodeRimStroke;
+      ctx.lineWidth = NODE_RIM_LINE_WIDTH / k;
+      ctx.globalAlpha = rimAlpha;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+      if (isTierNode && vis) {
+        ctx.shadowColor = theme.nodeShadow;
+        ctx.shadowBlur = TIER_NODE_SHADOW_BLUR / k;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = TIER_NODE_SHADOW_OFFSET_Y / k;
+      }
+      ctx.fillStyle = fillColor;
       ctx.globalAlpha = vis ? 1 : 0.12;
       ctx.fill();
-      ctx.globalAlpha = vis ? 0.9 : 0.15;
+      clearCanvasShadow(ctx);
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
       ctx.strokeStyle = np ? theme.nodeStrokeHighlight : theme.nodeStroke;
-      ctx.lineWidth = np ? 2.2 / k : 1 / k;
+      ctx.lineWidth = (np ? NODE_INNER_STROKE_WIDTH_FOCUSED : NODE_INNER_STROKE_WIDTH) / k;
+      ctx.globalAlpha = vis ? 1 : 0.15;
       ctx.stroke();
       ctx.globalAlpha = 1;
 
       // Labels: inside node for tiers 0-2 (preset, locality, category), below for files
       if (vis) {
-        const isTierNode = isTierGraphNode(n);
         if (isTierNode) {
           const innerLabel = truncateTierLabel(n.label);
           const innerFontPx = (n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN) / k;
           ctx.font = `bold ${innerFontPx}px ${ff}`;
-          ctx.fillStyle = '#fff';
+          ctx.fillStyle = pickContrastingTierLabelColor(fillColor, '#ffffff', '#000000');
           ctx.globalAlpha = vis ? 0.95 : 0.12;
           ctx.fillText(innerLabel, n.x, n.y + innerFontPx * 0.12);
           ctx.globalAlpha = 1;
@@ -723,10 +791,37 @@ export function ForceGraphView(props: {
             measCtx,
             inner,
             nodeRadius(n),
-            ffInit
+            ffInit,
+            tierLabelPadFor(n)
           );
           n.displayRadius = displayRadius;
           n.tierLabelFontPx = tierLabelFontPx;
+        }
+      }
+      const presets = simNodes.filter((n) => n.type === 'preset');
+      const tierNodesAll = simNodes.filter(isTierGraphNode);
+      const tierFontFromPresets =
+        presets.length > 0
+          ? Math.max(
+              ...presets.map((p) => p.tierLabelFontPx ?? TIER_LABEL_FONT_MIN),
+              TIER_LABEL_FONT_MIN
+            )
+          : Math.max(
+              TIER_LABEL_FONT_MIN,
+              ...tierNodesAll.map((n) => n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN)
+            );
+      for (const n of simNodes) {
+        if (n.type === 'locality' || n.type === 'category') {
+          const inner = truncateTierLabel(n.label);
+          n.tierLabelFontPx = tierFontFromPresets;
+          n.displayRadius = minDisplayRadiusForTierLabel(
+            measCtx,
+            inner,
+            tierFontFromPresets,
+            ffInit,
+            tierLabelPadFor(n),
+            nodeRadius(n)
+          );
         }
       }
     }
