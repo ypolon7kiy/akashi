@@ -408,7 +408,6 @@ function nodeRadius(n: GraphNode3D): number {
   return Math.max(6, 3.5 + n.size * 7);
 }
 
-
 const TIER_LABEL_MAX_CHARS = 18;
 
 function truncateTierLabel(label: string): string {
@@ -541,20 +540,18 @@ function resetPanZoomToCenterWorldOrigin(
 }
 
 function updateSimulationForces(sim: Simulation<SimNode, SimLink>, p: ForceGraphSimProps): void {
-  /* d3-force Simulation.force() is typed as a generic Force; call sites are the named forces we registered. */
-  /* eslint-disable @typescript-eslint/no-unsafe-call -- force mutators */
-  const lf = sim.force('link');
+  // d3-force Simulation.force() returns a generic Force; narrow to concrete force types by key.
+  const lf = sim.force<ReturnType<typeof forceLink<SimNode, SimLink>>>('link');
   if (lf) {
     lf.distance(p.linkDistance);
     lf.strength((l: SimLink) => p.linkStrength * Math.min(1, l.strength ?? 1));
   }
-  const ch = sim.force('charge');
+  const ch = sim.force<ReturnType<typeof forceManyBody<SimNode>>>('charge');
   ch?.strength(-p.chargeStrength);
-  const ce = sim.force('center');
+  const ce = sim.force<ReturnType<typeof forceCenter>>('center');
   ce?.strength(p.centerStrength);
-  const co = sim.force('collide');
+  const co = sim.force<ReturnType<typeof forceCollide<SimNode>>>('collide');
   co?.radius((d: SimNode) => simNodeRadius(d) + p.collidePadding);
-  /* eslint-enable @typescript-eslint/no-unsafe-call */
   sim.alpha(Math.max(sim.alpha(), 0.35)).restart();
 }
 
