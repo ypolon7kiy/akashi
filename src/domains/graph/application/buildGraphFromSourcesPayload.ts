@@ -1,14 +1,7 @@
 import type { SourcesSnapshotPayload } from '../../../shared/types/sourcesSnapshotPayload';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
 import { applyGridLayout } from './gridLayout';
-import {
-  dirnamePath,
-  joinRootSegments,
-  pathIsUnder,
-  relativeUnderRoot,
-  resolveWorkspaceRoot,
-  toPosix,
-} from './pathUtils';
+import { dirnamePath, toPosix } from './pathUtils';
 
 /** @deprecated Legacy path-folder id; new graph uses {@link graphFolderNodeId}. */
 export const FOLDER_NODE_ID_PREFIX = 'folder:';
@@ -19,6 +12,14 @@ export function graphPresetNodeId(presetId: string): string {
 
 export function graphLocalityNodeId(presetId: string, locality: GraphLocality): string {
   return `gloc:${presetId}:${locality}`;
+}
+
+export function graphCategoryNodeId(
+  presetId: string,
+  locality: GraphLocality,
+  category: string
+): string {
+  return `gcat:${presetId}:${locality}:${category}`;
 }
 
 export function graphFolderNodeId(
@@ -85,25 +86,24 @@ function localityForRecord(r: {
   return r.origin === 'user' ? 'global' : 'project';
 }
 
-function folderChainForFile(filePath: string, workspaceRoots: readonly string[]): string[] {
-  const root = resolveWorkspaceRoot(filePath, workspaceRoots);
-  const parent = dirnamePath(filePath);
-  if (!parent) {
-    return [];
-  }
-  if (!root || !pathIsUnder(filePath, root)) {
-    return [parent];
-  }
-  if (toPosix(parent) === toPosix(root)) {
-    return [root];
-  }
-  const relParent = relativeUnderRoot(root, parent);
-  if (!relParent) {
-    return [root];
-  }
-  const parts = relParent.split('/').filter(Boolean);
-  const segments = joinRootSegments(root, parts);
-  return [root, ...segments];
+/** Display label for a source category. */
+const CATEGORY_LABELS: Record<string, string> = {
+  context: 'Context',
+  rule: 'Rules',
+  skill: 'Skills',
+  hook: 'Hooks',
+  config: 'Config',
+  mcp: 'MCP',
+  unknown: 'Other',
+};
+
+function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}
+
+/** File node size: base 0.5, scaled up slightly by byteLength (max +0.3 at 10 KB). */
+function fileNodeSize(byteLength: number): number {
+  return 0.5 + Math.min(0.3, byteLength / 10000);
 }
 
 export interface BuildSourcesGraphOptions {
@@ -129,9 +129,16 @@ function sliceKey(presetId: string, locality: GraphLocality): string {
   return `${presetId}:${locality}`;
 }
 
+/** Edge strengths and opacities per tier. */
+const EDGE_TIER = {
+  spine: { strength: 1.0, opacity: 0.7 },
+  branch: { strength: 0.8, opacity: 0.6 },
+  leaf: { strength: 0.5, opacity: 0.4 },
+} as const;
+
 /**
- * Build positioned 3D graph: preset → locality (project/global) → folder → file per (preset × locality) slice.
- * Does not emit facet tag nodes (category / preset / locality tags) in v1.
+ * Build positioned graph: preset → locality (project/global) → category → file.
+ * Category nodes group files by their source category (context, rule, skill, hook, config, mcp).
  */
 export function buildGraphFromSourcesPayload(
   payload: SourcesSnapshotPayload | null,
@@ -141,7 +148,6 @@ export function buildGraphFromSourcesPayload(
     return { nodes: [], edges: [] };
   }
 
-  const roots = payload.workspaceFolders.map((w) => w.path);
   const enabled = options?.enabledPresets ?? null;
 
   type BucketKey = string;
@@ -172,14 +178,20 @@ export function buildGraphFromSourcesPayload(
   const nodes: GraphNode3D[] = [];
   const edges: GraphEdge3D[] = [];
   let edgeSeq = 0;
-  const addEdge = (source: string, target: string, type: GraphEdge3D['type']): void => {
+  const addEdge = (
+    source: string,
+    target: string,
+    type: GraphEdge3D['type'],
+    tier: keyof typeof EDGE_TIER = 'leaf'
+  ): void => {
+    const t = EDGE_TIER[tier];
     edges.push({
       id: `e:${edgeSeq++}`,
       source,
       target,
       type,
-      strength: 1,
-      opacity: 0.6,
+      strength: t.strength,
+      opacity: t.opacity,
       isPointed: false,
       isVisible: true,
     });
@@ -196,6 +208,7 @@ export function buildGraphFromSourcesPayload(
     const preId = graphPresetNodeId(presetId);
     const locId = graphLocalityNodeId(presetId, locality);
 
+    // --- Preset node (tier 0) ---
     if (!presetNodesAdded.has(presetId)) {
       presetNodesAdded.add(presetId);
       nodes.push({
@@ -204,7 +217,7 @@ export function buildGraphFromSourcesPayload(
         formattedTextLines: [presetId],
         type: 'preset',
         position: [0, 0, 0],
-        size: 2,
+        size: 3,
         isSelected: false,
         isPointed: false,
         isVisible: true,
@@ -213,16 +226,17 @@ export function buildGraphFromSourcesPayload(
       });
     }
 
+    // --- Locality node (tier 1) ---
     if (!localityNodesAdded.has(key)) {
       localityNodesAdded.add(key);
-      const locLabel = locality === 'global' ? 'Global' : 'Local';
+      const locLabel = locality === 'global' ? 'Global' : 'Project';
       nodes.push({
         id: locId,
         label: locLabel,
-        formattedTextLines: [locLabel, locality],
+        formattedTextLines: [locLabel],
         type: 'locality',
         position: [0, 0, 0],
-        size: 1.35,
+        size: 1.8,
         isSelected: false,
         isPointed: false,
         isVisible: true,
@@ -230,108 +244,76 @@ export function buildGraphFromSourcesPayload(
         graphPresetId: presetId,
         graphLocality: locality,
         graphSliceKey: key,
+        childCount: 0, // updated below
       });
-      addEdge(preId, locId, 'contains');
+      addEdge(preId, locId, 'contains', 'spine');
     }
 
-    const folderPaths = new Set<string>();
+    // --- Group records by category ---
+    const byCategory = new Map<string, typeof fileRecords>();
     for (const r of fileRecords) {
-      for (const d of folderChainForFile(r.path, roots)) {
-        folderPaths.add(d);
+      const cat = r.category || 'unknown';
+      let arr = byCategory.get(cat);
+      if (!arr) {
+        arr = [];
+        byCategory.set(cat, arr);
       }
+      arr.push(r);
     }
 
-    const depthByFolder = new Map<string, number>();
-    for (const fp of folderPaths) {
-      const root = resolveWorkspaceRoot(fp, roots);
-      if (root && pathIsUnder(fp, root)) {
-        const rel = relativeUnderRoot(root, fp);
-        const depth = rel === '' ? 0 : rel.split('/').filter(Boolean).length;
-        depthByFolder.set(fp, depth);
-      } else {
-        depthByFolder.set(fp, 0);
-      }
+    // Update locality childCount
+    const locNode = nodes.find((n) => n.id === locId);
+    if (locNode) {
+      locNode.childCount = byCategory.size;
     }
 
-    let maxFolderDepthInBucket = 0;
-    for (const d of depthByFolder.values()) {
-      maxFolderDepthInBucket = Math.max(maxFolderDepthInBucket, d);
-    }
-
-    for (const dir of folderPaths) {
-      const fid = graphFolderNodeId(presetId, locality, dir);
-      const label = truncateLabel(baseName(dir) || dir);
-      const fd = depthByFolder.get(dir) ?? 0;
-      maxFolderDepthInBucket = Math.max(maxFolderDepthInBucket, fd);
+    // --- Category nodes (tier 2) ---
+    for (const [cat, catRecords] of byCategory) {
+      const catId = graphCategoryNodeId(presetId, locality, cat);
+      const label = categoryLabel(cat);
       nodes.push({
-        id: fid,
-        label,
-        formattedTextLines: [label],
-        type: 'folder',
+        id: catId,
+        label: `${label} (${catRecords.length})`,
+        formattedTextLines: [label, `${catRecords.length}`],
+        type: 'category',
         position: [0, 0, 0],
-        size: 1.5,
+        size: 1.2,
         isSelected: false,
         isPointed: false,
         isVisible: true,
-        depth: fd,
-        layoutDepth: 2 + fd,
-        folderPath: dir,
-        parentFolderPath: dirnamePath(dir) || undefined,
-        filesystemPath: dir,
+        layoutDepth: 2,
         graphPresetId: presetId,
         graphLocality: locality,
         graphSliceKey: key,
+        graphCategoryId: cat,
+        childCount: catRecords.length,
       });
-    }
+      addEdge(locId, catId, 'contains', 'branch');
 
-    const sortedFolders = [...folderPaths].sort((a, b) => a.length - b.length);
-    for (const dir of sortedFolders) {
-      const parent = dirnamePath(dir);
-      if (!parent || !folderPaths.has(parent)) {
-        continue;
-      }
-      addEdge(
-        graphFolderNodeId(presetId, locality, parent),
-        graphFolderNodeId(presetId, locality, dir),
-        'contains'
-      );
-    }
-
-    for (const dir of folderPaths) {
-      const parent = dirnamePath(dir);
-      const isRootInBucket = !parent || !folderPaths.has(parent);
-      if (isRootInBucket) {
-        addEdge(locId, graphFolderNodeId(presetId, locality, dir), 'contains');
-      }
-    }
-
-    const noteLayoutDepth = 2 + maxFolderDepthInBucket + 1;
-    for (const r of fileRecords) {
-      const path = r.path;
-      const nid = graphFileNodeId(presetId, locality, path);
-      const label = truncateLabel(baseName(path));
-      nodes.push({
-        id: nid,
-        label,
-        formattedTextLines: [label],
-        type: 'note',
-        position: [0, 0, 0],
-        size: 0.55,
-        isSelected: false,
-        isPointed: false,
-        isVisible: true,
-        layoutDepth: noteLayoutDepth,
-        folderPath: dirnamePath(path) || undefined,
-        filesystemPath: path,
-        graphPresetId: presetId,
-        graphLocality: locality,
-        graphSliceKey: key,
-      });
-
-      const chain = folderChainForFile(path, roots);
-      const parentDir = chain.length > 0 ? chain[chain.length - 1] : dirnamePath(path);
-      if (parentDir && folderPaths.has(parentDir)) {
-        addEdge(graphFolderNodeId(presetId, locality, parentDir), nid, 'contains');
+      // --- File nodes (tier 3) ---
+      for (const r of catRecords) {
+        const path = r.path;
+        const nid = graphFileNodeId(presetId, locality, path);
+        const fileLabel = truncateLabel(baseName(path));
+        nodes.push({
+          id: nid,
+          label: fileLabel,
+          formattedTextLines: [fileLabel],
+          type: 'note',
+          position: [0, 0, 0],
+          size: fileNodeSize(r.metadata.byteLength),
+          isSelected: false,
+          isPointed: false,
+          isVisible: true,
+          layoutDepth: 3,
+          folderPath: dirnamePath(path) || undefined,
+          filesystemPath: path,
+          graphPresetId: presetId,
+          graphLocality: locality,
+          graphSliceKey: key,
+          graphCategoryId: cat,
+        });
+        addEdge(catId, nid, 'contains', 'leaf');
       }
     }
   }

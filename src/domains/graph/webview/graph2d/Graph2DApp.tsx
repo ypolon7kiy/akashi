@@ -225,12 +225,12 @@ export function Graph2DApp(): JSX.Element {
   );
 
   const nodeBreakdown = useMemo(() => {
-    const folders = model.nodes.filter((n) => n.type === 'folder').length;
+    const categories = model.nodes.filter((n) => n.type === 'category').length;
     const notes = model.nodes.filter((n) => n.type === 'note').length;
     const tags = model.nodes.filter((n) => n.type === 'tag').length;
     const presets = model.nodes.filter((n) => n.type === 'preset').length;
     const localities = model.nodes.filter((n) => n.type === 'locality').length;
-    return { folders, notes, tags, presets, localities };
+    return { categories, notes, tags, presets, localities };
   }, [model.nodes]);
 
   const statusText = useMemo(() => {
@@ -349,15 +349,14 @@ export function Graph2DApp(): JSX.Element {
             <strong>Built graph</strong> nodes={model.nodes.length} edges={model.edges.length}{' '}
             (presets=
             {nodeBreakdown.presets}, localities=
-            {nodeBreakdown.localities}, folders=
-            {nodeBreakdown.folders}, files={nodeBreakdown.notes}, facet-tags=
+            {nodeBreakdown.localities}, categories=
+            {nodeBreakdown.categories}, files={nodeBreakdown.notes}, facet-tags=
             {nodeBreakdown.tags})
           </p>
           <p className="akashi-graph-debug-line akashi-graph-debug-hint">
             <strong>Controls</strong> Pan: drag background. Zoom: wheel. Drag nodes to reposition.
-            Double-click a file or folder to open. Hover to dim non-neighbors. Presets start as
-            separate hubs (global/local beside each); adjust “Preset cluster pull” if a cluster
-            drifts.
+            Double-click a file to open. Hover to focus a subgraph. Presets start as separate hubs
+            (project/global beside each); adjust “Preset cluster pull” if a cluster drifts.
           </p>
         </div>
       </details>

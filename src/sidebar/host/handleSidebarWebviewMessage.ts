@@ -29,11 +29,11 @@ import type { SidebarSourcesHostActions } from './sidebarSourcesHostActions';
 import { snapshotWorkspaceFolders } from './sidebarWorkspaceFolders';
 import { buildSourcesSnapshotPayload } from './sources/sourcesSnapshotPayload';
 
-export type HandleSidebarWebviewMessageContext = {
+export interface HandleSidebarWebviewMessageContext {
   sourcesService: SourcesService;
   getActiveSourcePresets: ActiveSourcePresetsGetter;
   actions: SidebarSourcesHostActions;
-};
+}
 
 export async function handleSidebarWebviewMessage(
   webview: vscode.Webview,

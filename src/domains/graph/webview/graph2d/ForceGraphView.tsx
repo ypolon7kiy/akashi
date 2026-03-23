@@ -66,7 +66,9 @@ const HUB_RING_MIN_R = 340;
 const PRESET_OFFSET_Y = 78;
 const LOCALITY_DY = 46;
 const LOCALITY_HALF_DX = 72;
-const CONTENT_BASE_DY = 96;
+const CATEGORY_DY = 110;
+const CATEGORY_COL_STEP = 56;
+const CONTENT_BASE_DY = 180;
 const CONTENT_ROW_STEP = 40;
 const COL_STEP = 24;
 const SLICE_SHIFT = 48;
@@ -78,9 +80,12 @@ function targetYRelToPreset(node: GraphNode3D, all: readonly GraphNode3D[]): num
   if (node.type === 'locality') {
     return LOCALITY_DY;
   }
+  if (node.type === 'category') {
+    return CATEGORY_DY;
+  }
   const d = typeof node.layoutDepth === 'number' ? node.layoutDepth : inferLayoutDepth(node, all);
-  if (d >= 2) {
-    return CONTENT_BASE_DY + (d - 2) * CONTENT_ROW_STEP;
+  if (d >= 3) {
+    return CONTENT_BASE_DY + (d - 3) * CONTENT_ROW_STEP;
   }
   return CONTENT_BASE_DY;
 }
@@ -100,9 +105,9 @@ function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: 
   }
 
   const placed = new Set<string>();
-  const presetIds = [...new Set(presets.map((p) => p.graphPresetId).filter(Boolean) as string[])].sort((a, b) =>
-    a.localeCompare(b)
-  );
+  const presetIds = [
+    ...new Set(presets.map((p) => p.graphPresetId).filter(Boolean) as string[]),
+  ].sort((a, b) => a.localeCompare(b));
   if (presetIds.length === 0) {
     seedRing(nodes, prev);
     for (const n of nodes) {
@@ -176,6 +181,42 @@ function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: 
     placed.add(n.id);
   }
 
+  // Seed category nodes: fan out under their locality
+  const catsBySlice = new Map<string, SimNode[]>();
+  for (const n of nodes) {
+    if (placed.has(n.id) || n.type !== 'category') {
+      continue;
+    }
+    const sk = n.graphSliceKey ?? `${n.graphPresetId}:${n.graphLocality ?? 'project'}`;
+    let arr = catsBySlice.get(sk);
+    if (!arr) {
+      arr = [];
+      catsBySlice.set(sk, arr);
+    }
+    arr.push(n);
+  }
+
+  for (const [sk, cats] of catsBySlice) {
+    cats.sort((a, b) => a.id.localeCompare(b.id));
+    const pid = cats[0].graphPresetId;
+    const pw = pid ? presetWorld.get(pid) : undefined;
+    if (!pw) {
+      continue;
+    }
+    const isGlobal = sk.endsWith(':global');
+    const sliceShift = isGlobal ? -SLICE_SHIFT : SLICE_SHIFT;
+    const m = cats.length;
+    for (let idx = 0; idx < m; idx++) {
+      const n = cats[idx];
+      n.x = pw.x + sliceShift + (idx - (m - 1) / 2) * CATEGORY_COL_STEP;
+      n.y = pw.y + CATEGORY_DY;
+      n.vx = 0;
+      n.vy = 0;
+      placed.add(n.id);
+    }
+  }
+
+  // Seed content nodes (notes, folders, tags) under their category/slice
   type ContentNode = SimNode & { type: 'folder' | 'note' | 'tag' };
   const buckets = new Map<string, ContentNode[]>();
   for (const n of nodes) {
@@ -191,7 +232,8 @@ function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: 
     }
     const d = typeof n.layoutDepth === 'number' ? n.layoutDepth : inferLayoutDepth(n, nodes);
     const slice = n.graphSliceKey ?? `${pid}:${n.graphLocality ?? 'project'}`;
-    const key = `${pid}|${slice}|${d}`;
+    const catKey = n.graphCategoryId ?? '_';
+    const key = `${pid}|${slice}|${catKey}|${d}`;
     let arr = buckets.get(key);
     if (!arr) {
       arr = [];
@@ -208,14 +250,14 @@ function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: 
     const parts = key.split('|');
     const pid = parts[0];
     const sliceKey = parts[1];
-    const depth = Number(parts[2]);
+    const depth = Number(parts[3]);
     const pw = presetWorld.get(pid);
     if (!pw || arr.length === 0) {
       continue;
     }
     const isGlobal = sliceKey.endsWith(':global');
     const sliceShift = isGlobal ? -SLICE_SHIFT : SLICE_SHIFT;
-    const baseY = pw.y + CONTENT_BASE_DY + Math.max(0, depth - 2) * CONTENT_ROW_STEP;
+    const baseY = pw.y + CONTENT_BASE_DY + Math.max(0, depth - 3) * CONTENT_ROW_STEP;
     const m = arr.length;
     for (let idx = 0; idx < m; idx++) {
       const n = arr[idx];
@@ -337,7 +379,7 @@ function createLayerBandYForce(getStrength: () => number, getAll: () => readonly
 }
 
 function nodeRadius(n: GraphNode3D): number {
-  return Math.max(5, 3 + n.size * 5);
+  return Math.max(5, 2 + n.size * 6);
 }
 
 function resolveFsPath(node: GraphNode3D): string {
@@ -491,8 +533,9 @@ export function ForceGraphView(props: {
         ctx.moveTo(src.x, src.y);
         ctx.lineTo(tgt.x, tgt.y);
         ctx.strokeStyle = ep ? theme.edgeHighlight : theme.edge;
-        ctx.globalAlpha = vis ? (ep ? 0.9 : 0.55) : 0.08;
-        ctx.lineWidth = ep ? 1.8 / k : 1.35 / k;
+        const edgeBaseOpacity = e.opacity ?? 0.55;
+        ctx.globalAlpha = vis ? (ep ? 0.9 : edgeBaseOpacity) : 0.08;
+        ctx.lineWidth = ep ? 1.8 / k : (0.8 + e.strength * 0.8) / k;
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
@@ -519,7 +562,7 @@ export function ForceGraphView(props: {
       const np = n.id === pointedId;
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = getNodeColor(n.type);
+      ctx.fillStyle = getNodeColor(n.type, n);
       ctx.globalAlpha = vis ? 1 : 0.12;
       ctx.fill();
       ctx.globalAlpha = vis ? 0.9 : 0.15;
@@ -528,10 +571,25 @@ export function ForceGraphView(props: {
       ctx.stroke();
       ctx.globalAlpha = 1;
 
-      if (props.showLabels && vis) {
-        const label = n.label.length > 32 ? `${n.label.slice(0, 31)}…` : n.label;
-        ctx.fillStyle = theme.label;
-        ctx.fillText(label, n.x, n.y + r + labelFontPx * 0.85);
+      // Labels: inside node for tiers 0-2 (preset, locality, category), below for files
+      if (vis) {
+        const isTierNode = n.type === 'preset' || n.type === 'locality' || n.type === 'category';
+        if (isTierNode) {
+          // Draw label centered inside the node
+          const innerFontPx = Math.max(8, Math.min(r * 0.7, 13) / k);
+          ctx.font = `bold ${innerFontPx}px ${ff}`;
+          ctx.fillStyle = '#fff';
+          ctx.globalAlpha = vis ? 0.95 : 0.12;
+          const innerLabel = n.label.length > 18 ? `${n.label.slice(0, 17)}…` : n.label;
+          ctx.fillText(innerLabel, n.x, n.y + innerFontPx * 0.12);
+          ctx.globalAlpha = 1;
+          // Reset font for subsequent labels
+          ctx.font = `${labelFontPx}px ${ff}`;
+        } else if (props.showLabels) {
+          const label = n.label.length > 32 ? `${n.label.slice(0, 31)}…` : n.label;
+          ctx.fillStyle = theme.label;
+          ctx.fillText(label, n.x, n.y + r + labelFontPx * 0.85);
+        }
       }
     }
 

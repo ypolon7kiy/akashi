@@ -78,8 +78,7 @@ export function useSourcesSidebarState(): SourcesSidebarState {
         if (snapshotResponse.ok) {
           applySnapshotPayload(snapshotResponse.payload);
           const p = snapshotResponse.payload;
-          hadIndexedRows =
-            p != null && isSourcesSnapshotPayload(p) && p.records.length > 0;
+          hadIndexedRows = p != null && isSourcesSnapshotPayload(p) && p.records.length > 0;
         }
       } catch {
         // Keep existing UI state and continue with background refresh.

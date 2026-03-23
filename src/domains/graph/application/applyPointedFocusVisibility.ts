@@ -1,18 +1,10 @@
 import type { GraphEdge3D, GraphNode3D } from '../domain/graphTypes';
-import { dirnamePath, pathIsUnder, toPosix } from './pathUtils';
-
-function normalizeDirPath(p: string): string {
-  return toPosix(p).replace(/\/+$/, '');
-}
-
-function parentFolderPath(dir: string): string | null {
-  const p = dirnamePath(dir);
-  return p.length > 0 ? p : null;
-}
 
 /**
- * When hovering a node, restrict visibility to an ioodine-style focused subgraph.
+ * When hovering a node, restrict visibility to a focused subgraph.
  * If pointedId is null or unknown, all nodes and edges stay visible.
+ *
+ * Hierarchy: preset → locality → category → file (note).
  */
 export function applyPointedFocusVisibility(
   nodes: GraphNode3D[],
@@ -37,6 +29,7 @@ export function applyPointedFocusVisibility(
   const visible = new Set<string>();
 
   if (pointed.type === 'preset') {
+    // Show all descendants of this preset
     const pid = pointed.graphPresetId;
     if (!pid) {
       visible.add(pointed.id);
@@ -48,6 +41,7 @@ export function applyPointedFocusVisibility(
       }
     }
   } else if (pointed.type === 'locality') {
+    // Show all nodes in this slice + parent preset
     const sk = pointed.graphSliceKey;
     if (sk) {
       for (const n of nodes) {
@@ -65,34 +59,18 @@ export function applyPointedFocusVisibility(
         visible.add(pre.id);
       }
     }
-  } else if (pointed.type === 'note') {
+  } else if (pointed.type === 'category') {
+    // Show category, its child files, parent locality, parent preset
     visible.add(pointed.id);
-    const slice = pointed.graphSliceKey;
-    const filePath = pointed.filesystemPath ?? pointed.id;
-
-    let parentDir = pointed.folderPath ?? dirnamePath(filePath);
-    const seen = new Set<string>();
-    while (parentDir && !seen.has(parentDir)) {
-      seen.add(parentDir);
-      const folderNode = nodes.find(
-        (n) =>
-          n.type === 'folder' &&
-          n.folderPath &&
-          normalizeDirPath(n.folderPath) === normalizeDirPath(parentDir) &&
-          (slice ? n.graphSliceKey === slice : true)
-      );
-      if (folderNode) {
-        visible.add(folderNode.id);
-      }
-      const next = parentFolderPath(parentDir);
-      parentDir = next ?? '';
-      if (!next) {
-        break;
+    const sk = pointed.graphSliceKey;
+    const catId = pointed.graphCategoryId;
+    for (const n of nodes) {
+      if (n.type === 'note' && n.graphSliceKey === sk && n.graphCategoryId === catId) {
+        visible.add(n.id);
       }
     }
-
-    if (slice) {
-      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === slice);
+    if (sk) {
+      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === sk);
       if (loc) {
         visible.add(loc.id);
       }
@@ -105,7 +83,34 @@ export function applyPointedFocusVisibility(
         visible.add(pre.id);
       }
     }
-
+  } else if (pointed.type === 'note') {
+    // Show file, parent category, parent locality, parent preset
+    visible.add(pointed.id);
+    const sk = pointed.graphSliceKey;
+    const catId = pointed.graphCategoryId;
+    if (sk && catId) {
+      const catNode = nodes.find(
+        (n) => n.type === 'category' && n.graphSliceKey === sk && n.graphCategoryId === catId
+      );
+      if (catNode) {
+        visible.add(catNode.id);
+      }
+    }
+    if (sk) {
+      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === sk);
+      if (loc) {
+        visible.add(loc.id);
+      }
+    }
+    if (pointed.graphPresetId) {
+      const pre = nodes.find(
+        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
+      );
+      if (pre) {
+        visible.add(pre.id);
+      }
+    }
+    // Also show tags connected via 'contains'
     for (const e of edges) {
       if (e.type !== 'contains') {
         continue;
@@ -131,46 +136,25 @@ export function applyPointedFocusVisibility(
       }
     }
   } else if (pointed.type === 'folder') {
-    const F = pointed.folderPath;
-    if (!F) {
-      visible.add(pointed.id);
-    } else {
-      const fNorm = normalizeDirPath(F);
-      const slice = pointed.graphSliceKey;
-
-      for (const n of nodes) {
-        if (slice && n.graphSliceKey && n.graphSliceKey !== slice) {
-          continue;
-        }
-        if (n.type === 'folder' && n.folderPath) {
-          const pNorm = normalizeDirPath(n.folderPath);
-          if (pNorm === fNorm || pathIsUnder(pNorm, fNorm)) {
-            visible.add(n.id);
-          }
-        } else if (n.type === 'note' && n.folderPath) {
-          const pNorm = normalizeDirPath(n.folderPath);
-          if (pathIsUnder(pNorm, fNorm) || pNorm === fNorm) {
-            visible.add(n.id);
-          }
-        }
+    // Legacy folder support: show folder, its slice locality + preset
+    visible.add(pointed.id);
+    const sk = pointed.graphSliceKey;
+    if (sk) {
+      const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === sk);
+      if (loc) {
+        visible.add(loc.id);
       }
-
-      if (slice) {
-        const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === slice);
-        if (loc) {
-          visible.add(loc.id);
-        }
-      }
-      if (pointed.graphPresetId) {
-        const pre = nodes.find(
-          (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
-        );
-        if (pre) {
-          visible.add(pre.id);
-        }
+    }
+    if (pointed.graphPresetId) {
+      const pre = nodes.find(
+        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
+      );
+      if (pre) {
+        visible.add(pre.id);
       }
     }
   } else {
+    // Fallback: show direct neighbors
     visible.add(pointed.id);
     for (const e of edges) {
       if (e.source === pointed.id) {

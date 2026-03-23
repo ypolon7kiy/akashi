@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import type * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
 import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
@@ -10,12 +10,12 @@ import { buildSourcesSnapshotPayload } from './sources/sourcesSnapshotPayload';
 
 export type FsHandlerResult = { ok: true } | { ok: false; error: string };
 
-export type SidebarSourcesHostActionsDeps = {
+export interface SidebarSourcesHostActionsDeps {
   sourcesService: SourcesService;
   getActiveSourcePresets: ActiveSourcePresetsGetter;
   getWebview: () => vscode.Webview | undefined;
   notifySnapshotRefreshed: () => void;
-};
+}
 
 export function createSidebarSourcesHostActions(deps: SidebarSourcesHostActionsDeps) {
   const { sourcesService, getActiveSourcePresets, getWebview, notifySnapshotRefreshed } = deps;

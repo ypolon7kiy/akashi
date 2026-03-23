@@ -10,7 +10,8 @@ export type GraphNodeType3D =
   | 'location'
   | 'folder'
   | 'preset'
-  | 'locality';
+  | 'locality'
+  | 'category';
 
 export type GraphLocality = 'project' | 'global';
 
@@ -38,6 +39,10 @@ export interface GraphNode3D {
   graphLocality?: GraphLocality;
   /** `${presetId}:${locality}` for slice-aware focus; preset nodes use preset id only in logic. */
   graphSliceKey?: string;
+  /** Source category id for category-tier nodes (context, rule, skill, hook, config, mcp). */
+  graphCategoryId?: string;
+  /** Number of direct children (files under a category, categories under a locality, etc.). */
+  childCount?: number;
 }
 
 export type GraphEdgeType3D = 'references' | 'similar' | 'related' | 'contains';

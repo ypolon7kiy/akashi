@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import type * as vscode from 'vscode';
 import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
 import { appendLine } from '../../log';
 import { SidebarMessageType, type SourcesResponseMessage } from '../bridge/messages';

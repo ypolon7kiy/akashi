@@ -23,32 +23,28 @@ export function getYForDepth(depth: number, maxFolderDepth: number, layerSpacing
   return maxY - depth * spacing;
 }
 
-/** Infer `layoutDepth` when the builder did not set it (matches 3D grid tiers). */
-export function inferLayoutDepth(node: GraphNode3D, all: readonly GraphNode3D[]): number {
-  const folders = all.filter((x) => x.type === 'folder');
-  let maxFolderDepth = 0;
-  for (const f of folders) {
-    const d = typeof f.depth === 'number' ? f.depth : 0;
-    maxFolderDepth = Math.max(maxFolderDepth, d);
-  }
+/** Infer `layoutDepth` when the builder did not set it (matches grid tiers). */
+export function inferLayoutDepth(node: GraphNode3D, _all: readonly GraphNode3D[]): number {
   switch (node.type) {
     case 'preset':
       return 0;
     case 'locality':
       return 1;
+    case 'category':
+      return 2;
     case 'folder':
       return 2 + (typeof node.depth === 'number' ? node.depth : 0);
     case 'note':
-      return 2 + maxFolderDepth + 1;
+      return 3;
     case 'tag':
-      return 2 + maxFolderDepth + 2;
+      return 4;
     default:
-      return 2 + maxFolderDepth + 1;
+      return 3;
   }
 }
 
 /**
- * Grid layout by `layoutDepth` (preset top → locality → folders → notes → tags).
+ * Grid layout by `layoutDepth` (preset top → locality → category → notes → tags).
  */
 export function applyGridLayout(
   nodes: GraphNode3D[],
