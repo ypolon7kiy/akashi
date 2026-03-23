@@ -14,6 +14,11 @@ export interface CanvasThemeColors {
   nodeRimStroke: string;
   /** Fixed soft shadow for tier nodes (theme-agnostic tint). */
   nodeShadow: string;
+  /** Preset hub outer glow (canvas shadow); from charts purple. */
+  presetGlowShadow: string;
+  /** Preset hub radial halo stops (theme-matched rgba strings). */
+  presetGlowHaloCore: string;
+  presetGlowHaloMid: string;
   /** Resolved body font family; avoids a second getComputedStyle call in draw(). */
   fontFamily: string;
 }
@@ -44,6 +49,22 @@ function fingerprintTheme(style: CSSStyleDeclaration): string {
 /** Subtle depth under tier nodes; not tied to editor luminance. */
 const NODE_SHADOW = 'rgba(0,0,0,0.32)';
 
+const PRESET_GLOW_FALLBACK_RGB = { r: 168, g: 85, b: 247 } as const;
+
+function presetGlowRgba(style: CSSStyleDeclaration, alpha: number): string {
+  const pick = (name: string, fallback: string): string => {
+    const v = style.getPropertyValue(name).trim();
+    if (v.length === 0) {
+      return fallback;
+    }
+    return parseCssColorToRgb(v) !== null ? v : fallback;
+  };
+  const raw = pick('--vscode-charts-purple', '#a855f7');
+  const rgb = parseCssColorToRgb(raw) ?? PRESET_GLOW_FALLBACK_RGB;
+  const a = Math.min(1, Math.max(0, alpha));
+  return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+}
+
 /**
  * If editor-adaptive rim/shadow is added: compute `relativeLuminanceRgb` once for the editor
  * background (or other chrome RGB) and pass that `L` (or a boolean `editorLight`) into a helper
@@ -66,6 +87,9 @@ function buildCanvasThemeColors(style: CSSStyleDeclaration): CanvasThemeColors {
     nodeStrokeHighlight: pick('--vscode-focusBorder', '#3794ff'),
     nodeRimStroke: pick('--vscode-panel-border', widgetBorder),
     nodeShadow: NODE_SHADOW,
+    presetGlowShadow: presetGlowRgba(style, 0.52),
+    presetGlowHaloCore: presetGlowRgba(style, 0.32),
+    presetGlowHaloMid: presetGlowRgba(style, 0.12),
     fontFamily: style.fontFamily || 'sans-serif',
   };
 }
@@ -90,6 +114,9 @@ export function readCanvasThemeColors(): CanvasThemeColors {
       nodeStrokeHighlight: '#3794ff',
       nodeRimStroke: '#555555',
       nodeShadow: NODE_SHADOW,
+      presetGlowShadow: `rgba(${PRESET_GLOW_FALLBACK_RGB.r},${PRESET_GLOW_FALLBACK_RGB.g},${PRESET_GLOW_FALLBACK_RGB.b},0.52)`,
+      presetGlowHaloCore: `rgba(${PRESET_GLOW_FALLBACK_RGB.r},${PRESET_GLOW_FALLBACK_RGB.g},${PRESET_GLOW_FALLBACK_RGB.b},0.32)`,
+      presetGlowHaloMid: `rgba(${PRESET_GLOW_FALLBACK_RGB.r},${PRESET_GLOW_FALLBACK_RGB.g},${PRESET_GLOW_FALLBACK_RGB.b},0.12)`,
       fontFamily: 'sans-serif',
     };
   }

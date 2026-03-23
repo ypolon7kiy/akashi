@@ -87,6 +87,10 @@ const NODE_INNER_STROKE_WIDTH = 1.35;
 const NODE_INNER_STROKE_WIDTH_FOCUSED = 2.6;
 const TIER_NODE_SHADOW_BLUR = 7;
 const TIER_NODE_SHADOW_OFFSET_Y = 1.5;
+/** Canvas shadow blur (CSS px at k=1) for preset hub emit pass (static glow; if animated, gate on `prefers-reduced-motion`). */
+const PRESET_GLOW_SHADOW_BLUR = 18;
+/** Extra radius (simulation units) beyond node disk for radial halo fade-out. */
+const PRESET_HALO_EXTRA_R = 22;
 
 /** Default alpha for non-pointed edges when `edge.opacity` is omitted (idle graph readability). */
 const EDGE_DEFAULT_BASE_OPACITY = 0.55;
@@ -680,6 +684,7 @@ export function ForceGraphView(props: {
       const r = simNodeRadius(n);
       const np = n.id === pointedId;
       const isTierNode = isTierGraphNode(n);
+      const isPresetHub = n.type === 'preset';
       const fillColor = np ? getHoverColor(n.type, n) : getNodeColor(n.type, n);
 
       const rimAlpha = vis ? 1 : 0.12;
@@ -690,18 +695,48 @@ export function ForceGraphView(props: {
       ctx.globalAlpha = rimAlpha;
       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      if (isTierNode && vis) {
-        ctx.shadowColor = theme.nodeShadow;
-        ctx.shadowBlur = TIER_NODE_SHADOW_BLUR / k;
+      const bodyAlpha = vis ? 1 : 0.12;
+      if (isPresetHub) {
+        const haloOuter = r + PRESET_HALO_EXTRA_R;
+        const grad = ctx.createRadialGradient(n.x, n.y, r * 0.2, n.x, n.y, haloOuter);
+        grad.addColorStop(0, theme.presetGlowHaloCore);
+        grad.addColorStop(0.55, theme.presetGlowHaloMid);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, haloOuter, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = bodyAlpha;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = fillColor;
+        ctx.shadowColor = theme.presetGlowShadow;
+        ctx.shadowBlur = PRESET_GLOW_SHADOW_BLUR / k;
         ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = TIER_NODE_SHADOW_OFFSET_Y / k;
+        ctx.shadowOffsetY = 0;
+        ctx.fill();
+        clearCanvasShadow(ctx);
+
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = fillColor;
+        ctx.globalAlpha = bodyAlpha;
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        if (isTierNode && vis) {
+          ctx.shadowColor = theme.nodeShadow;
+          ctx.shadowBlur = TIER_NODE_SHADOW_BLUR / k;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = TIER_NODE_SHADOW_OFFSET_Y / k;
+        }
+        ctx.fillStyle = fillColor;
+        ctx.globalAlpha = bodyAlpha;
+        ctx.fill();
+        clearCanvasShadow(ctx);
       }
-      ctx.fillStyle = fillColor;
-      ctx.globalAlpha = vis ? 1 : 0.12;
-      ctx.fill();
-      clearCanvasShadow(ctx);
 
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
