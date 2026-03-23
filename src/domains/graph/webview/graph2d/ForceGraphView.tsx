@@ -19,6 +19,13 @@ export type SimNode = GraphNode3D & {
   fy?: number | null;
   /** Offset from preset hub; simulation pulls toward preset + clusterRel. */
   clusterRel?: { rx: number; ry: number };
+  /** Preset / locality / category: circle radius that fits the inside label (+ padding). */
+  displayRadius?: number;
+  /**
+   * Tier inside label: bold size in CSS px at zoom k=1; when drawing, use `tierLabelFontPx / k`
+   * so apparent size stays stable while the node scales with zoom (same rule as before).
+   */
+  tierLabelFontPx?: number;
 };
 
 type SimLink = GraphEdge3D & {
@@ -379,7 +386,84 @@ function createLayerBandYForce(getStrength: () => number, getAll: () => readonly
 }
 
 function nodeRadius(n: GraphNode3D): number {
-  return Math.max(5, 2 + n.size * 6);
+  return Math.max(6, 3.5 + n.size * 7);
+}
+
+function resolveUiFontFamily(): string {
+  try {
+    return getComputedStyle(document.body).fontFamily || 'sans-serif';
+  } catch {
+    return 'sans-serif';
+  }
+}
+
+const TIER_LABEL_MAX_CHARS = 18;
+
+function truncateTierLabel(label: string): string {
+  return label.length > TIER_LABEL_MAX_CHARS
+    ? `${label.slice(0, TIER_LABEL_MAX_CHARS - 1)}…`
+    : label;
+}
+
+function isTierGraphNode(n: GraphNode3D): boolean {
+  return n.type === 'preset' || n.type === 'locality' || n.type === 'category';
+}
+
+const TIER_LABEL_PAD = 3;
+const TIER_LABEL_FONT_MIN = 8;
+const TIER_LABEL_FONT_MAX = 13;
+
+/**
+ * Measure at identity CTM (k=1 CSS px). Draw uses `bold ${tierLabelFontPx / k}px` under `scale(k)`.
+ */
+function computeTierLabelLayout(
+  measCtx: CanvasRenderingContext2D,
+  label: string,
+  baseRadius: number,
+  fontFamily: string
+): { displayRadius: number; tierLabelFontPx: number } {
+  const pad = TIER_LABEL_PAD;
+
+  const fits = (fontPx: number, rad: number): boolean => {
+    measCtx.font = `bold ${fontPx}px ${fontFamily}`;
+    const m = measCtx.measureText(label);
+    const w2 = m.width / 2;
+    const asc = m.actualBoundingBoxAscent ?? fontPx * 0.72;
+    const desc = m.actualBoundingBoxDescent ?? fontPx * 0.22;
+    return w2 <= rad - pad && asc <= rad - pad && desc <= rad - pad;
+  };
+
+  let r = baseRadius;
+  let fontPx = TIER_LABEL_FONT_MIN;
+
+  for (let f = TIER_LABEL_FONT_MAX; f >= TIER_LABEL_FONT_MIN; f--) {
+    if (fits(f, r)) {
+      fontPx = f;
+      break;
+    }
+  }
+
+  if (!fits(fontPx, r)) {
+    measCtx.font = `bold ${TIER_LABEL_FONT_MIN}px ${fontFamily}`;
+    const m = measCtx.measureText(label);
+    const w2 = m.width / 2;
+    const asc = m.actualBoundingBoxAscent ?? TIER_LABEL_FONT_MIN * 0.72;
+    const desc = m.actualBoundingBoxDescent ?? TIER_LABEL_FONT_MIN * 0.22;
+    r = Math.max(baseRadius, w2 + pad, asc + pad, desc + pad);
+    fontPx = TIER_LABEL_FONT_MIN;
+    for (let f = TIER_LABEL_FONT_MAX; f >= TIER_LABEL_FONT_MIN; f--) {
+      if (fits(f, r)) {
+        fontPx = f;
+        break;
+      }
+    }
+  }
+
+  return { displayRadius: r, tierLabelFontPx: fontPx };
+}
+
+function simNodeRadius(n: SimNode): number {
+  return n.displayRadius ?? nodeRadius(n);
 }
 
 function resolveFsPath(node: GraphNode3D): string {
@@ -429,7 +513,7 @@ function updateSimulationForces(sim: Simulation<SimNode, SimLink>, p: ForceGraph
   const ce = sim.force('center');
   ce?.strength(p.centerStrength);
   const co = sim.force('collide');
-  co?.radius((d: SimNode) => nodeRadius(d) + p.collidePadding);
+  co?.radius((d: SimNode) => simNodeRadius(d) + p.collidePadding);
   /* eslint-enable @typescript-eslint/no-unsafe-call */
   sim.alpha(Math.max(sim.alpha(), 0.35)).restart();
 }
@@ -542,12 +626,7 @@ export function ForceGraphView(props: {
     }
 
     const labelFontPx = Math.max(10, 11 / k);
-    let ff = 'sans-serif';
-    try {
-      ff = getComputedStyle(document.body).fontFamily || ff;
-    } catch {
-      /* webview */
-    }
+    const ff = resolveUiFontFamily();
     ctx.font = `${labelFontPx}px ${ff}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -558,7 +637,7 @@ export function ForceGraphView(props: {
       if (n.x === undefined || n.y === undefined) {
         continue;
       }
-      const r = nodeRadius(n);
+      const r = simNodeRadius(n);
       const np = n.id === pointedId;
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
@@ -573,14 +652,13 @@ export function ForceGraphView(props: {
 
       // Labels: inside node for tiers 0-2 (preset, locality, category), below for files
       if (vis) {
-        const isTierNode = n.type === 'preset' || n.type === 'locality' || n.type === 'category';
+        const isTierNode = isTierGraphNode(n);
         if (isTierNode) {
-          // Draw label centered inside the node
-          const innerFontPx = Math.max(8, Math.min(r * 0.7, 13) / k);
+          const innerLabel = truncateTierLabel(n.label);
+          const innerFontPx = (n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN) / k;
           ctx.font = `bold ${innerFontPx}px ${ff}`;
           ctx.fillStyle = '#fff';
           ctx.globalAlpha = vis ? 0.95 : 0.12;
-          const innerLabel = n.label.length > 18 ? `${n.label.slice(0, 17)}…` : n.label;
           ctx.fillText(innerLabel, n.x, n.y + innerFontPx * 0.12);
           ctx.globalAlpha = 1;
           // Reset font for subsequent labels
@@ -633,6 +711,26 @@ export function ForceGraphView(props: {
       vx: 0,
       vy: 0,
     }));
+
+    const measCanvas = document.createElement('canvas');
+    const measCtx = measCanvas.getContext('2d');
+    const ffInit = resolveUiFontFamily();
+    if (measCtx) {
+      for (const n of simNodes) {
+        if (isTierGraphNode(n)) {
+          const inner = truncateTierLabel(n.label);
+          const { displayRadius, tierLabelFontPx } = computeTierLabelLayout(
+            measCtx,
+            inner,
+            nodeRadius(n),
+            ffInit
+          );
+          n.displayRadius = displayRadius;
+          n.tierLabelFontPx = tierLabelFontPx;
+        }
+      }
+    }
+
     seedPresetClusters(simNodes, posCacheRef.current);
     simNodes.forEach((n) => {
       posCacheRef.current.set(n.id, { x: n.x, y: n.y });
@@ -667,7 +765,7 @@ export function ForceGraphView(props: {
       .force(
         'collide',
         forceCollide<SimNode>()
-          .radius((d) => nodeRadius(d) + props.sim.collidePadding)
+          .radius((d) => simNodeRadius(d) + props.sim.collidePadding)
           .strength(0.85)
       )
       .alphaDecay(0.0228)
@@ -751,7 +849,7 @@ export function ForceGraphView(props: {
       if (n.x === undefined || n.y === undefined) {
         continue;
       }
-      const r = nodeRadius(n);
+      const r = simNodeRadius(n);
       const dx = wx - n.x;
       const dy = wy - n.y;
       const d2 = dx * dx + dy * dy;
