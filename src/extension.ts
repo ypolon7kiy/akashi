@@ -15,6 +15,7 @@ import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
 import { isPathAllowedForSidebarFs } from './sidebar/host/fs/handleSourcesFsRequest';
 import { validateSourceFileBaseName } from './sidebar/bridge/validateSourceFileBaseName';
 import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
+import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 
 export function activate(context: vscode.ExtensionContext): void {
   initLog(context);
@@ -77,6 +78,9 @@ export function activate(context: vscode.ExtensionContext): void {
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
     ),
+    vscode.commands.registerCommand('akashi.sources.newArtifact', async () => {
+      await runNewArtifactWizard(getActiveSourcePresets);
+    }),
     vscode.window.registerWebviewViewProvider(
       'akashi.sidebar',
       createSidebarViewProvider(context, sourcesService, getActiveSourcePresets, {

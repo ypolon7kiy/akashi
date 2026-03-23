@@ -13,6 +13,7 @@
   "activationEvents": [
     "onCommand:akashi.graph.showPanel",
     "onCommand:akashi.sources.refresh",
+    "onCommand:akashi.sources.newArtifact",
     "onView:akashi.sidebar",
     "onStartupFinished"
   ],
@@ -48,6 +49,12 @@
         "title": "Show graph",
         "category": "Akashi",
         "icon": "$(graph-line)"
+      },
+      {
+        "command": "akashi.sources.newArtifact",
+        "title": "New source artifact…",
+        "category": "Akashi",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -55,10 +62,15 @@
         {
           "command": "akashi.graph.showPanel",
           "when": "view == akashi.sidebar",
-          "group": "navigation@-1"
+          "group": "navigation@-2"
         },
         {
           "command": "akashi.sources.refresh",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-1"
+        },
+        {
+          "command": "akashi.sources.newArtifact",
           "when": "view == akashi.sidebar",
           "group": "navigation@0"
         }
