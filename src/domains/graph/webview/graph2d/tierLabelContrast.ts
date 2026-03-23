@@ -6,15 +6,23 @@ import { parseCssColorToRgb, relativeLuminanceRgb } from '../cssColorParse';
  */
 export const TIER_LABEL_LUMINANCE_THRESHOLD = 0.55;
 
+/** Cache keyed by `${fillCss}\0${lightText}\0${darkText}` — palette is small and discrete. */
+const _contrastCache = new Map<string, string>();
+
 export function pickContrastingTierLabelColor(
   fillCss: string,
   lightText: string,
   darkText: string
 ): string {
-  const rgb = parseCssColorToRgb(fillCss);
-  if (!rgb) {
-    return darkText;
+  const key = `${fillCss}\0${lightText}\0${darkText}`;
+  const cached = _contrastCache.get(key);
+  if (cached !== undefined) {
+    return cached;
   }
-  const L = relativeLuminanceRgb(rgb);
-  return L > TIER_LABEL_LUMINANCE_THRESHOLD ? darkText : lightText;
+  const rgb = parseCssColorToRgb(fillCss);
+  const result = !rgb || relativeLuminanceRgb(rgb) <= TIER_LABEL_LUMINANCE_THRESHOLD
+    ? lightText
+    : darkText;
+  _contrastCache.set(key, result);
+  return result;
 }

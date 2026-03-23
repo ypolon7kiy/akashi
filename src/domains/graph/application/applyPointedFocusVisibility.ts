@@ -15,18 +15,19 @@ function parentContainsSource(
 
 function addLocalityAndPreset(
   visible: Set<string>,
-  nodes: readonly GraphNode3D[],
+  localityBySliceKey: Map<string, GraphNode3D>,
+  presetByPresetId: Map<string, GraphNode3D>,
   graphSliceKey: string | undefined,
   graphPresetId: string | undefined
 ): void {
   if (graphSliceKey) {
-    const loc = nodes.find((n) => n.type === 'locality' && n.graphSliceKey === graphSliceKey);
+    const loc = localityBySliceKey.get(graphSliceKey);
     if (loc) {
       visible.add(loc.id);
     }
   }
   if (graphPresetId) {
-    const pre = nodes.find((n) => n.type === 'preset' && n.graphPresetId === graphPresetId);
+    const pre = presetByPresetId.get(graphPresetId);
     if (pre) {
       visible.add(pre.id);
     }
@@ -59,6 +60,13 @@ export function applyPointedFocusVisibility(
     return allVisible();
   }
 
+  const localityBySliceKey = new Map<string, GraphNode3D>();
+  const presetByPresetId = new Map<string, GraphNode3D>();
+  for (const n of nodes) {
+    if (n.type === 'locality' && n.graphSliceKey) localityBySliceKey.set(n.graphSliceKey, n);
+    if (n.type === 'preset' && n.graphPresetId) presetByPresetId.set(n.graphPresetId, n);
+  }
+
   const visible = new Set<string>();
 
   if (pointed.type === 'preset') {
@@ -85,9 +93,7 @@ export function applyPointedFocusVisibility(
     }
     visible.add(pointed.id);
     if (pointed.graphPresetId) {
-      const pre = nodes.find(
-        (n) => n.type === 'preset' && n.graphPresetId === pointed.graphPresetId
-      );
+      const pre = presetByPresetId.get(pointed.graphPresetId);
       if (pre) {
         visible.add(pre.id);
       }
@@ -104,7 +110,7 @@ export function applyPointedFocusVisibility(
         visible.add(n.id);
       }
     }
-    addLocalityAndPreset(visible, nodes, sk, pointed.graphPresetId);
+    addLocalityAndPreset(visible, localityBySliceKey, presetByPresetId, sk, pointed.graphPresetId);
   } else if (pointed.type === 'note') {
     visible.add(pointed.id);
     let cur: string | null = pointed.id;
@@ -120,7 +126,7 @@ export function applyPointedFocusVisibility(
       }
       cur = src;
     }
-    addLocalityAndPreset(visible, nodes, pointed.graphSliceKey, pointed.graphPresetId);
+    addLocalityAndPreset(visible, localityBySliceKey, presetByPresetId, pointed.graphSliceKey, pointed.graphPresetId);
     // Also show tags connected via 'contains'
     for (const e of edges) {
       if (e.type !== 'contains') {
@@ -161,7 +167,7 @@ export function applyPointedFocusVisibility(
     if (catId) {
       visible.add(catId);
     }
-    addLocalityAndPreset(visible, nodes, pointed.graphSliceKey, pointed.graphPresetId);
+    addLocalityAndPreset(visible, localityBySliceKey, presetByPresetId, pointed.graphSliceKey, pointed.graphPresetId);
   } else {
     // Fallback: show direct neighbors
     visible.add(pointed.id);

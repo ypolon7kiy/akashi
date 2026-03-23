@@ -327,12 +327,13 @@ function seedPresetClusters(nodes: SimNode[], prev: Map<string, { x: number; y: 
 
 function createClusterOffsetForce(getStrength: () => number) {
   let nodes: SimNode[] = [];
+  const presetPos = new Map<string, { x: number; y: number }>();
   function force(alpha: number): void {
     const strength = getStrength();
     if (strength <= 0) {
       return;
     }
-    const presetPos = new Map<string, { x: number; y: number }>();
+    presetPos.clear();
     for (const n of nodes) {
       if (n.type === 'preset' && n.graphPresetId) {
         presetPos.set(n.graphPresetId, { x: n.x, y: n.y });
@@ -367,12 +368,13 @@ function createClusterOffsetForce(getStrength: () => number) {
 
 function createLayerBandYForce(getStrength: () => number, getAll: () => readonly SimNode[]) {
   let nodes: SimNode[] = [];
+  const presetY = new Map<string, number>();
   function force(alpha: number): void {
     const strength = getStrength();
     if (strength <= 0) {
       return;
     }
-    const presetY = new Map<string, number>();
+    presetY.clear();
     for (const n of nodes) {
       if (n.type === 'preset' && n.graphPresetId) {
         presetY.set(n.graphPresetId, n.y);
@@ -406,13 +408,6 @@ function nodeRadius(n: GraphNode3D): number {
   return Math.max(6, 3.5 + n.size * 7);
 }
 
-function resolveUiFontFamily(): string {
-  try {
-    return getComputedStyle(document.body).fontFamily || 'sans-serif';
-  } catch {
-    return 'sans-serif';
-  }
-}
 
 const TIER_LABEL_MAX_CHARS = 18;
 
@@ -578,6 +573,7 @@ export function ForceGraphView(props: {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const simRef = useRef<Simulation<SimNode, SimLink> | null>(null);
   const simNodesRef = useRef<SimNode[]>([]);
+  const simByIdRef = useRef<Map<string, SimNode>>(new Map());
   const posCacheRef = useRef(new Map<string, { x: number; y: number }>());
   const transformRef = useRef({ tx: 0, ty: 0, k: 1 });
   const wrapLastSizeRef = useRef<{ w: number; h: number } | null>(null);
@@ -644,7 +640,7 @@ export function ForceGraphView(props: {
     ctx.scale(k, k);
 
     const theme = readCanvasThemeColors();
-    const simById = new Map(simNodes.map((n) => [n.id, n]));
+    const simById = simByIdRef.current;
 
     if (props.showEdges) {
       for (const e of props.edges) {
@@ -674,8 +670,7 @@ export function ForceGraphView(props: {
     }
 
     const labelFontPx = zoomScaledCanvasFontPx(NODE_LABEL_FONT_BASE_PX);
-    const ff = resolveUiFontFamily();
-    ctx.font = `${labelFontPx}px ${ff}`;
+    ctx.font = `${labelFontPx}px ${theme.fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -724,13 +719,13 @@ export function ForceGraphView(props: {
         if (isTierNode) {
           const innerLabel = truncateTierLabel(n.label);
           const innerFontPx = zoomScaledCanvasFontPx(n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN);
-          ctx.font = `bold ${innerFontPx}px ${ff}`;
+          ctx.font = `bold ${innerFontPx}px ${theme.fontFamily}`;
           ctx.fillStyle = pickContrastingTierLabelColor(fillColor, '#ffffff', '#000000');
           ctx.globalAlpha = vis ? 0.95 : 0.12;
           ctx.fillText(innerLabel, n.x, n.y + innerFontPx * 0.12);
           ctx.globalAlpha = 1;
           // Reset font for subsequent labels
-          ctx.font = `${labelFontPx}px ${ff}`;
+          ctx.font = `${labelFontPx}px ${theme.fontFamily}`;
         } else if (props.showLabels) {
           const label = n.label.length > 32 ? `${n.label.slice(0, 31)}…` : n.label;
           ctx.fillStyle = theme.label;
@@ -765,6 +760,7 @@ export function ForceGraphView(props: {
     simRef.current?.stop();
     simRef.current = null;
     simNodesRef.current = [];
+    simByIdRef.current = new Map();
 
     if (props.nodes.length === 0) {
       resetPanZoomToCenterWorldOrigin(wrapRef.current, transformRef, wrapLastSizeRef);
@@ -782,7 +778,7 @@ export function ForceGraphView(props: {
 
     const measCanvas = document.createElement('canvas');
     const measCtx = measCanvas.getContext('2d');
-    const ffInit = resolveUiFontFamily();
+    const ffInit = readCanvasThemeColors().fontFamily;
     if (measCtx) {
       for (const n of simNodes) {
         if (isTierGraphNode(n)) {
@@ -874,6 +870,7 @@ export function ForceGraphView(props: {
 
     simRef.current = sim;
     simNodesRef.current = simNodes;
+    simByIdRef.current = new Map(simNodes.map((n) => [n.id, n]));
     resetPanZoomToCenterWorldOrigin(wrapRef.current, transformRef, wrapLastSizeRef);
     drawRef.current();
 

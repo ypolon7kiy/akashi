@@ -14,6 +14,8 @@ export interface CanvasThemeColors {
   nodeRimStroke: string;
   /** Fixed soft shadow for tier nodes (theme-agnostic tint). */
   nodeShadow: string;
+  /** Resolved body font family; avoids a second getComputedStyle call in draw(). */
+  fontFamily: string;
 }
 
 /**
@@ -64,6 +66,7 @@ function buildCanvasThemeColors(style: CSSStyleDeclaration): CanvasThemeColors {
     nodeStrokeHighlight: pick('--vscode-focusBorder', '#3794ff'),
     nodeRimStroke: pick('--vscode-panel-border', widgetBorder),
     nodeShadow: NODE_SHADOW,
+    fontFamily: style.fontFamily || 'sans-serif',
   };
 }
 
@@ -87,6 +90,7 @@ export function readCanvasThemeColors(): CanvasThemeColors {
       nodeStrokeHighlight: '#3794ff',
       nodeRimStroke: '#555555',
       nodeShadow: NODE_SHADOW,
+      fontFamily: 'sans-serif',
     };
   }
 }
