@@ -308,14 +308,10 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
   );
 
   if (records.length === 0) {
-    return (
-      <div className="akashi-tree akashi-tree--empty">
-        <p className="akashi-tree__empty-title">No indexed sources yet</p>
-        <p className="akashi-tree__empty-hint">
-          {isBusy ? 'Indexing…' : 'Run “Index sources” after opening a workspace.'}
-        </p>
-      </div>
-    );
+    if (isBusy) {
+      return <div className="akashi-tree akashi-tree--empty" />;
+    }
+    return <div className="akashi-tree akashi-tree--empty"/>;
   }
 
   return (

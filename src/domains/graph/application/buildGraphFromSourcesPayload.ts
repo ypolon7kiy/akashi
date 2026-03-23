@@ -311,6 +311,15 @@ export function buildGraphFromSourcesPayload(
       arr.push(r);
     }
 
+    // Ensure all known categories appear even when no records belong to them.
+    // 'unknown' ("Other") is intentionally excluded — it's a catch-all that only
+    // makes sense when files are actually present without a recognised category.
+    for (const cat of Object.keys(CATEGORY_LABELS).filter((k) => k !== 'unknown')) {
+      if (!byCategory.has(cat)) {
+        byCategory.set(cat, []);
+      }
+    }
+
     // --- Category nodes (tier 2) ---
     for (const [cat, catRecords] of byCategory) {
       const catId = graphCategoryNodeId(presetId, locality, cat);

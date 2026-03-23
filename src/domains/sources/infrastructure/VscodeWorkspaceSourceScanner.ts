@@ -20,8 +20,10 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
       appendLine('[Akashi][SourcesScanner] scanWorkspace skipped (no active presets)');
       return [];
     }
-    const workspaceSources = await this.scanWorkspaceSources(activePresets);
-    const homeSources = options.includeHomeConfig ? await this.scanHomeSources(activePresets) : [];
+    const [workspaceSources, homeSources] = await Promise.all([
+      this.scanWorkspaceSources(activePresets),
+      options.includeHomeConfig ? this.scanHomeSources(activePresets) : Promise.resolve([]),
+    ]);
     const deduped = dedupeByRecordId([...workspaceSources, ...homeSources]);
     appendLine(
       `[Akashi][SourcesScanner] scanWorkspace complete sourceCount=${deduped.length} includeHome=${options.includeHomeConfig ?? false}`
@@ -43,16 +45,18 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
       { path: string; preset: SourcePresetId; category: SourceCategory }
     >();
 
-    for (const row of rows) {
-      const uris = await vscode.workspace.findFiles(row.glob, exclude);
-      for (const uri of uris) {
-        const fsPath = uri.fsPath;
-        const key = `${row.presetId}${SOURCE_RECORD_ID_FIELD_SEP}${fsPath}`;
-        if (!byPathPreset.has(key)) {
-          byPathPreset.set(key, { path: fsPath, preset: row.presetId, category: row.category });
+    await Promise.all(
+      rows.map(async (row) => {
+        const uris = await vscode.workspace.findFiles(row.glob, exclude);
+        for (const uri of uris) {
+          const fsPath = uri.fsPath;
+          const key = `${row.presetId}${SOURCE_RECORD_ID_FIELD_SEP}${fsPath}`;
+          if (!byPathPreset.has(key)) {
+            byPathPreset.set(key, { path: fsPath, preset: row.presetId, category: row.category });
+          }
         }
-      }
-    }
+      })
+    );
 
     const out: DiscoveredSource[] = [];
     for (const meta of byPathPreset.values()) {

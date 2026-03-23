@@ -88,12 +88,6 @@ export function useSourcesSidebarState(): SourcesSidebarState {
         setMountIndexBusy(true);
       }
 
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => resolve());
-        });
-      });
-
       void postRequest<SourcesResponseMessage>(
         vscode,
         { type: SidebarMessageType.SourcesIndexWorkspaceRequest },
