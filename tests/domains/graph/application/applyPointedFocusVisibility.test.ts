@@ -122,6 +122,24 @@ describe('applyPointedFocusVisibility', () => {
     expect(outE.every((x) => x.isVisible)).toBe(true);
   });
 
+  it('preserves base visibility when pointedId is null (e.g. category filter)', () => {
+    const nodesPartial = nodes.map((x) =>
+      x.id === catRule || x.id === nB ? { ...x, isVisible: false } : { ...x }
+    );
+    const edgesPartial = edges.map((e) => ({
+      ...e,
+      isVisible: e.id === 'e2' || e.id === 'e4' ? false : true,
+    }));
+    const { nodes: outN, edges: outE } = applyPointedFocusVisibility(
+      nodesPartial,
+      edgesPartial,
+      null
+    );
+    expect(outN.find((x) => x.id === catRule)?.isVisible).toBe(false);
+    expect(outN.find((x) => x.id === catCtx)?.isVisible).toBe(true);
+    expect(outE.find((x) => x.id === 'e2')?.isVisible).toBe(false);
+  });
+
   it('shows all when pointedId is unknown', () => {
     const { nodes: outN } = applyPointedFocusVisibility(nodes, edges, '/nope');
     expect(outN.every((x) => x.isVisible)).toBe(true);

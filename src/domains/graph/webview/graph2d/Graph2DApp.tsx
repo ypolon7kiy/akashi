@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { applySourceCategoryVisibility } from '../../algorithms/applySourceCategoryVisibility';
 import { buildGraphFromSourcesPayload } from '../../application/buildGraphFromSourcesPayload';
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
+import { labelGraphSourceCategory } from '../../domain/graphSourceCategoryLabels';
 import { diagnoseInboundSnapshotMessage } from '../graphSnapshotDiagnostics';
+import { GraphCategoryToggles } from '../GraphCategoryToggles';
 import { GraphPresetToggles } from '../GraphPresetToggles';
 import { Graph2DMessageType, type Graph2DFileColorsPayload } from './messages';
 import {
@@ -31,6 +34,9 @@ export function Graph2DApp(): JSX.Element {
   const [controlsCollapsed, setControlsCollapsed] = useState(true);
   const [viewSettingsHydrated, setViewSettingsHydrated] = useState(false);
   const [enabledPresetOverride, setEnabledPresetOverride] = useState<ReadonlySet<string> | null>(
+    null
+  );
+  const [enabledCategoryOverride, setEnabledCategoryOverride] = useState<ReadonlySet<string> | null>(
     null
   );
 
@@ -87,6 +93,9 @@ export function Graph2DApp(): JSX.Element {
         setShowEdges(s.showEdges);
         setControlsCollapsed(s.controlsCollapsed);
         setEnabledPresetOverride(s.enabledPresets === null ? null : new Set(s.enabledPresets));
+        setEnabledCategoryOverride(
+          s.enabledCategories === null ? null : new Set(s.enabledCategories)
+        );
         setLinkDistance(s.linkDistance);
         setLinkStrength(s.linkStrength);
         setChargeStrength(s.chargeStrength);
@@ -127,6 +136,7 @@ export function Graph2DApp(): JSX.Element {
   }, [snapshot]);
 
   const effectiveEnabledPresets = enabledPresetOverride;
+  const effectiveEnabledCategories = enabledCategoryOverride;
 
   useEffect(() => {
     if (!viewSettingsHydrated) {
@@ -148,6 +158,7 @@ export function Graph2DApp(): JSX.Element {
           showEdges,
           controlsCollapsed,
           enabledPresets: enabledPresetOverride,
+          enabledCategories: enabledCategoryOverride,
           linkDistance,
           linkStrength,
           chargeStrength,
@@ -165,6 +176,7 @@ export function Graph2DApp(): JSX.Element {
     showEdges,
     controlsCollapsed,
     enabledPresetOverride,
+    enabledCategoryOverride,
     linkDistance,
     linkStrength,
     chargeStrength,
@@ -181,6 +193,22 @@ export function Graph2DApp(): JSX.Element {
         applyGridLayout: false,
       }),
     [snapshot, effectiveEnabledPresets]
+  );
+
+  const graphCategoryIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const n of model.nodes) {
+      if (n.type === 'category' && n.graphCategoryId) {
+        s.add(n.graphCategoryId);
+      }
+    }
+    return [...s].sort();
+  }, [model.nodes]);
+
+  const categoryViewModel = useMemo(
+    () =>
+      applySourceCategoryVisibility(model.nodes, model.edges, effectiveEnabledCategories),
+    [model.nodes, model.edges, effectiveEnabledCategories]
   );
 
   const simProps: ForceGraphSimProps = useMemo(
@@ -207,6 +235,36 @@ export function Graph2DApp(): JSX.Element {
   const isPresetEnabled = useCallback(
     (pid: string): boolean => effectiveEnabledPresets === null || effectiveEnabledPresets.has(pid),
     [effectiveEnabledPresets]
+  );
+
+  const isCategoryEnabled = useCallback(
+    (cid: string): boolean =>
+      effectiveEnabledCategories === null || effectiveEnabledCategories.has(cid),
+    [effectiveEnabledCategories]
+  );
+
+  const onToggleCategory = useCallback(
+    (cid: string) => {
+      setEnabledCategoryOverride((prev) => {
+        const full = new Set(graphCategoryIds);
+        if (prev === null) {
+          const next = new Set(full);
+          next.delete(cid);
+          return next;
+        }
+        const next = new Set(prev);
+        if (next.has(cid)) {
+          next.delete(cid);
+        } else {
+          next.add(cid);
+        }
+        if (next.size === full.size && [...full].every((c) => next.has(c))) {
+          return null;
+        }
+        return next;
+      });
+    },
+    [graphCategoryIds]
   );
 
   const onTogglePreset = useCallback(
@@ -252,6 +310,10 @@ export function Graph2DApp(): JSX.Element {
   const emptyHint = useMemo(
     () =>
       buildEmptyHint(snapshot, model, {
+        allCategoriesHidden:
+          graphCategoryIds.length > 0 &&
+          effectiveEnabledCategories !== null &&
+          effectiveEnabledCategories.size === 0,
         allPresetsHidden:
           !!snapshot &&
           snapshot.records.length > 0 &&
@@ -261,26 +323,43 @@ export function Graph2DApp(): JSX.Element {
         noPresetsOnRecords:
           !!snapshot && snapshot.records.length > 0 && snapshotPresetIds.length === 0,
       }),
-    [snapshot, model, snapshotPresetIds, effectiveEnabledPresets]
+    [
+      snapshot,
+      model,
+      snapshotPresetIds,
+      effectiveEnabledPresets,
+      graphCategoryIds,
+      effectiveEnabledCategories,
+    ]
   );
 
   return (
     <div className="akashi-graph-app akashi-graph2d-app">
-      <header className="akashi-graph-toolbar">
-        <GraphPresetToggles
-          presetIds={snapshotPresetIds}
-          isPresetEnabled={isPresetEnabled}
-          onToggle={onTogglePreset}
-        />
-        <span className="akashi-graph-status">{statusText}</span>
+      <header className="akashi-graph-toolbar akashi-graph-toolbar--stacked">
+        <div className="akashi-graph-toolbar__row">
+          <GraphPresetToggles
+            presetIds={snapshotPresetIds}
+            isPresetEnabled={isPresetEnabled}
+            onToggle={onTogglePreset}
+          />
+          <span className="akashi-graph-status">{statusText}</span>
+        </div>
+        <div className="akashi-graph-toolbar__row">
+          <GraphCategoryToggles
+            categoryIds={graphCategoryIds}
+            labelForId={labelGraphSourceCategory}
+            isCategoryEnabled={isCategoryEnabled}
+            onToggle={onToggleCategory}
+          />
+        </div>
       </header>
       <div className="akashi-graph-scene">
         <div className="akashi-graph-scene-stack">
           {sceneReady ? (
             <>
               <ForceGraphView
-                nodes={model.nodes}
-                edges={model.edges}
+                nodes={categoryViewModel.nodes}
+                edges={categoryViewModel.edges}
                 emptyHint={emptyHint}
                 showLabels={showLabels}
                 showEdges={showEdges}
@@ -380,8 +459,15 @@ export function Graph2DApp(): JSX.Element {
 function buildEmptyHint(
   snapshot: SourcesSnapshotPayload | null,
   model: { nodes: GraphNode3D[]; edges: GraphEdge3D[] },
-  opts?: { allPresetsHidden?: boolean; noPresetsOnRecords?: boolean }
+  opts?: {
+    allCategoriesHidden?: boolean;
+    allPresetsHidden?: boolean;
+    noPresetsOnRecords?: boolean;
+  }
 ): string | null {
+  if (opts?.allCategoriesHidden) {
+    return 'All categories are hidden. Turn on at least one category toggle above.';
+  }
   if (model.nodes.length > 0) {
     return null;
   }

@@ -1,14 +1,5 @@
 import type { GraphEdge3D, GraphNode3D } from '../domain/graphTypes';
-
-/** Single parent along `contains` edges (tree-shaped graph from builder). */
-function parentContainsSource(edges: readonly GraphEdge3D[], nodeId: string): string | null {
-  for (const e of edges) {
-    if (e.type === 'contains' && e.target === nodeId) {
-      return e.source;
-    }
-  }
-  return null;
-}
+import { parentContainsSource } from '../algorithms/containsTree';
 
 function addLocalityAndPreset(
   visible: Set<string>,
@@ -32,8 +23,8 @@ function addLocalityAndPreset(
 }
 
 /**
- * When hovering a node, restrict visibility to a focused subgraph.
- * If pointedId is null or unknown, all nodes and edges stay visible.
+ * When hovering a node, restrict visibility to a focused subgraph (intersected with input visibility).
+ * If pointedId is null or unknown, returns clones preserving each node/edge `isVisible` (e.g. category filter).
  *
  * Hierarchy: preset → locality → category → optional folder → file (note).
  */
@@ -42,19 +33,19 @@ export function applyPointedFocusVisibility(
   edges: GraphEdge3D[],
   pointedId: string | null
 ): { nodes: GraphNode3D[]; edges: GraphEdge3D[] } {
-  const allVisible = (): { nodes: GraphNode3D[]; edges: GraphEdge3D[] } => ({
-    nodes: nodes.map((n) => ({ ...n, isVisible: true })),
-    edges: edges.map((e) => ({ ...e, isVisible: true })),
+  const preserveBaseVisibility = (): { nodes: GraphNode3D[]; edges: GraphEdge3D[] } => ({
+    nodes: nodes.map((n) => ({ ...n })),
+    edges: edges.map((e) => ({ ...e })),
   });
 
   if (!pointedId || nodes.length === 0) {
-    return allVisible();
+    return preserveBaseVisibility();
   }
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const pointed = nodeById.get(pointedId);
   if (!pointed) {
-    return allVisible();
+    return preserveBaseVisibility();
   }
 
   const localityBySliceKey = new Map<string, GraphNode3D>();
@@ -192,12 +183,14 @@ export function applyPointedFocusVisibility(
 
   const visibleNodes = nodes.map((n) => ({
     ...n,
-    isVisible: visible.has(n.id),
+    isVisible: visible.has(n.id) && n.isVisible,
   }));
+
+  const nodeOutVis = new Map(visibleNodes.map((n) => [n.id, n.isVisible]));
 
   const visibleEdges = edges.map((e) => ({
     ...e,
-    isVisible: visible.has(e.source) && visible.has(e.target),
+    isVisible: Boolean(nodeOutVis.get(e.source) && nodeOutVis.get(e.target)),
   }));
 
   return { nodes: visibleNodes, edges: visibleEdges };

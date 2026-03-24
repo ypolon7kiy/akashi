@@ -9,6 +9,8 @@ export interface Graph2DWebviewPersistedState {
   controlsCollapsed: boolean;
   /** `null` = all presets from snapshot (default). */
   enabledPresets: string[] | null;
+  /** `null` = all source categories visible (default). */
+  enabledCategories: string[] | null;
   /** Target link distance in simulation space. */
   linkDistance: number;
   /** Link strength multiplier (0–1 scale in UI). */
@@ -59,6 +61,7 @@ export function defaultGraph2DWebviewPersistedState(): Graph2DWebviewPersistedSt
     showEdges: true,
     controlsCollapsed: true,
     enabledPresets: null,
+    enabledCategories: null,
     linkDistance: 72,
     linkStrength: 0.55,
     chargeStrength: 220,
@@ -87,6 +90,10 @@ function parseEnabledPresetsField(raw: unknown, fallback: string[] | null): stri
   return [...new Set(ids)];
 }
 
+function parseEnabledCategoriesField(raw: unknown, fallback: string[] | null): string[] | null {
+  return parseEnabledPresetsField(raw, fallback);
+}
+
 export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewPersistedState {
   const d = defaultGraph2DWebviewPersistedState();
   if (raw === null || raw === undefined || typeof raw !== 'object') {
@@ -100,6 +107,7 @@ export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewP
     controlsCollapsed:
       typeof o.controlsCollapsed === 'boolean' ? o.controlsCollapsed : d.controlsCollapsed,
     enabledPresets: parseEnabledPresetsField(o.enabledPresets, d.enabledPresets),
+    enabledCategories: parseEnabledCategoriesField(o.enabledCategories, d.enabledCategories),
     linkDistance: clamp(
       typeof o.linkDistance === 'number' && Number.isFinite(o.linkDistance)
         ? o.linkDistance

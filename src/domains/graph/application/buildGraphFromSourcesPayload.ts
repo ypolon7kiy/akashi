@@ -3,6 +3,10 @@ import type {
   SourcesSnapshotPayload,
 } from '../../../shared/types/sourcesSnapshotPayload';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
+import {
+  GRAPH_SOURCE_CATEGORY_IDS_FOR_EMPTY_NODES,
+  labelGraphSourceCategory,
+} from '../domain/graphSourceCategoryLabels';
 import { applyGridLayout } from './gridLayout';
 import { dirnamePath, toPosix } from './pathUtils';
 
@@ -87,22 +91,6 @@ function localityForRecord(r: {
     return 'project';
   }
   return r.origin === 'user' ? 'global' : 'project';
-}
-
-/** Display label for a source category. */
-const CATEGORY_LABELS: Record<string, string> = {
-  context: 'Context',
-  rule: 'Rules',
-  skill: 'Skills',
-  hook: 'Hooks',
-  config: 'Config',
-  mcp: 'MCP',
-  command: 'Commands',
-  unknown: 'Other',
-};
-
-function categoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
 }
 
 /** File node size: base 0.5, scaled up slightly by byteLength (max +0.3 at 10 KB). */
@@ -319,7 +307,7 @@ export function buildGraphFromSourcesPayload(
     // Ensure all known categories appear even when no records belong to them.
     // 'unknown' ("Other") is intentionally excluded — it's a catch-all that only
     // makes sense when files are actually present without a recognised category.
-    for (const cat of Object.keys(CATEGORY_LABELS).filter((k) => k !== 'unknown')) {
+    for (const cat of GRAPH_SOURCE_CATEGORY_IDS_FOR_EMPTY_NODES) {
       if (!byCategory.has(cat)) {
         byCategory.set(cat, []);
       }
@@ -328,7 +316,7 @@ export function buildGraphFromSourcesPayload(
     // --- Category nodes (tier 2) ---
     for (const [cat, catRecords] of byCategory) {
       const catId = graphCategoryNodeId(presetId, locality, cat);
-      const label = categoryLabel(cat);
+      const label = labelGraphSourceCategory(cat);
       nodes.push({
         id: catId,
         label,
