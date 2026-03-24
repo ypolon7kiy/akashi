@@ -7,6 +7,7 @@ import {
   graphFolderNodeId,
   graphLocalityNodeId,
   graphPresetNodeId,
+  tagNodeId,
 } from '@src/domains/graph/application/buildGraphFromSourcesPayload';
 
 function n(partial: Partial<GraphNode3D> & Pick<GraphNode3D, 'id' | 'type'>): GraphNode3D {
@@ -170,6 +171,166 @@ describe('applyPointedFocusVisibility', () => {
     const { nodes: outN } = applyPointedFocusVisibility(nodes, edges, presetCursor);
     const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
     expect(vis).toEqual(new Set(nodes.map((x) => x.id)));
+  });
+
+  it('preset: without graphPresetId only the preset node is focused', () => {
+    const barePresetId = 'gpre:bare';
+    const nodesBare: GraphNode3D[] = [
+      n({
+        id: barePresetId,
+        type: 'preset',
+        label: 'bare',
+        layoutDepth: 0,
+      }),
+    ];
+    const { nodes: outN } = applyPointedFocusVisibility(nodesBare, [], barePresetId);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([barePresetId]));
+  });
+
+  it('note: includes tag children linked via contains', () => {
+    const tagId = tagNodeId('facet', 'alpha');
+    const nodesWithTag: GraphNode3D[] = [
+      ...nodes,
+      n({
+        id: tagId,
+        type: 'tag',
+        label: 'alpha',
+        graphPresetId: 'cursor',
+        graphSliceKey: sk,
+        layoutDepth: 4,
+      }),
+    ];
+    const edgesWithTag: GraphEdge3D[] = [
+      ...edges,
+      e({
+        id: 'etNoise',
+        source: nA,
+        target: presetCursor,
+        type: 'related',
+        strength: 0.2,
+        opacity: 0.2,
+      }),
+      e({
+        id: 'et0',
+        source: nA,
+        target: tagId,
+        type: 'contains',
+        strength: 0.3,
+        opacity: 0.3,
+      }),
+      e({
+        id: 'etNonTagChild',
+        source: nA,
+        target: nB,
+        type: 'contains',
+        strength: 0.3,
+        opacity: 0.3,
+      }),
+    ];
+    const { nodes: outN } = applyPointedFocusVisibility(nodesWithTag, edgesWithTag, nA);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([nA, catCtx, locProj, presetCursor, tagId]));
+  });
+
+  it('tag: shows tag and parent note', () => {
+    const tagId = tagNodeId('facet', 'beta');
+    const nodesWithTag: GraphNode3D[] = [
+      ...nodes,
+      n({
+        id: tagId,
+        type: 'tag',
+        label: 'beta',
+        graphPresetId: 'cursor',
+        graphSliceKey: sk,
+        layoutDepth: 4,
+      }),
+    ];
+    const edgesWithTag: GraphEdge3D[] = [
+      ...edges,
+      e({
+        id: 'et1',
+        source: nA,
+        target: tagId,
+        type: 'contains',
+        strength: 0.3,
+        opacity: 0.3,
+      }),
+      e({
+        id: 'etNoise',
+        source: tagId,
+        target: presetCursor,
+        type: 'related',
+        strength: 0.2,
+        opacity: 0.2,
+      }),
+    ];
+    const { nodes: outN } = applyPointedFocusVisibility(nodesWithTag, edgesWithTag, tagId);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([tagId, nA]));
+  });
+
+  it('note: stops ancestor walk when there is no contains parent', () => {
+    const orphan = 'note:orphan';
+    const nodesOrphan: GraphNode3D[] = [
+      n({
+        id: orphan,
+        type: 'note',
+        label: 'orphan',
+        layoutDepth: 0,
+      }),
+    ];
+    const { nodes: outN } = applyPointedFocusVisibility(nodesOrphan, [], orphan);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([orphan]));
+  });
+
+  it('intersects hover focus with base node visibility', () => {
+    const nodesHiddenNote = nodes.map((x) => (x.id === nA ? { ...x, isVisible: false } : { ...x }));
+    const { nodes: outN } = applyPointedFocusVisibility(nodesHiddenNote, edges, nA);
+    expect(outN.find((x) => x.id === nA)?.isVisible).toBe(false);
+  });
+
+  it('fallback: concept node shows undirected neighbors', () => {
+    const conceptId = 'concept:root';
+    const extraId = 'note:extra';
+    const nodesConcept: GraphNode3D[] = [
+      ...nodes,
+      n({
+        id: conceptId,
+        type: 'concept',
+        label: 'Root',
+        layoutDepth: 0,
+      }),
+      n({
+        id: extraId,
+        type: 'note',
+        label: 'extra',
+        layoutDepth: 1,
+      }),
+    ];
+    const edgesConcept: GraphEdge3D[] = [
+      ...edges,
+      e({
+        id: 'ec0',
+        source: conceptId,
+        target: extraId,
+        type: 'related',
+        strength: 0.5,
+        opacity: 0.5,
+      }),
+      e({
+        id: 'ec1',
+        source: extraId,
+        target: conceptId,
+        type: 'related',
+        strength: 0.5,
+        opacity: 0.5,
+      }),
+    ];
+    const { nodes: outN } = applyPointedFocusVisibility(nodesConcept, edgesConcept, conceptId);
+    const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
+    expect(vis).toEqual(new Set([conceptId, extraId]));
   });
 });
 
