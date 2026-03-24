@@ -91,34 +91,3 @@ export function parseInboundSourcesFsCreateFile(
     fileName: p.fileName,
   };
 }
-
-export interface InboundFsCreateArtifactPayload {
-  readonly templateId: string;
-  readonly fileName: string;
-  readonly workspaceRoot: string;
-}
-
-export function parseInboundSourcesFsCreateArtifact(
-  message: unknown
-): InboundFsCreateArtifactPayload | null {
-  if (!message || typeof message !== 'object') {
-    return null;
-  }
-  const m = message as Record<string, unknown>;
-  if (m.type !== SidebarMessageType.SourcesFsCreateArtifact) {
-    return null;
-  }
-  const payload = m.payload;
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-  const p = payload as Record<string, unknown>;
-  if (!isNonEmptyString(p.templateId) || !isNonEmptyString(p.fileName)) {
-    return null;
-  }
-  return {
-    templateId: p.templateId,
-    fileName: p.fileName,
-    workspaceRoot: typeof p.workspaceRoot === 'string' ? p.workspaceRoot : '',
-  };
-}

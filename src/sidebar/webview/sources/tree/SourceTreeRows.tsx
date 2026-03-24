@@ -4,7 +4,6 @@ import { SidebarMessageType } from '../../../bridge/messages';
 import { sidebarCategoryLabel, sidebarCategoryMetaModifier } from './categorySidebarLabel';
 import type { TreeNode } from './sourceTree';
 import { fsOperablePath, treeItemDomId } from '../fs/sourceTreeExplorerModel';
-import type { CreatingArtifactState } from './useSourceTreeFsState';
 
 function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
   return (
@@ -31,11 +30,6 @@ export interface TreeInteractions {
   setNewFileDraft: (v: string) => void;
   onCreateFileKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
   createFileInputRef: MutableRefObject<HTMLInputElement | null>;
-  creatingArtifactState: CreatingArtifactState | null;
-  artifactNameDraft: string;
-  setArtifactNameDraft: (v: string) => void;
-  onCreateArtifactKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
-  createArtifactInputRef: MutableRefObject<HTMLInputElement | null>;
   onRowContextMenu: (e: MouseEvent, node: TreeNode) => void;
   onDragStartRow: (e: DragEvent, node: TreeNode) => void;
   onDragOverFolder: (e: DragEvent, node: TreeNode) => void;
@@ -180,34 +174,6 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
                   aria-label="New file name"
                   onChange={(e) => ix.setNewFileDraft(e.target.value)}
                   onKeyDown={ix.onCreateFileKeyDown}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            </li>
-          ) : null}
-          {ix.creatingArtifactState?.parentNodeId === node.id && node.dirPath ? (
-            <li className="akashi-tree__item" role="none">
-              <div
-                className="akashi-tree__row akashi-tree__row--new-file"
-                style={{
-                  paddingLeft: `calc(var(--akashi-tree-indent-base) + ${depth + 1} * var(--akashi-tree-indent-step))`,
-                }}
-              >
-                <span className="akashi-tree__chevron-spacer" aria-hidden />
-                <input
-                  ref={ix.createArtifactInputRef}
-                  className="akashi-tree__rename-input"
-                  value={ix.artifactNameDraft}
-                  placeholder={
-                    ix.creatingArtifactState.fixedFileName
-                      ? `Folder name (creates ${ix.creatingArtifactState.fixedFileName})`
-                      : ix.creatingArtifactState.suggestedExtension
-                        ? `Name (saves as ${ix.creatingArtifactState.suggestedExtension})`
-                        : 'Name'
-                  }
-                  aria-label="New artifact name"
-                  onChange={(e) => ix.setArtifactNameDraft(e.target.value)}
-                  onKeyDown={ix.onCreateArtifactKeyDown}
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>

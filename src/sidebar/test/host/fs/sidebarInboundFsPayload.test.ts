@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SidebarMessageType } from '../../../bridge/messages';
 import {
-  parseInboundSourcesFsCreateArtifact,
   parseInboundSourcesFsCreateFile,
   parseInboundSourcesFsDelete,
   parseInboundSourcesFsRename,
@@ -128,61 +127,5 @@ describe('parseInboundSourcesFsCreateFile', () => {
 
   it('rejects non-object message', () => {
     expect(parseInboundSourcesFsCreateFile(null)).toBeNull();
-  });
-});
-
-describe('parseInboundSourcesFsCreateArtifact', () => {
-  it('accepts valid payload with workspaceRoot', () => {
-    const p = parseInboundSourcesFsCreateArtifact({
-      type: SidebarMessageType.SourcesFsCreateArtifact,
-      requestId: 'r1',
-      payload: { templateId: 'claude/skill/workspace', fileName: 'my-skill', workspaceRoot: '/ws' },
-    });
-    expect(p).toEqual({
-      templateId: 'claude/skill/workspace',
-      fileName: 'my-skill',
-      workspaceRoot: '/ws',
-    });
-  });
-
-  it('defaults workspaceRoot to empty string when absent', () => {
-    const p = parseInboundSourcesFsCreateArtifact({
-      type: SidebarMessageType.SourcesFsCreateArtifact,
-      requestId: 'r1',
-      payload: { templateId: 'claude/skill/user', fileName: 'x' },
-    });
-    expect(p).toEqual({ templateId: 'claude/skill/user', fileName: 'x', workspaceRoot: '' });
-  });
-
-  it('rejects wrong type', () => {
-    expect(
-      parseInboundSourcesFsCreateArtifact({
-        type: SidebarMessageType.SourcesFsCreateFile,
-        requestId: 'r1',
-        payload: { templateId: 'claude/skill/workspace', fileName: 'x', workspaceRoot: '' },
-      })
-    ).toBeNull();
-  });
-
-  it('rejects empty templateId or fileName', () => {
-    expect(
-      parseInboundSourcesFsCreateArtifact({
-        type: SidebarMessageType.SourcesFsCreateArtifact,
-        requestId: 'r1',
-        payload: { templateId: '', fileName: 'x', workspaceRoot: '' },
-      })
-    ).toBeNull();
-    expect(
-      parseInboundSourcesFsCreateArtifact({
-        type: SidebarMessageType.SourcesFsCreateArtifact,
-        requestId: 'r1',
-        payload: { templateId: 'claude/skill/workspace', fileName: '', workspaceRoot: '' },
-      })
-    ).toBeNull();
-  });
-
-  it('rejects non-object message', () => {
-    expect(parseInboundSourcesFsCreateArtifact(null)).toBeNull();
-    expect(parseInboundSourcesFsCreateArtifact('x')).toBeNull();
   });
 });

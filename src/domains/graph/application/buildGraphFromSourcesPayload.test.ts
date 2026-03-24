@@ -102,12 +102,12 @@ describe('buildGraphFromSourcesPayload', () => {
     ).toBe(true);
 
     // Edge: category → folder → file
-    expect(edges.some((e) => e.type === 'contains' && e.source === catId && e.target === folId)).toBe(
-      true
-    );
-    expect(edges.some((e) => e.type === 'contains' && e.source === folId && e.target === fileId)).toBe(
-      true
-    );
+    expect(
+      edges.some((e) => e.type === 'contains' && e.source === catId && e.target === folId)
+    ).toBe(true);
+    expect(
+      edges.some((e) => e.type === 'contains' && e.source === folId && e.target === fileId)
+    ).toBe(true);
   });
 
   it('groups files by category under the same locality', () => {
@@ -261,9 +261,9 @@ describe('buildGraphFromSourcesPayload', () => {
     // File node under global
     const fileId = graphFileNodeId('cursor', 'global', '/home/user/.cursor/mcp.json');
     expect(nodes.some((n) => n.type === 'note' && n.id === fileId)).toBe(true);
-    expect(edges.some((e) => e.type === 'contains' && e.source === folId && e.target === fileId)).toBe(
-      true
-    );
+    expect(
+      edges.some((e) => e.type === 'contains' && e.source === folId && e.target === fileId)
+    ).toBe(true);
   });
 
   it('edge tiers have decreasing strength and opacity', () => {

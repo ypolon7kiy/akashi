@@ -16,7 +16,6 @@ export type SidebarMessageKind = (typeof SidebarMessageType)[keyof typeof Sideba
 export type SidebarRequestMessage = SidebarCoreRequestMessage | SidebarFsRequestMessage;
 
 export {
-  type SourcesFsCreateArtifactRequestMessage,
   type SourcesFsCreateFileRequestMessage,
   type SourcesFsDeleteRequestMessage,
   type SourcesFsRenameRequestMessage,
