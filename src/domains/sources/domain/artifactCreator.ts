@@ -1,4 +1,5 @@
 import type { ArtifactCreatorMenuEntry } from '../../../shared/types/artifactCreatorMenuEntry';
+import type { SourceLocality } from './artifactKind';
 import type { ArtifactCreationPlan } from './artifactOperation';
 import type { SourceCategory } from './model';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
@@ -40,7 +41,7 @@ export abstract class ArtifactCreator implements ArtifactCreatorMenuEntry {
   abstract readonly label: string;
   abstract readonly presetId: SourcePresetId;
   abstract readonly category: SourceCategory;
-  abstract readonly scope: 'workspace' | 'user';
+  abstract readonly locality: SourceLocality;
 
   /**
    * Interactive flow: prompt the user, then return a plan (or cancel).
@@ -60,11 +61,11 @@ export interface CreatorIdentityConfig {
   readonly label: string;
   readonly presetId: SourcePresetId;
   readonly category: SourceCategory;
-  readonly scope: 'workspace' | 'user';
+  readonly locality: SourceLocality;
 }
 
 /**
- * Intermediate base for creators whose identity (id, label, presetId, category, scope) is
+ * Intermediate base for creators whose identity (id, label, presetId, category, locality) is
  * supplied via a config object rather than hard-coded per class.
  */
 export abstract class ConfigBasedCreator extends ArtifactCreator {
@@ -84,7 +85,7 @@ export abstract class ConfigBasedCreator extends ArtifactCreator {
   get category(): SourceCategory {
     return this.identity.category;
   }
-  get scope(): 'workspace' | 'user' {
-    return this.identity.scope;
+  get locality(): SourceLocality {
+    return this.identity.locality;
   }
 }

@@ -25,7 +25,7 @@ export const CURSOR_HOOK_LIFECYCLE_EVENTS = [
 export interface CursorRegisteredHookCreatorConfig {
   readonly id: string;
   readonly label: string;
-  readonly scope: 'workspace' | 'user';
+  readonly locality: 'workspace' | 'user';
   readonly hooksDir: (ctx: CreatorContext) => string;
   readonly hooksJsonPath: (ctx: CreatorContext) => string;
   /** Path written into hooks.json `command` field */
@@ -48,8 +48,8 @@ export class CursorRegisteredHookCreator extends ArtifactCreator {
   get label(): string {
     return this.c.label;
   }
-  get scope(): 'workspace' | 'user' {
-    return this.c.scope;
+  get locality(): 'workspace' | 'user' {
+    return this.c.locality;
   }
 
   planWithProvidedInput(ctx: CreatorContext, args: ArtifactCreatorArgs): CreatorResult {

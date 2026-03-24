@@ -9,6 +9,6 @@ export interface ArtifactCreatorMenuEntry {
   readonly id: string;
   readonly label: string;
   readonly presetId: SourcePresetId;
-  readonly scope: 'workspace' | 'user';
+  readonly locality: 'workspace' | 'user';
   readonly category: SidebarSourceCategoryKey;
 }

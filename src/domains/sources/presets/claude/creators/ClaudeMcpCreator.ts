@@ -11,7 +11,7 @@ import { validateSourceFileBaseName } from '../../../../../shared/validateSource
 export interface ClaudeMcpCreatorConfig {
   readonly id: string;
   readonly label: string;
-  readonly scope: 'workspace' | 'user';
+  readonly locality: 'workspace' | 'user';
   readonly mcpPath: (ctx: CreatorContext) => string;
 }
 
@@ -29,8 +29,8 @@ export class ClaudeMcpCreator extends ArtifactCreator {
   get label(): string {
     return this.c.label;
   }
-  get scope(): 'workspace' | 'user' {
-    return this.c.scope;
+  get locality(): 'workspace' | 'user' {
+    return this.c.locality;
   }
 
   planWithProvidedInput(ctx: CreatorContext, args: ArtifactCreatorArgs): CreatorResult {

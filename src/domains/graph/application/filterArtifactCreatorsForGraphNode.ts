@@ -18,7 +18,7 @@ export function filterArtifactCreatorsForGraphNode(
     return [];
   }
 
-  const scopeFromLocality = (loc: GraphNode3D['graphLocality']): 'workspace' | 'user' | null => {
+  const localityFromGraphLocality = (loc: GraphNode3D['graphLocality']): 'workspace' | 'user' | null => {
     if (loc === 'project') {
       return 'workspace';
     }
@@ -35,7 +35,7 @@ export function filterArtifactCreatorsForGraphNode(
     return entries.filter(
       (e) =>
         e.presetId === presetId &&
-        scopeFromLocality(node.graphLocality) === e.scope &&
+        localityFromGraphLocality(node.graphLocality) === e.locality &&
         e.category === categoryId
     );
   };
@@ -44,11 +44,11 @@ export function filterArtifactCreatorsForGraphNode(
     case 'preset':
       return entries.filter((e) => e.presetId === presetId);
     case 'locality': {
-      const scope = scopeFromLocality(node.graphLocality);
-      if (!scope) {
+      const locality = localityFromGraphLocality(node.graphLocality);
+      if (!locality) {
         return [];
       }
-      return entries.filter((e) => e.presetId === presetId && e.scope === scope);
+      return entries.filter((e) => e.presetId === presetId && e.locality === locality);
     }
     case 'category':
       return matchCategory(node.graphCategoryId);

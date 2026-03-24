@@ -23,21 +23,21 @@ const entries: ArtifactCreatorMenuEntry[] = [
     id: 'cursor/skill/workspace',
     label: 'New Skill',
     presetId: 'cursor',
-    scope: 'workspace',
+    locality: 'workspace',
     category: 'skill',
   },
   {
     id: 'cursor/skill/user',
     label: 'New Skill (global)',
     presetId: 'cursor',
-    scope: 'user',
+    locality: 'user',
     category: 'skill',
   },
   {
     id: 'claude/skill/workspace',
     label: 'Claude Skill',
     presetId: 'claude',
-    scope: 'workspace',
+    locality: 'workspace',
     category: 'skill',
   },
 ];
@@ -72,7 +72,7 @@ describe('filterArtifactCreatorsForGraphNode', () => {
     expect(filterArtifactCreatorsForGraphNode(entries, n, null)).toEqual([entries[0], entries[1]]);
   });
 
-  it('matches locality: preset + scope from project/global', () => {
+  it('matches locality: preset + locality from project/global', () => {
     const proj = baseNode({
       type: 'locality',
       graphPresetId: 'cursor',

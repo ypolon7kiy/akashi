@@ -48,21 +48,21 @@ export async function runNewArtifactWizard(
     presetId = picked.presetId;
   }
 
-  const locality = await vscode.window.showQuickPick<
-    vscode.QuickPickItem & { readonly scope: 'workspace' | 'user' }
+  const localityPick = await vscode.window.showQuickPick<
+    vscode.QuickPickItem & { readonly locality: 'workspace' | 'user' }
   >(
     [
-      { label: 'This workspace', scope: 'workspace', description: 'Project-scoped tool files' },
-      { label: 'Global (user)', scope: 'user', description: 'User home tool configuration' },
+      { label: 'This workspace', locality: 'workspace', description: 'Project-scoped tool files' },
+      { label: 'Global (user)', locality: 'user', description: 'User home tool configuration' },
     ],
     { title: 'Location', placeHolder: 'Where to create the artifact' }
   );
-  if (!locality) {
+  if (!localityPick) {
     return;
   }
 
   let workspaceRoot = '';
-  if (locality.scope === 'workspace') {
+  if (localityPick.locality === 'workspace') {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders?.length) {
       void vscode.window.showErrorMessage(
@@ -73,7 +73,7 @@ export async function runNewArtifactWizard(
     workspaceRoot = inferWorkspaceRoot();
   }
 
-  const creators = [...getArtifactCreatorsForContext(presetId, locality.scope)];
+  const creators = [...getArtifactCreatorsForContext(presetId, localityPick.locality)];
   if (creators.length === 0) {
     void vscode.window.showErrorMessage('No artifact types for this preset and location.');
     return;

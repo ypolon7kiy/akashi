@@ -51,7 +51,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         void vscode.window.showErrorMessage(`Unknown artifact template: ${id}`);
         return;
       }
-      if (creator.scope === 'workspace') {
+      if (creator.locality === 'workspace') {
         const folders = vscode.workspace.workspaceFolders;
         if (!folders?.length) {
           void vscode.window.showErrorMessage(

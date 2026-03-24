@@ -88,7 +88,7 @@ function isPathUnderUserHome(abs: string): boolean {
 
 /** Returns human-readable violations (empty if structural checks pass). */
 function collectStructuralViolations(
-  creatorScope: 'workspace' | 'user',
+  creatorLocality: 'workspace' | 'user',
   operations: readonly {
     type: string;
     absolutePath: string;
@@ -108,11 +108,11 @@ function collectStructuralViolations(
         out.push('writeFile content empty');
       }
       const under =
-        creatorScope === 'workspace'
+        creatorLocality === 'workspace'
           ? isPathUnderWorkspace(w.absolutePath)
           : isPathUnderUserHome(w.absolutePath);
       if (!under) {
-        out.push(`writeFile path outside allowed ${creatorScope} root: ${w.absolutePath}`);
+        out.push(`writeFile path outside allowed ${creatorLocality} root: ${w.absolutePath}`);
       }
     } else if (op.type === 'jsonMerge') {
       const j = op as JsonMergeOp;
@@ -123,11 +123,11 @@ function collectStructuralViolations(
         out.push('jsonMerge description empty');
       }
       const under =
-        creatorScope === 'workspace'
+        creatorLocality === 'workspace'
           ? isPathUnderWorkspace(j.absolutePath)
           : isPathUnderUserHome(j.absolutePath);
       if (!under) {
-        out.push(`jsonMerge path outside allowed ${creatorScope} root: ${j.absolutePath}`);
+        out.push(`jsonMerge path outside allowed ${creatorLocality} root: ${j.absolutePath}`);
       }
     }
   }
@@ -159,7 +159,7 @@ describe('Registry helpers', () => {
     expect(ws.length).toBeGreaterThan(0);
     for (const c of ws) {
       expect(c.presetId).toBe('claude');
-      expect(c.scope).toBe('workspace');
+      expect(c.locality).toBe('workspace');
     }
   });
 
@@ -195,7 +195,7 @@ describe('Creator matrix: planWithProvidedInput (aggregated)', () => {
       failures.push(
         ...prefixViolations(
           creator.id,
-          collectStructuralViolations(creator.scope, r.plan.operations)
+          collectStructuralViolations(creator.locality, r.plan.operations)
         )
       );
     }
@@ -214,7 +214,7 @@ describe('Creator matrix: planWithProvidedInput (aggregated)', () => {
         failures.push(
           ...prefixViolations(
             creator.id,
-            collectStructuralViolations(creator.scope, r.plan.operations)
+            collectStructuralViolations(creator.locality, r.plan.operations)
           )
         );
       } else if (r.kind !== 'error') {
@@ -242,7 +242,7 @@ describe('Creator matrix: planWithProvidedInput (aggregated)', () => {
         failures.push(
           ...prefixViolations(
             creator.id,
-            collectStructuralViolations(creator.scope, r.plan.operations)
+            collectStructuralViolations(creator.locality, r.plan.operations)
           )
         );
       }
@@ -427,7 +427,7 @@ describe('SimpleFileCreator.run()', () => {
     label: 'Test',
     presetId: 'claude',
     category: SourceCategoryId.Skill,
-    scope: 'workspace',
+    locality: 'workspace',
     targetDir: (ws) => (ws ? path.join(ws, '.claude', 'skills') : ''),
     suggestedExtension: '.md',
     initialContent: '# x\n',
@@ -457,7 +457,7 @@ describe('FolderFileCreator.run()', () => {
     label: 'Test',
     presetId: 'antigravity',
     category: SourceCategoryId.Skill,
-    scope: 'workspace',
+    locality: 'workspace',
     targetDir: (ws) => (ws ? path.join(ws, '.agent', 'skills') : ''),
     fixedFileName: 'SKILL.md',
     initialContent: (n) => `# ${n}\n`,
@@ -488,7 +488,7 @@ describe('FixedDocCreator.run()', () => {
       label: 'Test',
       presetId: 'claude',
       category: SourceCategoryId.LlmGuideline,
-      scope: 'workspace',
+      locality: 'workspace',
       requireNonEmptyTitle: true,
       absolutePath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, 'DOC.md') : ''),
       contentForTitle: (t) => `# ${t}\n`,
@@ -509,7 +509,7 @@ describe('FixedDocCreator.run()', () => {
       label: 'Test',
       presetId: 'claude',
       category: SourceCategoryId.LlmGuideline,
-      scope: 'workspace',
+      locality: 'workspace',
       requireNonEmptyTitle: true,
       absolutePath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, 'DOC.md') : ''),
       contentForTitle: (t) => `# ${t}\n`,
@@ -525,7 +525,7 @@ describe('FixedDocCreator.run()', () => {
       label: 'Test',
       presetId: 'antigravity',
       category: SourceCategoryId.LlmGuideline,
-      scope: 'user',
+      locality: 'user',
       requireNonEmptyTitle: false,
       defaultTitleIfEmpty: 'DEFAULT',
       absolutePath: () => path.join(ROOTS.geminiUserRoot, 'X.md'),
@@ -548,7 +548,7 @@ describe('FixedDocCreator.run()', () => {
       label: 'Test',
       presetId: 'claude',
       category: SourceCategoryId.LlmGuideline,
-      scope: 'workspace',
+      locality: 'workspace',
       requireNonEmptyTitle: true,
       absolutePath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, 'DOC.md') : ''),
       contentForTitle: (t) => `# ${t}\n`,
@@ -566,7 +566,7 @@ describe('ClaudeRegisteredHookCreator.run()', () => {
   const hook = new ClaudeRegisteredHookCreator({
     id: 'test/claude-hook/run',
     label: 'Test',
-    scope: 'workspace',
+    locality: 'workspace',
     hooksDir: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, '.claude', 'hooks') : ''),
     settingsPath: (c) => path.join(c.workspaceRoot, '.claude', 'settings.json'),
   });
@@ -613,7 +613,7 @@ describe('CursorRegisteredHookCreator.run()', () => {
   const hook = new CursorRegisteredHookCreator({
     id: 'test/cursor-hook/run',
     label: 'Test',
-    scope: 'workspace',
+    locality: 'workspace',
     hooksDir: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, '.cursor', 'hooks') : ''),
     hooksJsonPath: (c) =>
       c.workspaceRoot ? path.join(c.workspaceRoot, '.cursor', 'hooks.json') : '',
@@ -679,7 +679,7 @@ describe('ClaudeMcpCreator.run() and CursorMcpCreator.run()', () => {
     const mcp = new ClaudeMcpCreator({
       id: 'test/claude-mcp/run',
       label: 'Test',
-      scope: 'workspace',
+      locality: 'workspace',
       mcpPath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, '.mcp.json') : ''),
     });
     vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('srv');
@@ -696,7 +696,7 @@ describe('ClaudeMcpCreator.run() and CursorMcpCreator.run()', () => {
     const mcp = new CursorMcpCreator({
       id: 'test/cursor-mcp/run',
       label: 'Test',
-      scope: 'workspace',
+      locality: 'workspace',
       mcpPath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, '.cursor', 'mcp.json') : ''),
     });
     vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('srv2');
@@ -713,7 +713,7 @@ describe('ClaudeMcpCreator.run() and CursorMcpCreator.run()', () => {
     const mcp = new ClaudeMcpCreator({
       id: 'test/claude-mcp/cancel',
       label: 'Test',
-      scope: 'workspace',
+      locality: 'workspace',
       mcpPath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, '.mcp.json') : ''),
     });
     vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue(undefined);
@@ -725,7 +725,7 @@ describe('ClaudeMcpCreator.run() and CursorMcpCreator.run()', () => {
     const mcp = new CursorMcpCreator({
       id: 'test/cursor-mcp/cancel',
       label: 'Test',
-      scope: 'workspace',
+      locality: 'workspace',
       mcpPath: (c) => (c.workspaceRoot ? path.join(c.workspaceRoot, '.cursor', 'mcp.json') : ''),
     });
     vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue(undefined);
@@ -738,7 +738,7 @@ describe('CodexConfigTomlCreator.run()', () => {
   const tom = new CodexConfigTomlCreator({
     id: 'test/codex-toml/run',
     label: 'Test',
-    scope: 'workspace',
+    locality: 'workspace',
     absolutePath: (c) =>
       c.workspaceRoot ? path.join(c.workspaceRoot, '.codex', 'config.toml') : '',
   });

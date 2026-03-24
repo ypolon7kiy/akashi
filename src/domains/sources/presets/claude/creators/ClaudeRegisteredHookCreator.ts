@@ -24,7 +24,7 @@ export const CLAUDE_HOOK_LIFECYCLE_EVENTS = [
 export interface ClaudeRegisteredHookCreatorConfig {
   readonly id: string;
   readonly label: string;
-  readonly scope: 'workspace' | 'user';
+  readonly locality: 'workspace' | 'user';
   readonly hooksDir: (ctx: CreatorContext) => string;
   readonly settingsPath: (ctx: CreatorContext) => string;
 }
@@ -45,8 +45,8 @@ export class ClaudeRegisteredHookCreator extends ArtifactCreator {
   get label(): string {
     return this.c.label;
   }
-  get scope(): 'workspace' | 'user' {
-    return this.c.scope;
+  get locality(): 'workspace' | 'user' {
+    return this.c.locality;
   }
 
   planWithProvidedInput(ctx: CreatorContext, args: ArtifactCreatorArgs): CreatorResult {
