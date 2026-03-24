@@ -101,7 +101,14 @@ describe('applySourceCategoryVisibility', () => {
       strength: 1,
       opacity: 0.7,
     }),
-    edge({ id: 'e1', source: locProj, target: catCtx, type: 'contains', strength: 0.8, opacity: 0.6 }),
+    edge({
+      id: 'e1',
+      source: locProj,
+      target: catCtx,
+      type: 'contains',
+      strength: 0.8,
+      opacity: 0.6,
+    }),
     edge({
       id: 'e2',
       source: locProj,
@@ -134,9 +141,12 @@ describe('applySourceCategoryVisibility', () => {
     );
     const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
     expect(vis).toEqual(new Set([presetCursor, locProj, catCtx, nA]));
-    expect(outE.filter((x) => x.isVisible).map((x) => x.id).sort()).toEqual(
-      ['e0', 'e1', 'e3'].sort()
-    );
+    expect(
+      outE
+        .filter((x) => x.isVisible)
+        .map((x) => x.id)
+        .sort()
+    ).toEqual(['e0', 'e1', 'e3'].sort());
   });
 
   it('two categories: union of spines and subtrees', () => {
@@ -260,9 +270,7 @@ describe('applySourceCategoryVisibility', () => {
     ];
     const { nodes: outN } = applySourceCategoryVisibility(nodes2, edges2, new Set(['context']));
     const vis = new Set(outN.filter((x) => x.isVisible).map((x) => x.id));
-    expect(vis).toEqual(
-      new Set([presetCursor, locProj, catCtx, nA, locGlobal, catCtxG, nG])
-    );
+    expect(vis).toEqual(new Set([presetCursor, locProj, catCtx, nA, locGlobal, catCtxG, nG]));
   });
 });
 
@@ -327,8 +335,22 @@ describe('applySourceCategoryVisibility with folder tier', () => {
       strength: 1,
       opacity: 0.7,
     }),
-    edge({ id: 'f1', source: locProj, target: catCtx, type: 'contains', strength: 0.8, opacity: 0.6 }),
-    edge({ id: 'f2', source: catCtx, target: folSrc, type: 'contains', strength: 0.5, opacity: 0.4 }),
+    edge({
+      id: 'f1',
+      source: locProj,
+      target: catCtx,
+      type: 'contains',
+      strength: 0.8,
+      opacity: 0.6,
+    }),
+    edge({
+      id: 'f2',
+      source: catCtx,
+      target: folSrc,
+      type: 'contains',
+      strength: 0.5,
+      opacity: 0.4,
+    }),
     edge({ id: 'f3', source: folSrc, target: nA, type: 'contains', strength: 0.5, opacity: 0.4 }),
   ];
 

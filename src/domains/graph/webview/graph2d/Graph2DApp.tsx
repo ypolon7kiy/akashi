@@ -34,9 +34,8 @@ export function Graph2DApp(): JSX.Element {
   const [enabledPresetOverride, setEnabledPresetOverride] = useState<ReadonlySet<string> | null>(
     null
   );
-  const [enabledCategoryOverride, setEnabledCategoryOverride] = useState<ReadonlySet<string> | null>(
-    null
-  );
+  const [enabledCategoryOverride, setEnabledCategoryOverride] =
+    useState<ReadonlySet<string> | null>(null);
 
   const [linkDistance, setLinkDistance] = useState(
     defaultGraph2DWebviewPersistedState().linkDistance
@@ -198,8 +197,7 @@ export function Graph2DApp(): JSX.Element {
   }, [model.nodes]);
 
   const categoryViewModel = useMemo(
-    () =>
-      applySourceCategoryVisibility(model.nodes, model.edges, effectiveEnabledCategories),
+    () => applySourceCategoryVisibility(model.nodes, model.edges, effectiveEnabledCategories),
     [model.nodes, model.edges, effectiveEnabledCategories]
   );
 

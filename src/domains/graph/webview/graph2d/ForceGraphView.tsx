@@ -807,13 +807,7 @@ export function ForceGraphView(props: {
     }
 
     ctx.restore();
-  }, [
-    props.edges,
-    props.categoryPalette,
-    pointedId,
-    focusNodeById,
-    focusEdgeById,
-  ]);
+  }, [props.edges, props.categoryPalette, pointedId, focusNodeById, focusEdgeById]);
 
   const drawRef = useRef(draw);
   drawRef.current = draw;
