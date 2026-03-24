@@ -26,6 +26,10 @@ export const claudeHomePathTasks: readonly HomePathTask[] = [
         abs: path.join(roots.claudeUserRoot, 'settings.local.json'),
         category: SourceCategoryId.Config,
       },
+      {
+        abs: path.join(roots.claudeUserRoot, '.mcp.json'),
+        category: SourceCategoryId.Mcp,
+      },
     ];
     for (const row of rows) {
       if (await fileExists(row.abs)) {

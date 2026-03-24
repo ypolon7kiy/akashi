@@ -42,20 +42,37 @@ export function activate(context: vscode.ExtensionContext): void {
     // without importing sidebar types. Graph right-click will call this command.
     vscode.commands.registerCommand(
       'akashi.sources.createArtifact',
-      async (args: { templateId: string; userInput: string; workspaceRoot: string }) => {
+      async (args: {
+        templateId: string;
+        userInput: string;
+        workspaceRoot: string;
+        hookLifecycleEvent?: string;
+        hookMatcher?: string;
+      }) => {
         const template = findArtifactTemplateById(args?.templateId);
         if (!template) {
           void vscode.window.showErrorMessage(`Unknown artifact template: ${args?.templateId}`);
           return;
         }
         const userInput = (args.userInput ?? '').trim();
-        const nameErr = validateSourceFileBaseName(userInput);
+        const nameErr =
+          template.input.valueKind === 'freeText'
+            ? userInput === ''
+              ? 'Enter a title.'
+              : null
+            : validateSourceFileBaseName(userInput);
         if (nameErr) {
           void vscode.window.showErrorMessage(nameErr);
           return;
         }
         const roots = config.resolveToolUserRoots(os.homedir());
-        const planned = template.plan({ userInput, workspaceRoot: args.workspaceRoot ?? '', roots });
+        const planned = template.plan({
+          userInput,
+          workspaceRoot: args.workspaceRoot ?? '',
+          roots,
+          hookLifecycleEvent: args.hookLifecycleEvent,
+          hookMatcher: args.hookMatcher,
+        });
         if (!planned.ok) {
           void vscode.window.showErrorMessage(planned.error);
           return;

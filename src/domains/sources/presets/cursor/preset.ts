@@ -10,6 +10,7 @@ const WORKSPACE_GLOBS = [
   { glob: '**/.cursor/rules/**/*.md', category: SourceCategoryId.Rule },
   { glob: '**/.cursor/mcp.json', category: SourceCategoryId.Mcp },
   { glob: '**/.cursor/hooks.json', category: SourceCategoryId.Hook },
+  { glob: '**/.cursor/hooks/**/*', category: SourceCategoryId.Hook },
   { glob: '**/.cursor/commands/**/*.md', category: SourceCategoryId.Command },
   { glob: '**/.cursor/skills/**/*', category: SourceCategoryId.Skill },
   { glob: '**/.agents/skills/**/*', category: SourceCategoryId.Skill },

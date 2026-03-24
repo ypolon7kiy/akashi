@@ -31,6 +31,11 @@ export interface JsonMergeOp {
   readonly value: unknown;
   /** Shown in a modal confirmation before the merge is applied. */
   readonly description: string;
+  /**
+   * After merging, set root `version` to this number only when `version` is missing or not a finite number.
+   * Avoids clobbering a newer hooks.json schema (e.g. Cursor) while ensuring new files get `version: 1`.
+   */
+  readonly ensureTopLevelVersionIfMissing?: number;
 }
 
 export type ArtifactOperation = WriteFileOp | JsonMergeOp;

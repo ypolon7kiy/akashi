@@ -1,5 +1,9 @@
 import * as path from 'node:path';
-import type { ArtifactTemplate, ArtifactPlannerContext } from '../../domain/artifactTemplate';
+import type {
+  ArtifactTemplate,
+  ArtifactPlannerContext,
+  HookLifecycleWizardOptions,
+} from '../../domain/artifactTemplate';
 import { simpleFileTemplate } from '../../domain/artifactTemplateHelpers';
 import { SourceCategoryId } from '../../domain/sourceTags';
 
@@ -18,6 +22,26 @@ function commandContent(fileName: string): string {
   return `---\ndescription: ${name}\n---\n\n`;
 }
 
+/** Default lifecycle event for new Claude Code command hooks (see code.claude.com/docs/hooks). */
+export const DEFAULT_CLAUDE_HOOK_EVENT = 'PostToolUse' as const;
+
+/** Values shown in the new-artifact wizard for Claude registered hooks. */
+export const CLAUDE_HOOK_LIFECYCLE_EVENTS = [
+  'PostToolUse',
+  'PreToolUse',
+  'Stop',
+  'SubagentStop',
+  'SessionStart',
+  'SessionEnd',
+  'Notification',
+] as const;
+
+const claudeHookLifecycleWizard: HookLifecycleWizardOptions = {
+  events: [...CLAUDE_HOOK_LIFECYCLE_EVENTS],
+  defaultEvent: DEFAULT_CLAUDE_HOOK_EVENT,
+  promptMatcher: true,
+};
+
 function hookConfigTemplate(
   id: string,
   label: string,
@@ -31,16 +55,29 @@ function hookConfigTemplate(
     presetId: 'claude',
     category: SourceCategoryId.Hook,
     scope,
+    hookLifecycleWizard: claudeHookLifecycleWizard,
     input: { title: 'Hook Name', prompt: 'Hook name (e.g. lint-on-save)' },
     plan(ctx: ArtifactPlannerContext) {
       const dir = hooksDir(ctx);
       if (!dir) {
         return { ok: false, error: 'No target directory could be determined.' };
       }
-      if (!ctx.userInput) {
+      const name = ctx.userInput.trim();
+      if (!name) {
         return { ok: false, error: 'Enter a name.' };
       }
-      const scriptPath = path.join(dir, `${ctx.userInput}.sh`);
+      const scriptPath = path.join(dir, `${name}.sh`);
+      const allowed = CLAUDE_HOOK_LIFECYCLE_EVENTS as readonly string[];
+      const hookEvent =
+        ctx.hookLifecycleEvent && allowed.includes(ctx.hookLifecycleEvent)
+          ? ctx.hookLifecycleEvent
+          : DEFAULT_CLAUDE_HOOK_EVENT;
+      const matcher = ctx.hookMatcher?.trim() ?? '';
+      const newBlock = {
+        matcher,
+        hooks: [{ type: 'command', command: scriptPath }],
+      };
+      const matcherLabel = matcher === '' ? 'all tools' : matcher;
       return {
         ok: true,
         plan: {
@@ -48,19 +85,14 @@ function hookConfigTemplate(
             {
               type: 'writeFile',
               absolutePath: scriptPath,
-              content: `#!/bin/bash\n# Hook: ${ctx.userInput}\n\n`,
+              content: `#!/bin/bash\n# Hook: ${name}\n\n`,
             },
             {
               type: 'jsonMerge',
               absolutePath: settingsPath(ctx),
-              jsonPath: 'hooks',
-              value: {
-                [ctx.userInput]: {
-                  command: scriptPath,
-                  event: 'PostToolUse',
-                },
-              },
-              description: `Register hook "${ctx.userInput}" in settings.json`,
+              jsonPath: `hooks.${hookEvent}`,
+              value: [newBlock],
+              description: `Register hook "${name}" in settings.json (hooks.${hookEvent}, matcher: ${matcherLabel})`,
             },
           ],
           openAfterCreate: scriptPath,
@@ -88,7 +120,8 @@ function mcpTemplate(
       if (!target) {
         return { ok: false, error: 'No target path could be determined.' };
       }
-      if (!ctx.userInput) {
+      const server = ctx.userInput.trim();
+      if (!server) {
         return { ok: false, error: 'Enter a name.' };
       }
       return {
@@ -100,14 +133,54 @@ function mcpTemplate(
               absolutePath: target,
               jsonPath: 'mcpServers',
               value: {
-                [ctx.userInput]: {
+                [server]: {
                   command: 'npx',
-                  args: ['-y', ctx.userInput],
+                  args: ['-y', server],
                 },
               },
-              description: `Add MCP server "${ctx.userInput}" to config`,
+              description: `Add starter MCP entry "${server}" (npx stub — edit .mcp.json for a real server config).`,
             },
           ],
+        },
+      };
+    },
+  };
+}
+
+function claudeFixedClaudeMdTemplate(
+  id: string,
+  label: string,
+  scope: 'workspace' | 'user',
+  absolutePath: (ctx: ArtifactPlannerContext) => string
+): ArtifactTemplate {
+  return {
+    id,
+    label,
+    presetId: 'claude',
+    category: SourceCategoryId.LlmGuideline,
+    scope,
+    input: {
+      title: 'Document title',
+      prompt: 'First-line heading in CLAUDE.md',
+      valueKind: 'freeText',
+    },
+    plan(ctx: ArtifactPlannerContext) {
+      const abs = absolutePath(ctx);
+      if (!abs) {
+        return { ok: false, error: 'No target path could be determined.' };
+      }
+      const title = ctx.userInput.trim();
+      return {
+        ok: true,
+        plan: {
+          operations: [
+            {
+              type: 'writeFile',
+              absolutePath: abs,
+              content: `# ${title}\n\n`,
+            },
+          ],
+          openAfterCreate: abs,
         },
       };
     },
@@ -177,7 +250,7 @@ export const claudeArtifactTemplates: readonly ArtifactTemplate[] = [
   }),
   simpleFileTemplate({
     id: 'claude/context/workspace',
-    label: 'New Context File',
+    label: 'New Context File (custom name)',
     presetId: 'claude',
     category: SourceCategoryId.LlmGuideline,
     scope: 'workspace',
@@ -185,9 +258,21 @@ export const claudeArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.md',
     initialContent: '# Guidelines\n\n',
   }),
+  claudeFixedClaudeMdTemplate(
+    'claude/claude-md/workspace',
+    'New CLAUDE.md (project root)',
+    'workspace',
+    (ctx) => (ctx.workspaceRoot ? path.join(ctx.workspaceRoot, 'CLAUDE.md') : '')
+  ),
+  claudeFixedClaudeMdTemplate(
+    'claude/claude-md/user',
+    'New CLAUDE.md (global)',
+    'user',
+    (ctx) => path.join(ctx.roots.claudeUserRoot, 'CLAUDE.md')
+  ),
   simpleFileTemplate({
     id: 'claude/hook/workspace',
-    label: 'New Hook Script',
+    label: 'New Hook script only (manual settings)',
     presetId: 'claude',
     category: SourceCategoryId.Hook,
     scope: 'workspace',
@@ -200,7 +285,7 @@ export const claudeArtifactTemplates: readonly ArtifactTemplate[] = [
   }),
   simpleFileTemplate({
     id: 'claude/hook/user',
-    label: 'New Hook Script (global)',
+    label: 'New Hook script only — global (manual settings)',
     presetId: 'claude',
     category: SourceCategoryId.Hook,
     scope: 'user',
@@ -213,14 +298,14 @@ export const claudeArtifactTemplates: readonly ArtifactTemplate[] = [
   }),
   hookConfigTemplate(
     'claude/hook-config/workspace',
-    'Register Hook (settings.json)',
+    'New Hook (script + settings.json)',
     'workspace',
     (ctx) => (ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.claude', 'hooks') : ''),
     (ctx) => path.join(ctx.workspaceRoot, '.claude', 'settings.json')
   ),
   hookConfigTemplate(
     'claude/hook-config/user',
-    'Register Hook (global settings)',
+    'New Hook (script + global settings.json)',
     'user',
     (ctx) => path.join(ctx.roots.claudeUserRoot, 'hooks'),
     (ctx) => path.join(ctx.roots.claudeUserRoot, 'settings.json')

@@ -1,7 +1,49 @@
 import * as path from 'node:path';
-import type { ArtifactTemplate } from '../../domain/artifactTemplate';
+import type { ArtifactTemplate, ArtifactPlannerContext } from '../../domain/artifactTemplate';
 import { simpleFileTemplate } from '../../domain/artifactTemplateHelpers';
 import { SourceCategoryId } from '../../domain/sourceTags';
+
+const CODEX_CONFIG_TOML_STUB = `# Codex CLI configuration
+# https://github.com/openai/codex
+
+`;
+
+function codexConfigTomlTemplate(
+  id: string,
+  label: string,
+  scope: 'workspace' | 'user',
+  absolutePath: (ctx: ArtifactPlannerContext) => string
+): ArtifactTemplate {
+  return {
+    id,
+    label,
+    presetId: 'codex',
+    category: SourceCategoryId.Config,
+    scope,
+    input: {
+      title: 'config.toml',
+      prompt: 'Creates config.toml if it does not exist (name field ignored)',
+    },
+    plan(ctx: ArtifactPlannerContext) {
+      const abs = absolutePath(ctx);
+      if (!abs) {
+        return { ok: false, error: 'No target path could be determined.' };
+      }
+      return {
+        ok: true,
+        plan: {
+          operations: [
+            {
+              type: 'writeFile',
+              absolutePath: abs,
+              content: CODEX_CONFIG_TOML_STUB,
+            },
+          ],
+        },
+      };
+    },
+  };
+}
 
 function skillContent(fileName: string): string {
   const name = fileName.replace(/\.md$/i, '');
@@ -56,7 +98,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
   }),
   simpleFileTemplate({
     id: 'codex/context/workspace',
-    label: 'New Context File',
+    label: 'New Context File (custom name)',
     presetId: 'codex',
     category: SourceCategoryId.LlmGuideline,
     scope: 'workspace',
@@ -64,4 +106,42 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.md',
     initialContent: '# Guidelines\n\n',
   }),
+  simpleFileTemplate({
+    id: 'codex/agents-md/workspace',
+    label: 'New .codex/AGENTS.md',
+    presetId: 'codex',
+    category: SourceCategoryId.LlmGuideline,
+    scope: 'workspace',
+    targetDir: (ws) => (ws ? path.join(ws, '.codex') : ''),
+    suggestedExtension: '.md',
+    initialContent: (fileName: string) => {
+      const name = fileName.replace(/\.md$/i, '');
+      return `# ${name}\n\n`;
+    },
+  }),
+  simpleFileTemplate({
+    id: 'codex/agents-md/user',
+    label: 'New AGENTS.md (global Codex)',
+    presetId: 'codex',
+    category: SourceCategoryId.LlmGuideline,
+    scope: 'user',
+    targetDir: (_ws, roots) => roots.codexUserRoot,
+    suggestedExtension: '.md',
+    initialContent: (fileName: string) => {
+      const name = fileName.replace(/\.md$/i, '');
+      return `# ${name}\n\n`;
+    },
+  }),
+  codexConfigTomlTemplate(
+    'codex/config-toml/workspace',
+    'New .codex/config.toml',
+    'workspace',
+    (ctx) => (ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.codex', 'config.toml') : '')
+  ),
+  codexConfigTomlTemplate(
+    'codex/config-toml/user',
+    'New config.toml (global Codex)',
+    'user',
+    (ctx) => path.join(ctx.roots.codexUserRoot, 'config.toml')
+  ),
 ];

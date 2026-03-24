@@ -95,6 +95,13 @@ async function executeJsonMerge(op: JsonMergeOp): Promise<string | null> {
     }
   }
 
+  if (typeof op.ensureTopLevelVersionIfMissing === 'number') {
+    const v = existing.version;
+    if (typeof v !== 'number' || !Number.isFinite(v)) {
+      existing.version = op.ensureTopLevelVersionIfMissing;
+    }
+  }
+
   await vscode.workspace.fs.writeFile(
     fileUri,
     Buffer.from(JSON.stringify(existing, null, 2) + '\n', 'utf8')

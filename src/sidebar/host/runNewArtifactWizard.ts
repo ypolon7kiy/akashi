@@ -15,6 +15,8 @@ type PresetQuickPickItem = vscode.QuickPickItem & { readonly presetId: SourcePre
 
 type TemplateQuickPickItem = vscode.QuickPickItem & { readonly template: ArtifactTemplate };
 
+type HookEventQuickPickItem = vscode.QuickPickItem & { readonly event: string };
+
 function inferWorkspaceRoot(): string {
   const editor = vscode.window.activeTextEditor;
   const uri = editor?.document.uri;
@@ -101,10 +103,43 @@ export async function runNewArtifactWizard(
   }
 
   const tpl = templatePick.template;
+
+  let hookLifecycleEvent: string | undefined;
+  let hookMatcher: string | undefined;
+  const hookWiz = tpl.hookLifecycleWizard;
+  if (hookWiz) {
+    const evPick = await vscode.window.showQuickPick<HookEventQuickPickItem>(
+      hookWiz.events.map((e) => ({ label: e, event: e })),
+      {
+        title: 'Hook lifecycle event',
+        placeHolder: `Default: ${hookWiz.defaultEvent}`,
+      }
+    );
+    if (!evPick) {
+      return;
+    }
+    hookLifecycleEvent = evPick.event;
+    if (hookWiz.promptMatcher) {
+      const matcherRaw = await vscode.window.showInputBox({
+        title: 'Tool matcher (optional)',
+        prompt: 'Restrict which tools fire this hook; leave empty for all tools',
+      });
+      if (matcherRaw === undefined) {
+        return;
+      }
+      hookMatcher = matcherRaw.trim();
+    }
+  }
+
   const name = await vscode.window.showInputBox({
     title: tpl.input.title ?? 'Name',
     prompt: tpl.input.prompt,
     validateInput: (v) => {
+      if (tpl.input.valueKind === 'freeText') {
+        const t = v.trim();
+        if (t === '') return 'Enter a title.';
+        return tpl.input.validate?.(t) ?? undefined;
+      }
       const base = validateSourceFileBaseName(v.trim());
       if (base) return base;
       return tpl.input.validate?.(v.trim()) ?? undefined;
@@ -114,15 +149,24 @@ export async function runNewArtifactWizard(
     return;
   }
   const trimmed = name.trim();
-  const nameErr = validateSourceFileBaseName(trimmed);
-  if (nameErr) {
-    void vscode.window.showErrorMessage(nameErr);
-    return;
+  if (tpl.input.valueKind === 'freeText') {
+    if (!trimmed) {
+      void vscode.window.showErrorMessage('Enter a title.');
+      return;
+    }
+  } else {
+    const nameErr = validateSourceFileBaseName(trimmed);
+    if (nameErr) {
+      void vscode.window.showErrorMessage(nameErr);
+      return;
+    }
   }
 
   await vscode.commands.executeCommand('akashi.sources.createArtifact', {
     templateId: tpl.id,
     userInput: trimmed,
     workspaceRoot,
+    hookLifecycleEvent,
+    hookMatcher,
   });
 }

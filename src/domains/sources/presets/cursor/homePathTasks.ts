@@ -30,6 +30,16 @@ export const cursorHomePathTasks: readonly HomePathTask[] = [
     if (!activePresets.has(PRESET_ID)) {
       return;
     }
+    const hooksDir = path.join(roots.cursorUserRoot, 'hooks');
+    for (const f of await collectFilesRecursiveUnderDir(hooksDir)) {
+      add(f, PRESET_ID, SourceCategoryId.Hook);
+    }
+  },
+  async (ctx) => {
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
     const cursorSkills = path.join(roots.cursorUserRoot, 'skills');
     for (const f of await collectFilesRecursiveUnderDir(cursorSkills)) {
       add(f, PRESET_ID, SourceCategoryId.Skill);

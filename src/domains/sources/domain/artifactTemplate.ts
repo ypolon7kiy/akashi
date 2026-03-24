@@ -11,6 +11,19 @@ export interface ArtifactInputDescriptor {
   readonly prompt: string;
   /** Extra validation beyond `validateSourceFileBaseName`. Return `null` if valid. */
   readonly validate?: (value: string) => string | null;
+  /**
+   * `basename` (default): must pass `validateSourceFileBaseName` on the host.
+   * `freeText`: any non-empty string after trim (e.g. title for fixed-path `CLAUDE.md`).
+   */
+  readonly valueKind?: 'basename' | 'freeText';
+}
+
+/** Wizard asks for hook lifecycle event (and optionally matcher) before the hook file name. */
+export interface HookLifecycleWizardOptions {
+  readonly events: readonly string[];
+  readonly defaultEvent: string;
+  /** Second step: optional tool matcher (empty = all tools). */
+  readonly promptMatcher?: boolean;
 }
 
 /** Context passed to `ArtifactTemplate.plan()`. */
@@ -21,6 +34,10 @@ export interface ArtifactPlannerContext {
   readonly workspaceRoot: string;
   /** Tool-specific user-home directories. */
   readonly roots: ToolUserRoots;
+  /** Claude: PascalCase keys; Cursor: camelCase (from wizard when `hookLifecycleWizard` is set). */
+  readonly hookLifecycleEvent?: string;
+  /** Tool matcher string for hooks; empty means match all. */
+  readonly hookMatcher?: string;
 }
 
 /**
@@ -41,6 +58,9 @@ export interface ArtifactTemplate {
 
   /** Describes what user input to collect. */
   readonly input: ArtifactInputDescriptor;
+
+  /** When set, wizard collects lifecycle event (and optionally matcher) before the name step. */
+  readonly hookLifecycleWizard?: HookLifecycleWizardOptions;
 
   /**
    * Pure function that produces a creation plan from validated user input.
