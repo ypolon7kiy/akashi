@@ -113,10 +113,10 @@ function fileNodeSize(byteLength: number): number {
 const LAYOUT_DEPTH_FOLDER = 3;
 /** File nodes when parent is a folder node. */
 const LAYOUT_DEPTH_FILE_UNDER_FOLDER = 4;
-/** File nodes when attached directly from category (singleton directory). */
+/** File nodes when attached directly from category (when folder tier is skipped). */
 const LAYOUT_DEPTH_FILE_DIRECT = 3;
 
-const DEFAULT_MIN_FILES_FOR_FOLDER_NODE = 2;
+const DEFAULT_MIN_FILES_FOR_FOLDER_NODE = 1;
 
 /**
  * Group source records by parent directory path (`dirname` of `path`).
@@ -167,7 +167,8 @@ export interface BuildSourcesGraphOptions {
   applyGridLayout?: boolean;
   /**
    * Minimum files sharing a directory under one category before adding a folder node.
-   * Below this, category connects directly to the file. Default {@link DEFAULT_MIN_FILES_FOR_FOLDER_NODE}.
+   * When the count is below this threshold, category connects directly to each file (no folder tier).
+   * Default {@link DEFAULT_MIN_FILES_FOR_FOLDER_NODE}.
    */
   minFilesForFolderNode?: number;
 }
@@ -190,7 +191,8 @@ const EDGE_TIER = {
 
 /**
  * Build positioned graph: preset → locality → category → (optional folder) → file.
- * Folder nodes group files in the same directory when at least `minFilesForFolderNode` share it.
+ * Folder nodes group files in the same directory when the directory has at least
+ * `minFilesForFolderNode` indexed file(s); default is 1 so single-file dirs still get a folder tier.
  */
 export function buildGraphFromSourcesPayload(
   payload: SourcesSnapshotPayload | null,

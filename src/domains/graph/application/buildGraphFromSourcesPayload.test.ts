@@ -50,7 +50,7 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(g.edges).toEqual([]);
   });
 
-  it('builds preset → locality → category → file for singleton directory (no folder node)', () => {
+  it('builds preset → locality → category → folder → file for single-file directory', () => {
     const payload = basePayload();
     const { nodes, edges } = buildGraphFromSourcesPayload(payload);
 
@@ -70,15 +70,17 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(catNode?.graphCategoryId).toBe('context');
     expect(catNode?.label).toBe('Context');
 
+    const srcDir = '/ws/src';
+    const folId = graphFolderNodeId('claude', 'project', srcDir);
+    expect(nodes.some((n) => n.id === folId && n.type === 'folder')).toBe(true);
+
     // File node
     const fileId = graphFileNodeId('claude', 'project', '/ws/src/CLAUDE.md');
     const note = nodes.find((n) => n.id === fileId);
     expect(note?.type).toBe('note');
-    expect(note?.layoutDepth).toBe(3);
+    expect(note?.layoutDepth).toBe(4);
     expect(note?.filesystemPath).toBe('/ws/src/CLAUDE.md');
     expect(note?.graphCategoryId).toBe('context');
-
-    expect(nodes.some((n) => n.type === 'folder')).toBe(false);
 
     // Edge: preset → locality (spine)
     expect(
@@ -99,10 +101,13 @@ describe('buildGraphFromSourcesPayload', () => {
       )
     ).toBe(true);
 
-    // Edge: category → file (leaf)
-    expect(
-      edges.some((e) => e.type === 'contains' && e.source === catId && e.target === fileId)
-    ).toBe(true);
+    // Edge: category → folder → file
+    expect(edges.some((e) => e.type === 'contains' && e.source === catId && e.target === folId)).toBe(
+      true
+    );
+    expect(edges.some((e) => e.type === 'contains' && e.source === folId && e.target === fileId)).toBe(
+      true
+    );
   });
 
   it('groups files by category under the same locality', () => {
@@ -167,6 +172,7 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(g.get('/ws/b')?.length).toBe(1);
     expect(useFolderNodeForDirectory(2, 2)).toBe(true);
     expect(useFolderNodeForDirectory(1, 2)).toBe(false);
+    expect(useFolderNodeForDirectory(1, 1)).toBe(true);
   });
 
   it('two records same path different presets yield two file nodes', () => {
@@ -241,22 +247,23 @@ describe('buildGraphFromSourcesPayload', () => {
         },
       ],
     };
-    const { nodes } = buildGraphFromSourcesPayload(payload);
+    const { nodes, edges } = buildGraphFromSourcesPayload(payload);
     expect(nodes.some((n) => n.id === graphLocalityNodeId('cursor', 'global'))).toBe(true);
     // MCP category node exists
+    const catMcp = graphCategoryNodeId('cursor', 'global', 'mcp');
+    expect(nodes.some((n) => n.id === catMcp && n.type === 'category')).toBe(true);
+    const cursorDir = '/home/user/.cursor';
+    const folId = graphFolderNodeId('cursor', 'global', cursorDir);
+    expect(nodes.some((n) => n.id === folId && n.type === 'folder')).toBe(true);
     expect(
-      nodes.some(
-        (n) => n.id === graphCategoryNodeId('cursor', 'global', 'mcp') && n.type === 'category'
-      )
+      edges.some((e) => e.type === 'contains' && e.source === catMcp && e.target === folId)
     ).toBe(true);
     // File node under global
-    expect(
-      nodes.some(
-        (n) =>
-          n.type === 'note' &&
-          n.id === graphFileNodeId('cursor', 'global', '/home/user/.cursor/mcp.json')
-      )
-    ).toBe(true);
+    const fileId = graphFileNodeId('cursor', 'global', '/home/user/.cursor/mcp.json');
+    expect(nodes.some((n) => n.type === 'note' && n.id === fileId)).toBe(true);
+    expect(edges.some((e) => e.type === 'contains' && e.source === folId && e.target === fileId)).toBe(
+      true
+    );
   });
 
   it('edge tiers have decreasing strength and opacity', () => {
@@ -267,31 +274,36 @@ describe('buildGraphFromSourcesPayload', () => {
     };
     const { edges } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
 
+    const catId = graphCategoryNodeId('claude', 'project', 'context');
+    const folId = graphFolderNodeId('claude', 'project', '/ws');
+    const fileId = graphFileNodeId('claude', 'project', '/ws/CLAUDE.md');
+
     const presetToLocality = edges.find(
       (e) =>
         e.source === graphPresetNodeId('claude') &&
         e.target === graphLocalityNodeId('claude', 'project')
     );
     const localityToCategory = edges.find(
-      (e) =>
-        e.source === graphLocalityNodeId('claude', 'project') &&
-        e.target === graphCategoryNodeId('claude', 'project', 'context')
+      (e) => e.source === graphLocalityNodeId('claude', 'project') && e.target === catId
     );
-    const categoryToFile = edges.find(
-      (e) =>
-        e.source === graphCategoryNodeId('claude', 'project', 'context') &&
-        e.target === graphFileNodeId('claude', 'project', '/ws/CLAUDE.md')
+    const categoryToFolder = edges.find(
+      (e) => e.source === catId && e.target === folId && e.type === 'contains'
+    );
+    const folderToFile = edges.find(
+      (e) => e.source === folId && e.target === fileId && e.type === 'contains'
     );
 
     expect(presetToLocality).toBeDefined();
     expect(localityToCategory).toBeDefined();
-    expect(categoryToFile).toBeDefined();
+    expect(categoryToFolder).toBeDefined();
+    expect(folderToFile).toBeDefined();
 
-    // Spine > branch > leaf (category→file is still leaf tier for singleton)
     expect(presetToLocality!.strength).toBeGreaterThan(localityToCategory!.strength);
-    expect(localityToCategory!.strength).toBeGreaterThan(categoryToFile!.strength);
+    expect(localityToCategory!.strength).toBeGreaterThan(categoryToFolder!.strength);
+    expect(categoryToFolder!.strength).toBeGreaterThanOrEqual(folderToFile!.strength);
     expect(presetToLocality!.opacity).toBeGreaterThan(localityToCategory!.opacity);
-    expect(localityToCategory!.opacity).toBeGreaterThan(categoryToFile!.opacity);
+    expect(localityToCategory!.opacity).toBeGreaterThan(categoryToFolder!.opacity);
+    expect(categoryToFolder!.opacity).toBeGreaterThanOrEqual(folderToFile!.opacity);
   });
 
   it('edge tiers stay monotonic when folder tier is present', () => {
