@@ -1,16 +1,20 @@
 import * as path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as InMemoryFs from '../../../helpers/inMemoryVscodeFs';
 
 const hoisted = vi.hoisted(() => {
+  /* Vitest hoisted() runs before ESM bindings init; CommonJS require is required here. */
+  /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports */
   const { createRequire } = require('node:module') as typeof import('node:module');
   const { fileURLToPath } = require('node:url') as typeof import('node:url');
+  /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports */
   const hr = createRequire(fileURLToPath(import.meta.url));
   const {
     createInMemoryWorkspaceFs,
     createWorkspaceFolderFixture,
     TestFileSystemError,
     TestFileType,
-  } = hr('../../../helpers/inMemoryVscodeFs.ts') as typeof import('../../../helpers/inMemoryVscodeFs');
+  } = hr('../../../helpers/inMemoryVscodeFs.ts') as typeof InMemoryFs;
   const mem = createInMemoryWorkspaceFs();
   const fixture = createWorkspaceFolderFixture({ workspaceRoot: '/ws', homeDir: '/home/tester' });
   const showWarningMessage = vi.fn();
@@ -115,7 +119,10 @@ describe('executeCreationPlan (integration)', () => {
     };
     const r = await executeCreationPlan(plan);
     expect(r).toEqual({ ok: true, openPath: undefined });
-    const parsed = JSON.parse(hoisted.api.readFileText('/ws/config.json')!) as Record<string, unknown>;
+    const parsed = JSON.parse(hoisted.api.readFileText('/ws/config.json')!) as Record<
+      string,
+      unknown
+    >;
     expect(parsed.a).toBe(1);
     expect(parsed.b).toBe(2);
   });

@@ -176,7 +176,10 @@ export async function handleSidebarFsCreateFile(payload: {
   if (parentOfFile !== parentN) {
     return { ok: false, error: 'Enter a valid name.' };
   }
-  if (!isPathAllowedForWorkspaceOrHome(filePath) || !isPathAllowedForWorkspaceOrHome(parentOfFile)) {
+  if (
+    !isPathAllowedForWorkspaceOrHome(filePath) ||
+    !isPathAllowedForWorkspaceOrHome(parentOfFile)
+  ) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 
@@ -225,7 +228,10 @@ export async function handleSidebarFsCreateFolder(payload: {
   if (parentOfFolder !== parentN) {
     return { ok: false, error: 'Enter a valid name.' };
   }
-  if (!isPathAllowedForWorkspaceOrHome(folderPath) || !isPathAllowedForWorkspaceOrHome(parentOfFolder)) {
+  if (
+    !isPathAllowedForWorkspaceOrHome(folderPath) ||
+    !isPathAllowedForWorkspaceOrHome(parentOfFolder)
+  ) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 

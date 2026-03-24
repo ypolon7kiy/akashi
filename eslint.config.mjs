@@ -5,7 +5,9 @@ import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', '.vscode-test/**'] },
+  {
+    ignores: ['dist/**', 'node_modules/**', '.vscode-test/**', 'tests/e2e/**'],
+  },
   // Root .mjs config files run in Node; provide Node globals
   {
     files: ['*.mjs'],

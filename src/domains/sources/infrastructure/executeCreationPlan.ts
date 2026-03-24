@@ -36,9 +36,7 @@ async function executeWriteFile(op: WriteFileOp): Promise<string | null> {
 }
 
 async function executeJsonMerge(op: JsonMergeOp): Promise<string | null> {
-  const prompt =
-    op.description.trim() ||
-    `Apply JSON merge to ${path.basename(op.absolutePath)}?`;
+  const prompt = op.description.trim() || `Apply JSON merge to ${path.basename(op.absolutePath)}?`;
   const choice = await vscode.window.showWarningMessage(prompt, { modal: true }, 'Continue');
   if (choice !== 'Continue') {
     return 'Cancelled.';
@@ -71,16 +69,23 @@ async function executeJsonMerge(op: JsonMergeOp): Promise<string | null> {
     const segments = op.jsonPath.split('.');
     let target: Record<string, unknown> = existing;
     for (let i = 0; i < segments.length - 1; i++) {
-      const seg = segments[i]!;
+      const seg = segments[i];
       if (typeof target[seg] !== 'object' || target[seg] === null) {
         target[seg] = {};
       }
       target = target[seg] as Record<string, unknown>;
     }
-    const lastSeg = segments[segments.length - 1]!;
+    const lastSeg = segments[segments.length - 1];
     const current = target[lastSeg];
     if (Array.isArray(current) && Array.isArray(op.value)) {
-      target[lastSeg] = [...current, ...(op.value as unknown[])];
+      const merged: unknown[] = [];
+      for (const el of current) {
+        merged.push(el);
+      }
+      for (const el of op.value) {
+        merged.push(el);
+      }
+      target[lastSeg] = merged;
     } else if (
       typeof current === 'object' &&
       current !== null &&
@@ -89,7 +94,10 @@ async function executeJsonMerge(op: JsonMergeOp): Promise<string | null> {
       op.value !== null &&
       !Array.isArray(op.value)
     ) {
-      target[lastSeg] = { ...(current as Record<string, unknown>), ...(op.value as Record<string, unknown>) };
+      target[lastSeg] = {
+        ...(current as Record<string, unknown>),
+        ...(op.value as Record<string, unknown>),
+      };
     } else {
       target[lastSeg] = op.value;
     }

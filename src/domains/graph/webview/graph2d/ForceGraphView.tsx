@@ -769,7 +769,9 @@ export function ForceGraphView(props: {
             fillColor,
             tierLight,
             tierDark,
-            n.type === 'preset' ? PRESET_TIER_LABEL_LUMINANCE_THRESHOLD : TIER_LABEL_LUMINANCE_THRESHOLD
+            n.type === 'preset'
+              ? PRESET_TIER_LABEL_LUMINANCE_THRESHOLD
+              : TIER_LABEL_LUMINANCE_THRESHOLD
           );
           const labelY = n.y + innerFontPx * 0.12;
           const outlineW =

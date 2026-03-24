@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import type * as vscode from 'vscode';
 import { appendLine, initLog } from './log';
 import { registerAkashiExtension } from './registerAkashiExtension';
 

@@ -21,12 +21,13 @@ vi.mock('vscode', () => ({
 import { createConfigDomain } from '@src/domains/config/createConfigDomain';
 
 describe('createConfigDomain (integration)', () => {
-  it('invokes indexing callbacks when change affects akashi.presets', async () => {
+  it('invokes indexing callbacks when change affects akashi.presets', () => {
     const subscriptions: { dispose: () => void }[] = [];
     const domain = createConfigDomain({ subscriptions } as vscode.ExtensionContext);
     const indexingSpy = vi.fn();
-    domain.onIndexingSettingsChanged(async () => {
+    domain.onIndexingSettingsChanged(() => {
       indexingSpy();
+      return Promise.resolve();
     });
 
     expect(hoisted.configListener).toBeTypeOf('function');
@@ -42,8 +43,9 @@ describe('createConfigDomain (integration)', () => {
     const subscriptions: { dispose: () => void }[] = [];
     const domain = createConfigDomain({ subscriptions } as vscode.ExtensionContext);
     const indexingSpy = vi.fn();
-    domain.onIndexingSettingsChanged(async () => {
+    domain.onIndexingSettingsChanged(() => {
       indexingSpy();
+      return Promise.resolve();
     });
 
     hoisted.configListener!({

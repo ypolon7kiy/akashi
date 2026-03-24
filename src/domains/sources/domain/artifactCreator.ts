@@ -50,8 +50,5 @@ export abstract class ArtifactCreator {
   /**
    * Non-interactive planning (wizard bypass, graph/command callers, unit tests).
    */
-  abstract planWithProvidedInput(
-    ctx: CreatorContext,
-    args: ArtifactCreatorArgs
-  ): CreatorResult;
+  abstract planWithProvidedInput(ctx: CreatorContext, args: ArtifactCreatorArgs): CreatorResult;
 }

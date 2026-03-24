@@ -51,7 +51,10 @@ export function createInMemoryWorkspaceFs(): {
       to: { fsPath: string },
       opts?: { overwrite?: boolean }
     ): Promise<void>;
-    delete(uri: { fsPath: string }, opts?: { recursive?: boolean; useTrash?: boolean }): Promise<void>;
+    delete(
+      uri: { fsPath: string },
+      opts?: { recursive?: boolean; useTrash?: boolean }
+    ): Promise<void>;
   };
   api: InMemoryWorkspaceFsApi;
 } {
@@ -110,7 +113,7 @@ export function createInMemoryWorkspaceFs(): {
     },
     readFileText(fsPath: string) {
       const e = entries.get(n(fsPath));
-      if (!e || e.kind !== 'file') {
+      if (e?.kind !== 'file') {
         return null;
       }
       return Buffer.from(e.bytes).toString('utf8');
@@ -118,40 +121,42 @@ export function createInMemoryWorkspaceFs(): {
   };
 
   const fs = {
-    async stat(uri: { fsPath: string }) {
+    stat(uri: { fsPath: string }) {
       const p = n(uri.fsPath);
       const e = entries.get(p);
       if (!e) {
         notFound();
       }
       if (e.kind === 'dir') {
-        return { type: TestFileType.Directory, ctime: 0, mtime: 0, size: 0 };
+        return Promise.resolve({ type: TestFileType.Directory, ctime: 0, mtime: 0, size: 0 });
       }
-      return { type: TestFileType.File, ctime: 0, mtime: 0, size: e.bytes.length };
+      return Promise.resolve({ type: TestFileType.File, ctime: 0, mtime: 0, size: e.bytes.length });
     },
 
-    async readFile(uri: { fsPath: string }) {
+    readFile(uri: { fsPath: string }) {
       const p = n(uri.fsPath);
       const e = entries.get(p);
-      if (!e || e.kind !== 'file') {
+      if (e?.kind !== 'file') {
         notFound();
       }
-      return new Uint8Array(e.bytes);
+      return Promise.resolve(new Uint8Array(e.bytes));
     },
 
-    async writeFile(uri: { fsPath: string }, content: Uint8Array) {
+    writeFile(uri: { fsPath: string }, content: Uint8Array) {
       const p = n(uri.fsPath);
       ensureDirChain(path.dirname(p));
       entries.set(p, { kind: 'file', bytes: new Uint8Array(content) });
+      return Promise.resolve();
     },
 
-    async createDirectory(uri: { fsPath: string }) {
+    createDirectory(uri: { fsPath: string }) {
       const p = n(uri.fsPath);
       ensureDirChain(path.dirname(p));
       entries.set(p, { kind: 'dir' });
+      return Promise.resolve();
     },
 
-    async rename(
+    rename(
       fromUri: { fsPath: string },
       toUri: { fsPath: string },
       _opts?: { overwrite?: boolean }
@@ -167,9 +172,7 @@ export function createInMemoryWorkspaceFs(): {
       }
       ensureDirChain(path.dirname(b));
 
-      const affectedKeys = [...entries.keys()].filter(
-        (k) => k === a || k.startsWith(a + path.sep)
-      );
+      const affectedKeys = [...entries.keys()].filter((k) => k === a || k.startsWith(a + path.sep));
       const pairs: { oldK: string; ent: Entry; newK: string }[] = [];
       for (const oldK of affectedKeys) {
         const ent = entries.get(oldK)!;
@@ -182,9 +185,10 @@ export function createInMemoryWorkspaceFs(): {
       for (const { newK, ent } of pairs) {
         entries.set(newK, ent);
       }
+      return Promise.resolve();
     },
 
-    async delete(uri: { fsPath: string }, opts?: { recursive?: boolean; useTrash?: boolean }) {
+    delete(uri: { fsPath: string }, opts?: { recursive?: boolean; useTrash?: boolean }) {
       const p = n(uri.fsPath);
       const e = entries.get(p);
       if (!e) {
@@ -192,7 +196,7 @@ export function createInMemoryWorkspaceFs(): {
       }
       if (e.kind === 'file') {
         entries.delete(p);
-        return;
+        return Promise.resolve();
       }
       if (opts?.recursive) {
         const prefix = p.endsWith(path.sep) ? p : p + path.sep;
@@ -210,6 +214,7 @@ export function createInMemoryWorkspaceFs(): {
         }
         entries.delete(p);
       }
+      return Promise.resolve();
     },
   };
 
@@ -228,9 +233,9 @@ export interface StandardWorkspaceFixtureOptions {
 export function createWorkspaceFolderFixture(opts: StandardWorkspaceFixtureOptions) {
   const workspaceRoot = path.normalize(opts.workspaceRoot ?? '/ws');
   const homeDir = path.normalize(opts.homeDir ?? '/home/tester');
-  const folders =
-    opts.workspaceFolders ??
-    [{ uri: { fsPath: workspaceRoot }, name: 'ws', index: 0 }];
+  const folders = opts.workspaceFolders ?? [
+    { uri: { fsPath: workspaceRoot }, name: 'ws', index: 0 },
+  ];
 
   function getWorkspaceFolder(uri: { fsPath: string }): { uri: { fsPath: string } } | undefined {
     const fp = path.normalize(uri.fsPath);

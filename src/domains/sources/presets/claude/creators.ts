@@ -21,7 +21,10 @@ function commandContent(fileName: string): string {
   return `---\ndescription: ${name}\n---\n\n`;
 }
 
-export { DEFAULT_CLAUDE_HOOK_EVENT, CLAUDE_HOOK_LIFECYCLE_EVENTS } from './creators/ClaudeRegisteredHookCreator';
+export {
+  DEFAULT_CLAUDE_HOOK_EVENT,
+  CLAUDE_HOOK_LIFECYCLE_EVENTS,
+} from './creators/ClaudeRegisteredHookCreator';
 
 export const claudeArtifactCreators: readonly ArtifactCreator[] = [
   new SimpleFileCreator({
@@ -152,8 +155,7 @@ export const claudeArtifactCreators: readonly ArtifactCreator[] = [
     id: 'claude/hook-config/workspace',
     label: 'New Hook (script + settings.json)',
     scope: 'workspace',
-    hooksDir: (ctx) =>
-      ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.claude', 'hooks') : '',
+    hooksDir: (ctx) => (ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.claude', 'hooks') : ''),
     settingsPath: (ctx) => path.join(ctx.workspaceRoot, '.claude', 'settings.json'),
   }),
   new ClaudeRegisteredHookCreator({

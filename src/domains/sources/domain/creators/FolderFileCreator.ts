@@ -72,8 +72,7 @@ export class FolderFileCreator extends ArtifactCreator {
   async run(ctx: CreatorContext): Promise<CreatorResult> {
     const name = await vscode.window.showInputBox({
       title: this.cfg.inputTitle ?? 'Name',
-      prompt:
-        this.cfg.inputPrompt ?? `Folder name (creates ${this.cfg.fixedFileName} inside)`,
+      prompt: this.cfg.inputPrompt ?? `Folder name (creates ${this.cfg.fixedFileName} inside)`,
       validateInput: (v) => validateSourceFileBaseName(v.trim()) ?? undefined,
     });
     if (name === undefined) {

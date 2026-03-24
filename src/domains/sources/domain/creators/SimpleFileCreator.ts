@@ -59,8 +59,7 @@ export class SimpleFileCreator extends ArtifactCreator {
       return { kind: 'error', error: baseErr };
     }
     const ext = this.cfg.suggestedExtension;
-    const withExt =
-      ext && !name.toLowerCase().endsWith(ext.toLowerCase()) ? `${name}${ext}` : name;
+    const withExt = ext && !name.toLowerCase().endsWith(ext.toLowerCase()) ? `${name}${ext}` : name;
     const absolutePath = path.join(dir, withExt);
     const content =
       typeof this.cfg.initialContent === 'function'

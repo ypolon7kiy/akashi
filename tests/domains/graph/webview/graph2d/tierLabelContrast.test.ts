@@ -29,7 +29,12 @@ describe('pickContrastingTierLabelColor', () => {
   it('uses black inside preset purple at preset threshold, white at default tier threshold', () => {
     const presetPurple = '#A855F7';
     expect(
-      pickContrastingTierLabelColor(presetPurple, '#ffffff', '#000000', TIER_LABEL_LUMINANCE_THRESHOLD)
+      pickContrastingTierLabelColor(
+        presetPurple,
+        '#ffffff',
+        '#000000',
+        TIER_LABEL_LUMINANCE_THRESHOLD
+      )
     ).toBe('#ffffff');
     expect(
       pickContrastingTierLabelColor(
@@ -43,7 +48,12 @@ describe('pickContrastingTierLabelColor', () => {
 
   it('still uses white inside preset when the fill is very dark', () => {
     expect(
-      pickContrastingTierLabelColor('#0a0a0a', '#ffffff', '#000000', PRESET_TIER_LABEL_LUMINANCE_THRESHOLD)
+      pickContrastingTierLabelColor(
+        '#0a0a0a',
+        '#ffffff',
+        '#000000',
+        PRESET_TIER_LABEL_LUMINANCE_THRESHOLD
+      )
     ).toBe('#ffffff');
   });
 });

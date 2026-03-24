@@ -21,7 +21,10 @@ function commandContent(fileName: string): string {
   return `---\ndescription: ${name}\n---\n\n`;
 }
 
-export { DEFAULT_CURSOR_HOOK_EVENT, CURSOR_HOOK_LIFECYCLE_EVENTS } from './creators/CursorRegisteredHookCreator';
+export {
+  DEFAULT_CURSOR_HOOK_EVENT,
+  CURSOR_HOOK_LIFECYCLE_EVENTS,
+} from './creators/CursorRegisteredHookCreator';
 
 export const cursorArtifactCreators: readonly ArtifactCreator[] = [
   new SimpleFileCreator({
@@ -127,7 +130,8 @@ export const cursorArtifactCreators: readonly ArtifactCreator[] = [
     id: 'cursor/mcp/workspace',
     label: 'New MCP Server',
     scope: 'workspace',
-    mcpPath: (ctx) => (ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.cursor', 'mcp.json') : ''),
+    mcpPath: (ctx) =>
+      ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.cursor', 'mcp.json') : '',
   }),
   new CursorMcpCreator({
     id: 'cursor/mcp/user',

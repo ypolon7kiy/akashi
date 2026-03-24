@@ -119,7 +119,10 @@ describe('registerAkashiExtension', () => {
       'akashi.sources.createArtifact',
       expect.any(Function)
     );
-    expect(hoisted.registerCommand).toHaveBeenCalledWith('akashi.sources.newArtifact', expect.any(Function));
+    expect(hoisted.registerCommand).toHaveBeenCalledWith(
+      'akashi.sources.newArtifact',
+      expect.any(Function)
+    );
     expect(hoisted.registerWebviewViewProvider).toHaveBeenCalledWith(
       'akashi.sidebar',
       expect.anything()
