@@ -5,8 +5,13 @@ import {
   defaultGraph2DWebviewPersistedState,
   parseGraph2DWebviewPersistedState,
 } from '../../webview/graph2d/graph2dViewSettings';
-import { Graph2DMessageType } from '../../webview/graph2d/messages';
+import { Graph2DMessageType, type Graph2DFileColorsPayload } from '../../webview/graph2d/messages';
 import type { GraphPanelEnvironment } from '../graphPanelEnvironment';
+import {
+  FROZEN_CONFIG_KEYS,
+  type GeneralConfigProvider,
+} from '../../../../shared/config/generalConfigProvider';
+import { resolveGraphSourceCategoryPalette } from '../../domain/sourceCategoryPalette';
 
 const viewType = 'akashi.graph2DPanel';
 
@@ -15,7 +20,13 @@ export class Graph2DPanel {
 
   private snapshotEnv: GraphPanelEnvironment | null = null;
 
-  public static createOrShow(context: vscode.ExtensionContext, env: GraphPanelEnvironment): void {
+  private readonly categoryPalette: Graph2DFileColorsPayload;
+
+  public static createOrShow(
+    context: vscode.ExtensionContext,
+    env: GraphPanelEnvironment,
+    generalConfig: GeneralConfigProvider
+  ): void {
     const extensionUri = context.extensionUri;
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
@@ -31,7 +42,7 @@ export class Graph2DPanel {
       localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'graph2d')],
     });
 
-    Graph2DPanel.currentPanel = new Graph2DPanel(panel, extensionUri, env, context);
+    Graph2DPanel.currentPanel = new Graph2DPanel(panel, extensionUri, env, context, generalConfig);
     context.subscriptions.push(panel);
   }
 
@@ -46,8 +57,12 @@ export class Graph2DPanel {
     public readonly panel: vscode.WebviewPanel,
     private readonly extensionUri: vscode.Uri,
     initialEnv: GraphPanelEnvironment,
-    private readonly extensionContext: vscode.ExtensionContext
+    private readonly extensionContext: vscode.ExtensionContext,
+    _generalConfig: GeneralConfigProvider
   ) {
+    this.categoryPalette = resolveGraphSourceCategoryPalette(
+      _generalConfig.getFrozen(FROZEN_CONFIG_KEYS.sidebarSourceCategoryFileColors)
+    );
     this.panel.webview.html = this.getHtml(this.panel.webview);
     this.panel.onDidDispose(() => this.onDispose());
     this.panel.webview.onDidReceiveMessage(
@@ -58,6 +73,7 @@ export class Graph2DPanel {
             await this.pushSnapshot(this.snapshotEnv);
           }
           this.postViewSettings();
+          this.postFileColors();
           return;
         }
         if (message?.type === Graph2DMessageType.SaveViewSettings) {
@@ -119,6 +135,13 @@ export class Graph2DPanel {
     await this.panel.webview.postMessage({
       type: Graph2DMessageType.Snapshot,
       payload,
+    });
+  }
+
+  private postFileColors(): void {
+    void this.panel.webview.postMessage({
+      type: Graph2DMessageType.FileColors,
+      payload: this.categoryPalette,
     });
   }
 

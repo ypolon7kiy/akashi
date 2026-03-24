@@ -1,10 +1,11 @@
-import * as vscode from 'vscode';
-import { fileColorsObjectToCssLines } from './sidebarFileColorsToCss';
+import type { GeneralConfigProvider } from '../../../shared/config/generalConfigProvider';
+import { FROZEN_CONFIG_KEYS } from '../../../shared/config/generalConfigProvider';
 
 /** `<style>` block for `<head>` (after bundled sidebar CSS). */
-export function buildSidebarCategoryColorStyleBlock(): string {
-  const cfg = vscode.workspace.getConfiguration('akashi');
-  const lines = fileColorsObjectToCssLines(cfg.get('sidebar.fileColors'));
+export function buildSidebarCategoryColorStyleBlock(generalConfig: GeneralConfigProvider): string {
+  const lines = generalConfig.getFrozen(
+    FROZEN_CONFIG_KEYS.sidebarSourceCategoryFileColorCssInjectLines
+  );
   if (lines.length === 0) {
     return '';
   }

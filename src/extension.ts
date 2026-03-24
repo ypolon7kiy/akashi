@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
+import { createGeneralConfigProvider } from './domains/config/infrastructure/vscodeGeneralConfigProvider';
 import { resolveArtifactCreation } from './domains/sources/application/createArtifact';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
 import { readActiveSourcePresets } from './domains/sources/infrastructure/vscodeSourcePresetConfig';
@@ -31,9 +32,11 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   };
 
+  const generalConfig = createGeneralConfigProvider();
+
   const disposables = [
     // Register UI/commands for each domain here
-    ...registerGraphUi(context, graphEnv),
+    ...registerGraphUi(context, graphEnv, generalConfig),
     // Graph bridge: lets graph nodes (and other callers) create preset-aware artifacts
     // without importing sidebar types. Graph right-click will call this command.
     vscode.commands.registerCommand(
@@ -83,7 +86,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.window.registerWebviewViewProvider(
       'akashi.sidebar',
-      createSidebarViewProvider(context, sourcesService, getActiveSourcePresets, {
+      createSidebarViewProvider(context, sourcesService, getActiveSourcePresets, generalConfig, {
         onAfterSourcesSnapshotRefreshed: () => {
           void Graph2DPanel.refreshIfOpen(graphEnv);
         },
@@ -98,7 +101,7 @@ export function activate(context: vscode.ExtensionContext): void {
     queueMicrotask(() => {
       void vscode.commands.executeCommand('workbench.view.extension.akashi');
       void vscode.commands.executeCommand('akashi.sidebar.focus');
-      Graph2DPanel.createOrShow(context, graphEnv);
+      Graph2DPanel.createOrShow(context, graphEnv, generalConfig);
       getLog()?.show(false);
     });
   }

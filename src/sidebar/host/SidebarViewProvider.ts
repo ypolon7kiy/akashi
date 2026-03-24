@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
 import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
+import type { GeneralConfigProvider } from '../../shared/config/generalConfigProvider';
 import { appendLine } from '../../log';
 import { handleSidebarWebviewMessage } from './handleSidebarWebviewMessage';
 import { createSidebarSourcesHostActions } from './sidebarSourcesHostActions';
@@ -16,6 +17,7 @@ export function createSidebarViewProvider(
   context: vscode.ExtensionContext,
   sourcesService: SourcesService,
   getActiveSourcePresets: ActiveSourcePresetsGetter,
+  generalConfig: GeneralConfigProvider,
   options?: SidebarViewProviderOptions
 ): vscode.WebviewViewProvider {
   const notifySnapshotRefreshed = (): void => {
@@ -57,7 +59,7 @@ export function createSidebarViewProvider(
     const refreshSidebarHtml = (): void => {
       const w = activeView?.webview;
       if (w) {
-        w.html = getSidebarWebviewHtml(w, context.extensionUri);
+        w.html = getSidebarWebviewHtml(w, context.extensionUri, generalConfig);
         appendLine('[Akashi] Sidebar: webview HTML refreshed after bundle change.');
       }
     };
@@ -117,7 +119,11 @@ export function createSidebarViewProvider(
         ],
       };
 
-      webviewView.webview.html = getSidebarWebviewHtml(webviewView.webview, extensionUri);
+      webviewView.webview.html = getSidebarWebviewHtml(
+        webviewView.webview,
+        extensionUri,
+        generalConfig
+      );
 
       const messageCtx = {
         sourcesService,

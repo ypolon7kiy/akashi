@@ -162,7 +162,10 @@ describe('indexingOrigin', () => {
   it('keeps workspace indexingOrigin when descriptor scope values would disagree', () => {
     const folders: WorkspaceFolderInfo[] = [{ name: 'app', path: '/ws/app' }];
     const a = descriptor('/ws/app/mixed/x.md', 'claude', 'workspace', 'skill');
-    const b = { ...descriptor('/ws/app/mixed/y.md', 'claude', 'workspace', 'rule'), scope: 'user' as const };
+    const b = {
+      ...descriptor('/ws/app/mixed/y.md', 'claude', 'workspace', 'rule'),
+      scope: 'user' as const,
+    };
     const roots = buildSourceTree([a, b], folders);
     const mixedFolder = findFolder(roots, 'mixed');
     expect(mixedFolder?.indexingOrigin).toBe('workspace');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCssColorToRgb, relativeLuminanceRgb } from './cssColorParse';
+import { parseCssColorToRgb, relativeLuminanceRgb } from '../../../shared/colors/cssColorParse';
 
 describe('parseCssColorToRgb', () => {
   it('parses 6-digit hex', () => {

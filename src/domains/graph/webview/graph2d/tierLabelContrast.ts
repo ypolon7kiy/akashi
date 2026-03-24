@@ -1,4 +1,4 @@
-import { parseCssColorToRgb, relativeLuminanceRgb } from '../cssColorParse';
+import { parseCssColorToRgb, relativeLuminanceRgb } from '../../../../shared/colors/cssColorParse';
 
 /**
  * Tier node fills are saturated; use a higher cutoff than editor-chrome “is light” (0.45 when

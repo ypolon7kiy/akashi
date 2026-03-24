@@ -1,5 +1,4 @@
-import type { SourcesSnapshotPayload } from '../../../../shared/types/sourcesSnapshotPayload';
-import type { Graph2DWebviewPersistedState } from './graph2dViewSettings';
+import type { GraphSourceCategoryPalette } from '../../domain/sourceCategoryPalette';
 
 export const Graph2DMessageType = {
   Snapshot: 'graph2d/snapshot',
@@ -8,14 +7,8 @@ export const Graph2DMessageType = {
   WebviewReady: 'graph2d/webviewReady',
   OpenPath: 'graph2d/openPath',
   CopyPath: 'graph2d/copyPath',
+  FileColors: 'graph2d/fileColors',
 } as const;
 
-export interface Graph2DSnapshotMessage {
-  type: typeof Graph2DMessageType.Snapshot;
-  payload: SourcesSnapshotPayload | null;
-}
-
-export interface Graph2DViewSettingsMessage {
-  type: typeof Graph2DMessageType.ViewSettings;
-  payload: Graph2DWebviewPersistedState;
-}
+/** Host → webview: category node fill/hover (frozen at activation). */
+export type Graph2DFileColorsPayload = GraphSourceCategoryPalette;

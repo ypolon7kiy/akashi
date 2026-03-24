@@ -4,7 +4,7 @@ import { buildGraphFromSourcesPayload } from '../../application/buildGraphFromSo
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { diagnoseInboundSnapshotMessage } from '../graphSnapshotDiagnostics';
 import { GraphPresetToggles } from '../GraphPresetToggles';
-import { Graph2DMessageType } from './messages';
+import { Graph2DMessageType, type Graph2DFileColorsPayload } from './messages';
 import {
   defaultGraph2DWebviewPersistedState,
   parseGraph2DWebviewPersistedState,
@@ -24,6 +24,7 @@ export function Graph2DApp(): JSX.Element {
     typeof diagnoseInboundSnapshotMessage
   > | null>(null);
   const [mountTime] = useState(() => new Date().toISOString());
+  const [categoryPalette, setCategoryPalette] = useState<Graph2DFileColorsPayload | null>(null);
 
   const [showLabels, setShowLabels] = useState(true);
   const [showEdges, setShowEdges] = useState(true);
@@ -62,8 +63,9 @@ export function Graph2DApp(): JSX.Element {
 
   useEffect(() => {
     const vscode = getVscodeApi();
-    vscode?.postMessage({ type: Graph2DMessageType.WebviewReady });
-    if (!vscode) {
+    if (vscode) {
+      vscode.postMessage({ type: Graph2DMessageType.WebviewReady });
+    } else {
       setViewSettingsHydrated(true);
     }
   }, []);
@@ -71,6 +73,13 @@ export function Graph2DApp(): JSX.Element {
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>): void => {
       const data = event.data as { type?: string; payload?: unknown };
+      if (data?.type === Graph2DMessageType.FileColors) {
+        const p = data.payload;
+        if (p && typeof p === 'object' && !Array.isArray(p)) {
+          setCategoryPalette(p as Graph2DFileColorsPayload);
+        }
+        return;
+      }
       if (data?.type === Graph2DMessageType.ViewSettings) {
         const s = parseGraph2DWebviewPersistedState(data.payload);
         skipNextViewSettingsPersistRef.current = true;
@@ -276,6 +285,7 @@ export function Graph2DApp(): JSX.Element {
                 showLabels={showLabels}
                 showEdges={showEdges}
                 sim={simProps}
+                categoryPalette={categoryPalette ?? undefined}
               />
               <Graph2DViewControls
                 showLabels={showLabels}

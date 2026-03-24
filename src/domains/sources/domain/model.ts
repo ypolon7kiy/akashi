@@ -4,18 +4,15 @@
  * it matches more than one preset (e.g. overlapping globs); rows are distinguished by `id`.
  */
 
-/** Aligned with `SourceCategoryId` / sidebar `sourceCategoryKeys` (context = instruction-style docs). */
-export const SOURCE_CATEGORIES = [
-  'context',
-  'rule',
-  'skill',
-  'hook',
-  'config',
-  'mcp',
-  'unknown',
-] as const;
+import {
+  SIDEBAR_SOURCE_CATEGORY_KEYS,
+  type SidebarSourceCategoryKey,
+} from '../../../shared/sourceCategoryKeys';
 
-export type SourceCategory = (typeof SOURCE_CATEGORIES)[number];
+/** Same ordered set as `SIDEBAR_SOURCE_CATEGORY_KEYS` / `akashi.sidebar.fileColors` / graph category ids. */
+export const SOURCE_CATEGORIES = SIDEBAR_SOURCE_CATEGORY_KEYS;
+
+export type SourceCategory = SidebarSourceCategoryKey;
 
 export const SourceScope = {
   Workspace: 'workspace',

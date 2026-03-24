@@ -566,6 +566,8 @@ export function ForceGraphView(props: {
   showLabels: boolean;
   showEdges: boolean;
   sim: ForceGraphSimProps;
+  /** When set, category node fill/hover follow frozen host config. */
+  categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>;
 }): JSX.Element {
   const simPropsRef = useRef(props.sim);
   simPropsRef.current = props.sim;
@@ -685,7 +687,9 @@ export function ForceGraphView(props: {
       const np = n.id === pointedId;
       const isTierNode = isTierGraphNode(n);
       const isPresetHub = n.type === 'preset';
-      const fillColor = np ? getHoverColor(n.type, n) : getNodeColor(n.type, n);
+      const fillColor = np
+        ? getHoverColor(n.type, n, props.categoryPalette)
+        : getNodeColor(n.type, n, props.categoryPalette);
 
       const rimAlpha = vis ? 1 : 0.12;
       ctx.beginPath();
@@ -767,7 +771,15 @@ export function ForceGraphView(props: {
     }
 
     ctx.restore();
-  }, [props.edges, props.showEdges, props.showLabels, pointedId, focusNodeById, focusEdgeById]);
+  }, [
+    props.edges,
+    props.showEdges,
+    props.showLabels,
+    props.categoryPalette,
+    pointedId,
+    focusNodeById,
+    focusEdgeById,
+  ]);
 
   const drawRef = useRef(draw);
   drawRef.current = draw;

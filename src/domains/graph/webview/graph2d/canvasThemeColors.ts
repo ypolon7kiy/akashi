@@ -2,7 +2,7 @@
  * Canvas 2D does not resolve `var(--vscode-*)` in strokeStyle/fillStyle.
  * Read computed values from the webview body once per paint (cached when inputs unchanged).
  */
-import { parseCssColorToRgb } from '../cssColorParse';
+import { parseCssColorToRgb } from '../../../../shared/colors/cssColorParse';
 
 export interface CanvasThemeColors {
   edge: string;

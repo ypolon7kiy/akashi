@@ -1,5 +1,6 @@
 /** Node / edge palette for the 2D canvas (shared with former 3D styling). */
 
+import { GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS } from '../domain/sourceCategoryPalette';
 import type { GraphNode3D } from '../domain/graphTypes';
 
 export const NODE_COLORS = {
@@ -25,25 +26,27 @@ export const NODE_COLORS = {
   DEFAULT_HOVER: '#D1D5DB',
 } as const;
 
-/** Per-category colors matching sidebar file-color semantics. */
-export const CATEGORY_COLORS: Record<string, { fill: string; hover: string }> = {
-  context: { fill: '#3B82F6', hover: '#93C5FD' },
-  rule: { fill: '#F59E0B', hover: '#FCD34D' },
-  skill: { fill: '#10B981', hover: '#6EE7B7' },
-  hook: { fill: '#EF4444', hover: '#FCA5A5' },
-  config: { fill: '#6B7280', hover: '#D1D5DB' },
-  mcp: { fill: '#8B5CF6', hover: '#C4B5FD' },
-  unknown: { fill: '#9CA3AF', hover: '#D1D5DB' },
-};
-
 export const EDGE_COLORS = {
   DEFAULT: '#94A3B8',
   HIGHLIGHTED: '#A78BFA',
 } as const;
 
-export function getNodeColor(nodeType: string, node?: GraphNode3D): string {
+export function getNodeColor(
+  nodeType: string,
+  node?: GraphNode3D,
+  categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>
+): string {
   if (nodeType === 'category' && node?.graphCategoryId) {
-    return CATEGORY_COLORS[node.graphCategoryId]?.fill ?? NODE_COLORS.DEFAULT;
+    const id = node.graphCategoryId;
+    const fromCfg = categoryPalette?.[id];
+    if (fromCfg) {
+      return fromCfg.fill;
+    }
+    return (
+      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS[
+        id as keyof typeof GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS
+      ]?.fill ?? NODE_COLORS.DEFAULT
+    );
   }
   if (nodeType === 'locality') {
     return node?.graphLocality === 'global'
@@ -70,9 +73,22 @@ export function getNodeColor(nodeType: string, node?: GraphNode3D): string {
   }
 }
 
-export function getHoverColor(nodeType: string, node?: GraphNode3D): string {
+export function getHoverColor(
+  nodeType: string,
+  node?: GraphNode3D,
+  categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>
+): string {
   if (nodeType === 'category' && node?.graphCategoryId) {
-    return CATEGORY_COLORS[node.graphCategoryId]?.hover ?? NODE_COLORS.DEFAULT_HOVER;
+    const id = node.graphCategoryId;
+    const fromCfg = categoryPalette?.[id];
+    if (fromCfg) {
+      return fromCfg.hover;
+    }
+    return (
+      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS[
+        id as keyof typeof GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS
+      ]?.hover ?? NODE_COLORS.DEFAULT_HOVER
+    );
   }
   if (nodeType === 'locality') {
     return node?.graphLocality === 'global'

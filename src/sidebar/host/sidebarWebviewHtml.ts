@@ -1,5 +1,6 @@
 import { statSync } from 'node:fs';
 import * as vscode from 'vscode';
+import type { GeneralConfigProvider } from '../../shared/config/generalConfigProvider';
 import { buildSidebarCategoryColorStyleBlock } from './styling/sidebarCategoryColorStyle';
 
 export function codiconsDistRoot(extensionUri: vscode.Uri): vscode.Uri {
@@ -18,7 +19,11 @@ function sidebarBundleCacheQuery(extensionUri: vscode.Uri): string {
   }
 }
 
-export function getSidebarWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+export function getSidebarWebviewHtml(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+  generalConfig: GeneralConfigProvider
+): string {
   const cacheQ = sidebarBundleCacheQuery(extensionUri);
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'sidebar', 'sidebar-main.js')
@@ -30,7 +35,7 @@ export function getSidebarWebviewHtml(webview: vscode.Webview, extensionUri: vsc
   const codiconCssUri = webview.asWebviewUri(
     vscode.Uri.joinPath(codiconsDistRoot(extensionUri), 'codicon.css')
   );
-  const categoryColorStyle = buildSidebarCategoryColorStyleBlock();
+  const categoryColorStyle = buildSidebarCategoryColorStyleBlock(generalConfig);
 
   return `<!DOCTYPE html>
 <html lang="en">

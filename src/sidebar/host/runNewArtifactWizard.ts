@@ -18,7 +18,7 @@ type TemplateQuickPickItem = vscode.QuickPickItem & { readonly template: Artifac
 function inferWorkspaceRoot(): string {
   const editor = vscode.window.activeTextEditor;
   const uri = editor?.document.uri;
-  if (uri && uri.scheme === 'file') {
+  if (uri?.scheme === 'file') {
     const wf = vscode.workspace.getWorkspaceFolder(uri);
     if (wf) {
       return wf.uri.fsPath;
