@@ -18,7 +18,7 @@ export function sidebarCategoryMetaModifier(
     : 'unknown';
 }
 
-const SIDEBAR_CATEGORY_LABEL: Readonly<Record<string, string>> = {
+const SIDEBAR_CATEGORY_LABEL: Readonly<Record<SidebarSourceCategoryKey, string>> = {
   rule: 'R',
   skill: 'S',
   hook: 'H',
@@ -30,5 +30,8 @@ const SIDEBAR_CATEGORY_LABEL: Readonly<Record<string, string>> = {
 };
 
 export function sidebarCategoryLabel(categoryFacetValue: string): string {
-  return SIDEBAR_CATEGORY_LABEL[categoryFacetValue] ?? categoryFacetValue;
+  return (
+    (SIDEBAR_CATEGORY_LABEL as Readonly<Record<string, string>>)[categoryFacetValue] ??
+    categoryFacetValue
+  );
 }

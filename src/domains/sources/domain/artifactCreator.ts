@@ -53,3 +53,38 @@ export abstract class ArtifactCreator implements ArtifactCreatorMenuEntry {
    */
   abstract planWithProvidedInput(ctx: CreatorContext, args: ArtifactCreatorArgs): CreatorResult;
 }
+
+/** Shared identity fields for config-driven creators (SimpleFile, FolderFile, FixedDoc). */
+export interface CreatorIdentityConfig {
+  readonly id: string;
+  readonly label: string;
+  readonly presetId: SourcePresetId;
+  readonly category: SourceCategory;
+  readonly scope: 'workspace' | 'user';
+}
+
+/**
+ * Intermediate base for creators whose identity (id, label, presetId, category, scope) is
+ * supplied via a config object rather than hard-coded per class.
+ */
+export abstract class ConfigBasedCreator extends ArtifactCreator {
+  constructor(private readonly identity: CreatorIdentityConfig) {
+    super();
+  }
+
+  get id(): string {
+    return this.identity.id;
+  }
+  get label(): string {
+    return this.identity.label;
+  }
+  get presetId(): SourcePresetId {
+    return this.identity.presetId;
+  }
+  get category(): SourceCategory {
+    return this.identity.category;
+  }
+  get scope(): 'workspace' | 'user' {
+    return this.identity.scope;
+  }
+}

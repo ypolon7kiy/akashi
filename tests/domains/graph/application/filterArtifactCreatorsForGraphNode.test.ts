@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { filterArtifactCreatorsForGraphNode } from '@src/domains/graph/application/filterArtifactCreatorsForGraphNode';
 import type { GraphNode3D } from '@src/domains/graph/domain/graphTypes';
-import type { ArtifactCreatorMenuEntry } from '@src/shared/types/sourcesSnapshotPayload';
+import type { ArtifactCreatorMenuEntry } from '@src/shared/types/artifactCreatorMenuEntry';
 
 function baseNode(overrides: Partial<GraphNode3D>): GraphNode3D {
   return {

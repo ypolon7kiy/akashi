@@ -6,8 +6,6 @@
 
 import type { ArtifactCreatorMenuEntry } from './artifactCreatorMenuEntry';
 
-export type { ArtifactCreatorMenuEntry };
-
 export interface SourceFacetTagPayload {
   readonly type: string;
   readonly value: string;

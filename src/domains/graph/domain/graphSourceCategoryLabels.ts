@@ -1,8 +1,10 @@
+import type { SidebarSourceCategoryKey } from '../../../shared/sourceCategoryKeys';
+
 /**
  * Human-readable labels for source category ids used in the sources graph tier.
  * Single source of truth for builder UI and graph webview toggles.
  */
-export const GRAPH_SOURCE_CATEGORY_LABELS: Readonly<Record<string, string>> = {
+export const GRAPH_SOURCE_CATEGORY_LABELS: Readonly<Record<SidebarSourceCategoryKey, string>> = {
   context: 'Context',
   rule: 'Rules',
   skill: 'Skills',
@@ -14,7 +16,9 @@ export const GRAPH_SOURCE_CATEGORY_LABELS: Readonly<Record<string, string>> = {
 };
 
 export function labelGraphSourceCategory(categoryId: string): string {
-  return GRAPH_SOURCE_CATEGORY_LABELS[categoryId] ?? categoryId;
+  return (
+    (GRAPH_SOURCE_CATEGORY_LABELS as Readonly<Record<string, string>>)[categoryId] ?? categoryId
+  );
 }
 
 /** Category ids for which the graph builder inserts empty category nodes (excludes catch-all `unknown`). */

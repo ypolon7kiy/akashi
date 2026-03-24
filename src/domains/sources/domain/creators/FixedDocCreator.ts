@@ -1,19 +1,13 @@
 import * as vscode from 'vscode';
-import type { SourceCategory } from '../model';
-import type { SourcePresetId } from '../../../../shared/sourcePresetId';
 import {
-  ArtifactCreator,
+  ConfigBasedCreator,
+  type CreatorIdentityConfig,
   type ArtifactCreatorArgs,
   type CreatorContext,
   type CreatorResult,
 } from '../artifactCreator';
 
-interface FixedDocCreatorConfigBase {
-  readonly id: string;
-  readonly label: string;
-  readonly presetId: SourcePresetId;
-  readonly category: SourceCategory;
-  readonly scope: 'workspace' | 'user';
+interface FixedDocCreatorConfigBase extends CreatorIdentityConfig {
   readonly inputTitle?: string;
   readonly inputPrompt?: string;
   readonly absolutePath: (ctx: CreatorContext) => string;
@@ -29,25 +23,9 @@ export type FixedDocCreatorConfig =
       readonly defaultTitleIfEmpty: string;
     });
 
-export class FixedDocCreator extends ArtifactCreator {
+export class FixedDocCreator extends ConfigBasedCreator {
   constructor(private readonly cfg: FixedDocCreatorConfig) {
-    super();
-  }
-
-  get id(): string {
-    return this.cfg.id;
-  }
-  get label(): string {
-    return this.cfg.label;
-  }
-  get presetId(): SourcePresetId {
-    return this.cfg.presetId;
-  }
-  get category(): SourceCategory {
-    return this.cfg.category;
-  }
-  get scope(): 'workspace' | 'user' {
-    return this.cfg.scope;
+    super(cfg);
   }
 
   planWithProvidedInput(ctx: CreatorContext, args: ArtifactCreatorArgs): CreatorResult {
