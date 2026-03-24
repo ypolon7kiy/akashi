@@ -1,6 +1,6 @@
 import type { SourceCategory } from '../domain/model';
 import type { SourceFacetTag, SourceIndexSnapshot, SourceScope } from '../domain/model';
-import type { SourcePresetId } from '../domain/sourcePresetDefinition';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
 
 export interface DiscoveredSource {
   /** Stable row id (`sourceRecordId` in `shared/sourceRecordId`); not always equal to `path`. */

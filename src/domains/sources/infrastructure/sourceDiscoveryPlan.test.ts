@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SourcePresetId } from '../domain/sourcePresetDefinition';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import { WORKSPACE_GLOB_SCAN_ROWS } from '../registerSourcePresets';
 import { selectWorkspaceGlobRows } from './sourceDiscoveryPlan';
 

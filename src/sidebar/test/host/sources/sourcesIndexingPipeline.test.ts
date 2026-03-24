@@ -7,10 +7,7 @@ import type { DiscoveredSource } from '../../../../domains/sources/application/p
 import type { SourceCategory } from '../../../../domains/sources/domain/model';
 import { SourceScope } from '../../../../domains/sources/domain/model';
 import type { SourceIndexSnapshot } from '../../../../domains/sources/domain/model';
-import {
-  ALL_SOURCE_PRESET_IDS,
-  type SourcePresetId,
-} from '../../../../domains/sources/domain/sourcePresets';
+import { ALL_SOURCE_PRESET_IDS, type SourcePresetId } from '../../../../shared/sourcePresetId';
 import {
   buildSourceFacetTags,
   SourceCategoryId,

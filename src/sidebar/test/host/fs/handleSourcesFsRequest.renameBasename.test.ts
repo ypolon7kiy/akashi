@@ -39,6 +39,11 @@ vi.mock('vscode', () => ({
 
 import { handleSidebarFsRename } from '../../../host/fs/handleSourcesFsRequest';
 
+const workbenchFs = {
+  isConfirmDragAndDropEnabled: (): boolean => true,
+  getDeleteFlowSettings: () => ({ enableTrash: true, confirmDelete: true }),
+};
+
 describe('handleSidebarFsRename (destination basename)', () => {
   beforeEach(() => {
     mockWorkspaceFolders.length = 0;
@@ -48,10 +53,13 @@ describe('handleSidebarFsRename (destination basename)', () => {
   });
 
   it('rejects invalid destination names before touching workspace.fs', async () => {
-    const out = await handleSidebarFsRename({
-      fromPath: '/projects/app/a.md',
-      toPath: '/projects/app/bad|name.md',
-    });
+    const out = await handleSidebarFsRename(
+      {
+        fromPath: '/projects/app/a.md',
+        toPath: '/projects/app/bad|name.md',
+      },
+      workbenchFs
+    );
 
     expect(out).toEqual({
       ok: false,

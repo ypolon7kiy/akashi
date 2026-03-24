@@ -1,5 +1,6 @@
 import type { IndexedSourceEntry, SourceIndexSnapshot } from '../domain/model';
-import type { ActiveSourcePresetsGetter, SourcePresetId } from '../domain/sourcePresets';
+import type { ActiveSourcePresetsGetter } from '../../../shared/config/workspaceConfigTypes';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import type {
   SourcesLoggerPort,
   SourceFileStatsPort,

@@ -3,13 +3,10 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
-import { createGeneralConfigProvider } from './domains/config/infrastructure/vscodeGeneralConfigProvider';
+import { createConfigDomain } from './domains/config';
 import { resolveArtifactCreation } from './domains/sources/application/createArtifact';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
-import { readActiveSourcePresets } from './domains/sources/infrastructure/vscodeSourcePresetConfig';
-import { readToolUserRoots } from './domains/sources/infrastructure/providerUserRoots';
 import { findArtifactTemplateById } from './domains/sources/registerSourcePresets';
-import type { ActiveSourcePresetsGetter } from './domains/sources/domain/sourcePresets';
 import { appendLine, getLog, initLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
@@ -21,22 +18,28 @@ import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 export function activate(context: vscode.ExtensionContext): void {
   initLog(context);
   appendLine('[Akashi] Extension activating...');
-  const getActiveSourcePresets: ActiveSourcePresetsGetter = readActiveSourcePresets;
-  const sourcesService = createSourcesService(context, getActiveSourcePresets);
+  const config = createConfigDomain(context);
+  const sourcesService = createSourcesService(
+    context,
+    config.getActiveSourcePresets,
+    config.resolveToolUserRoots
+  );
   void sourcesService.getLastSnapshot();
 
   const graphEnv: GraphPanelEnvironment = {
     getGraphPayload: async () => {
       const snap = await sourcesService.getLastSnapshot();
-      return buildSourcesSnapshotPayload(snap, snapshotWorkspaceFolders(), getActiveSourcePresets);
+      return buildSourcesSnapshotPayload(
+        snap,
+        snapshotWorkspaceFolders(),
+        config.getActiveSourcePresets
+      );
     },
   };
 
-  const generalConfig = createGeneralConfigProvider();
-
   const disposables = [
     // Register UI/commands for each domain here
-    ...registerGraphUi(context, graphEnv, generalConfig),
+    ...registerGraphUi(context, graphEnv, config.generalConfig),
     // Graph bridge: lets graph nodes (and other callers) create preset-aware artifacts
     // without importing sidebar types. Graph right-click will call this command.
     vscode.commands.registerCommand(
@@ -52,7 +55,7 @@ export function activate(context: vscode.ExtensionContext): void {
           void vscode.window.showErrorMessage(nameErr);
           return;
         }
-        const roots = readToolUserRoots(os.homedir());
+        const roots = config.resolveToolUserRoots(os.homedir());
         const resolvedDir = template.targetDirResolver(args.workspaceRoot ?? '', roots);
         const resolved = resolveArtifactCreation({
           template,
@@ -82,11 +85,11 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     ),
     vscode.commands.registerCommand('akashi.sources.newArtifact', async () => {
-      await runNewArtifactWizard(getActiveSourcePresets);
+      await runNewArtifactWizard(config.getActiveSourcePresets);
     }),
     vscode.window.registerWebviewViewProvider(
       'akashi.sidebar',
-      createSidebarViewProvider(context, sourcesService, getActiveSourcePresets, generalConfig, {
+      createSidebarViewProvider(context, sourcesService, config, {
         onAfterSourcesSnapshotRefreshed: () => {
           void Graph2DPanel.refreshIfOpen(graphEnv);
         },
@@ -101,7 +104,7 @@ export function activate(context: vscode.ExtensionContext): void {
     queueMicrotask(() => {
       void vscode.commands.executeCommand('workbench.view.extension.akashi');
       void vscode.commands.executeCommand('akashi.sidebar.focus');
-      Graph2DPanel.createOrShow(context, graphEnv, generalConfig);
+      Graph2DPanel.createOrShow(context, graphEnv, config.generalConfig);
       getLog()?.show(false);
     });
   }

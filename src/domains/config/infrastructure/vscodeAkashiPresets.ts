@@ -3,7 +3,7 @@ import {
   ALL_SOURCE_PRESET_IDS,
   isSourcePresetId,
   type SourcePresetId,
-} from '../domain/sourcePresets';
+} from '../../../shared/sourcePresetId';
 
 /**
  * Active presets from `akashi.presets`. Invalid entries are dropped.

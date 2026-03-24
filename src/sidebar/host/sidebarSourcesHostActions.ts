@@ -1,7 +1,9 @@
 import type * as vscode from 'vscode';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
-import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
-import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
+import type {
+  ActiveSourcePresetsGetter,
+  IncludeHomeConfigGetter,
+} from '../../shared/config/workspaceConfigTypes';
 import { SidebarMessageType, type SourcesResponseMessage } from '../bridge/messages';
 import { SIDEBAR_FS_CANCELLED } from './fs/handleSourcesFsRequest';
 import { logSourcesResponse, postSourcesResponse } from './sidebarHostMessagingLog';
@@ -13,12 +15,19 @@ export type FsHandlerResult = { ok: true } | { ok: false; error: string };
 export interface SidebarSourcesHostActionsDeps {
   sourcesService: SourcesService;
   getActiveSourcePresets: ActiveSourcePresetsGetter;
+  getIncludeHomeConfig: IncludeHomeConfigGetter;
   getWebview: () => vscode.Webview | undefined;
   notifySnapshotRefreshed: () => void;
 }
 
 export function createSidebarSourcesHostActions(deps: SidebarSourcesHostActionsDeps) {
-  const { sourcesService, getActiveSourcePresets, getWebview, notifySnapshotRefreshed } = deps;
+  const {
+    sourcesService,
+    getActiveSourcePresets,
+    getIncludeHomeConfig,
+    getWebview,
+    notifySnapshotRefreshed,
+  } = deps;
 
   async function postFilteredSnapshotPush(webview: vscode.Webview): Promise<void> {
     const snap = await sourcesService.getLastSnapshot();
@@ -43,7 +52,7 @@ export function createSidebarSourcesHostActions(deps: SidebarSourcesHostActionsD
       await w!.postMessage({ type: SidebarMessageType.SourcesIndexingState, busy: true });
     }
     try {
-      await sourcesService.indexWorkspace({ includeHomeConfig: readIncludeHomeConfig() });
+      await sourcesService.indexWorkspace({ includeHomeConfig: getIncludeHomeConfig() });
       if (w) {
         await postFilteredSnapshotPush(w);
       }

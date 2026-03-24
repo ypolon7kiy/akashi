@@ -9,6 +9,7 @@ import {
 
 /**
  * Reads frozen slices once at construction (activation-time in extension).
+ * Dynamic settings (presets, include-home, tool roots) are read elsewhere in this folder on each use.
  */
 export function createGeneralConfigProvider(): GeneralConfigProvider {
   const cfg = vscode.workspace.getConfiguration('akashi');

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ALL_SOURCE_PRESET_IDS } from '../domain/sourcePresets';
-import { readActiveSourcePresets } from './vscodeSourcePresetConfig';
-import { readIncludeHomeConfig } from './vscodeSourcesIncludeHome';
+import { ALL_SOURCE_PRESET_IDS } from '../../../../shared/sourcePresetId';
+import { readActiveSourcePresets } from '../../infrastructure/vscodeAkashiPresets';
+import { readIncludeHomeConfig } from '../../infrastructure/vscodeAkashiIncludeHome';
 
 const config = new Map<string, unknown>();
 
@@ -13,7 +13,7 @@ vi.mock('vscode', () => ({
   },
 }));
 
-describe('VS Code sources config readers (mocked)', () => {
+describe('VS Code Akashi dynamic config readers (mocked)', () => {
   beforeEach(() => {
     config.clear();
   });

@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
+import type { ConfigDomain } from '../../domains/config';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
-import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
-import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
-import type { GeneralConfigProvider } from '../../shared/config/generalConfigProvider';
 import { appendLine } from '../../log';
 import { handleSidebarWebviewMessage } from './handleSidebarWebviewMessage';
 import { createSidebarSourcesHostActions } from './sidebarSourcesHostActions';
@@ -16,13 +14,12 @@ export interface SidebarViewProviderOptions {
 export function createSidebarViewProvider(
   context: vscode.ExtensionContext,
   sourcesService: SourcesService,
-  getActiveSourcePresets: ActiveSourcePresetsGetter,
-  generalConfig: GeneralConfigProvider,
-  options?: SidebarViewProviderOptions
+  configDomain: ConfigDomain,
+  options: SidebarViewProviderOptions
 ): vscode.WebviewViewProvider {
   const notifySnapshotRefreshed = (): void => {
     try {
-      options?.onAfterSourcesSnapshotRefreshed?.();
+      options.onAfterSourcesSnapshotRefreshed?.();
     } catch (err) {
       appendLine(
         `[Akashi] Sidebar: onAfterSourcesSnapshotRefreshed failed: ${err instanceof Error ? err.message : String(err)}`
@@ -34,7 +31,8 @@ export function createSidebarViewProvider(
 
   const actions = createSidebarSourcesHostActions({
     sourcesService,
-    getActiveSourcePresets,
+    getActiveSourcePresets: configDomain.getActiveSourcePresets,
+    getIncludeHomeConfig: configDomain.getIncludeHomeConfig,
     getWebview: () => activeView?.webview,
     notifySnapshotRefreshed,
   });
@@ -59,7 +57,7 @@ export function createSidebarViewProvider(
     const refreshSidebarHtml = (): void => {
       const w = activeView?.webview;
       if (w) {
-        w.html = getSidebarWebviewHtml(w, context.extensionUri, generalConfig);
+        w.html = getSidebarWebviewHtml(w, context.extensionUri, configDomain.generalConfig);
         appendLine('[Akashi] Sidebar: webview HTML refreshed after bundle change.');
       }
     };
@@ -69,29 +67,22 @@ export function createSidebarViewProvider(
   }
 
   context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      const affectsIndexing =
-        e.affectsConfiguration('akashi.presets') ||
-        e.affectsConfiguration('akashi.includeHomeConfig') ||
-        e.affectsConfiguration('akashi.homePathOverrides');
-      if (!affectsIndexing) {
-        return;
-      }
+    configDomain.onIndexingSettingsChanged(async () => {
       const w = activeView?.webview;
       if (!w) {
         return;
       }
-      void (async () => {
-        try {
-          await sourcesService.indexWorkspace({ includeHomeConfig: readIncludeHomeConfig() });
-        } catch (err) {
-          appendLine(
-            `[Akashi][Sources] Re-index after sources settings change failed: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-        await actions.postFilteredSnapshotPush(w);
-        notifySnapshotRefreshed();
-      })();
+      try {
+        await sourcesService.indexWorkspace({
+          includeHomeConfig: configDomain.getIncludeHomeConfig(),
+        });
+      } catch (err) {
+        appendLine(
+          `[Akashi][Sources] Re-index after sources settings change failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+      await actions.postFilteredSnapshotPush(w);
+      notifySnapshotRefreshed();
     })
   );
 
@@ -122,12 +113,12 @@ export function createSidebarViewProvider(
       webviewView.webview.html = getSidebarWebviewHtml(
         webviewView.webview,
         extensionUri,
-        generalConfig
+        configDomain.generalConfig
       );
 
       const messageCtx = {
         sourcesService,
-        getActiveSourcePresets,
+        configDomain,
         actions,
       };
 

@@ -1,6 +1,6 @@
 import type { SourceCategory } from './model';
-import type { SourcePresetId } from './sourcePresetDefinition';
-import type { ToolUserRoots } from './toolUserRoots';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
+import type { ToolUserRoots } from '../../../shared/toolUserRoots';
 
 /**
  * A template for creating a new preset-aware artifact (file) on the file system.

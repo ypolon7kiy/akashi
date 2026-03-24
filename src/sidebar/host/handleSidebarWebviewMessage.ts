@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
+import type { ConfigDomain } from '../../domains/config';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
-import type { ActiveSourcePresetsGetter } from '../../domains/sources/domain/sourcePresets';
-import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
 import { appendLine } from '../../log';
 import {
   SidebarMessageType,
@@ -33,7 +32,7 @@ import { buildSourcesSnapshotPayload } from './sources/sourcesSnapshotPayload';
 
 export interface HandleSidebarWebviewMessageContext {
   sourcesService: SourcesService;
-  getActiveSourcePresets: ActiveSourcePresetsGetter;
+  configDomain: ConfigDomain;
   actions: SidebarSourcesHostActions;
 }
 
@@ -42,9 +41,15 @@ export async function handleSidebarWebviewMessage(
   message: unknown,
   ctx: HandleSidebarWebviewMessageContext
 ): Promise<void> {
-  logInboundSidebarMessage(message);
+  const { sourcesService, configDomain, actions } = ctx;
+  const {
+    getActiveSourcePresets,
+    getIncludeHomeConfig,
+    workbenchFsSettings,
+    resolveToolUserRoots,
+  } = configDomain;
+  logInboundSidebarMessage(message, getIncludeHomeConfig);
   const typedMessage = message as SidebarRequestMessage;
-  const { sourcesService, getActiveSourcePresets, actions } = ctx;
 
   if (typedMessage?.type === SidebarMessageType.SourcesOpenPath) {
     const filePath = typedMessage.payload?.path;
@@ -101,7 +106,7 @@ export async function handleSidebarWebviewMessage(
     }
 
     if (typedMessage.type === SidebarMessageType.SourcesIndexWorkspaceRequest) {
-      const includeHome = readIncludeHomeConfig();
+      const includeHome = getIncludeHomeConfig();
       logSourcesCommand(typedMessage.type, requestId, {
         includeHomeConfig: includeHome,
       });
@@ -135,11 +140,14 @@ export async function handleSidebarWebviewMessage(
         });
         return;
       }
-      const result = await handleSidebarFsRename({
-        fromPath: parsed.fromPath,
-        toPath: parsed.toPath,
-        confirmDragAndDrop: parsed.confirmDragAndDrop,
-      });
+      const result = await handleSidebarFsRename(
+        {
+          fromPath: parsed.fromPath,
+          toPath: parsed.toPath,
+          confirmDragAndDrop: parsed.confirmDragAndDrop,
+        },
+        workbenchFsSettings
+      );
       await actions.completeSidebarFsMutation(webview, requestId, result);
       return;
     }
@@ -156,10 +164,13 @@ export async function handleSidebarWebviewMessage(
         });
         return;
       }
-      const result = await handleSidebarFsDelete({
-        path: parsed.path,
-        isDirectory: parsed.isDirectory,
-      });
+      const result = await handleSidebarFsDelete(
+        {
+          path: parsed.path,
+          isDirectory: parsed.isDirectory,
+        },
+        workbenchFsSettings
+      );
       await actions.completeSidebarFsMutation(webview, requestId, result);
       return;
     }
@@ -196,11 +207,14 @@ export async function handleSidebarWebviewMessage(
         });
         return;
       }
-      const result = await handleSidebarFsCreateArtifact({
-        templateId: parsed.templateId,
-        fileName: parsed.fileName,
-        workspaceRoot: parsed.workspaceRoot,
-      });
+      const result = await handleSidebarFsCreateArtifact(
+        {
+          templateId: parsed.templateId,
+          fileName: parsed.fileName,
+          workspaceRoot: parsed.workspaceRoot,
+        },
+        resolveToolUserRoots
+      );
       await actions.completeSidebarFsMutation(webview, requestId, result);
       return;
     }

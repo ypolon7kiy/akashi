@@ -13,7 +13,7 @@ vi.mock('vscode', () => ({
   },
 }));
 
-import { readToolUserRoots } from './providerUserRoots';
+import { readToolUserRoots } from '../../infrastructure/vscodeToolUserRoots';
 
 describe('readToolUserRoots', () => {
   const savedEnv: Record<string, string | undefined> = {};

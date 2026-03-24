@@ -2,7 +2,7 @@ import type {
   IndexedSourceEntry,
   SourceIndexSnapshot,
 } from '../../../domains/sources/domain/model';
-import type { ActiveSourcePresetsGetter } from '../../../domains/sources/domain/sourcePresets';
+import type { ActiveSourcePresetsGetter } from '../../../shared/config/workspaceConfigTypes';
 import type {
   SourceDescriptor,
   SourcesSnapshotPayload,

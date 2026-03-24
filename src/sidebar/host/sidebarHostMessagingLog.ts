@@ -1,5 +1,5 @@
 import type * as vscode from 'vscode';
-import { readIncludeHomeConfig } from '../../domains/sources/infrastructure/vscodeSourcesIncludeHome';
+import type { IncludeHomeConfigGetter } from '../../shared/config/workspaceConfigTypes';
 import { appendLine } from '../../log';
 import { SidebarMessageType, type SourcesResponseMessage } from '../bridge/messages';
 
@@ -30,7 +30,10 @@ export function logSourcesResponse(response: SourcesResponseMessage, summary?: s
   );
 }
 
-export function logInboundSidebarMessage(message: unknown): void {
+export function logInboundSidebarMessage(
+  message: unknown,
+  getIncludeHomeConfig: IncludeHomeConfigGetter
+): void {
   if (!message || typeof message !== 'object') {
     appendLine('[Akashi] Sidebar: received non-object message');
     return;
@@ -51,7 +54,7 @@ export function logInboundSidebarMessage(message: unknown): void {
   if (requestId) {
     const parts: string[] = [];
     if (type === SidebarMessageType.SourcesIndexWorkspaceRequest) {
-      parts.push(`includeHomeConfig=${readIncludeHomeConfig()}`);
+      parts.push(`includeHomeConfig=${getIncludeHomeConfig()}`);
     }
     const extra = parts.length > 0 ? ` ${parts.join(' ')}` : '';
     appendLine(`[Akashi] Sidebar: received message type=${type} requestId=${requestId}${extra}`);

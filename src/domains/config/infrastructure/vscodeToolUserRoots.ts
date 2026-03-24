@@ -1,18 +1,26 @@
 import * as path from 'node:path';
-import type { ToolUserRoots } from '../domain/toolUserRoots';
-import {
-  readClaudeConfigDirSettingPath,
-  readCodexHomeSettingPath,
-  readCursorConfigDirSettingPath,
-  readGeminiConfigDirSettingPath,
-} from './vscodeSourcesDirSettings';
+import * as vscode from 'vscode';
+import type { ToolUserRoots } from '../../../shared/toolUserRoots';
+import { resolveOptionalUserConfigDir } from './userConfigDirPath';
 
-export type { ToolUserRoots } from '../domain/toolUserRoots';
+/** Keys under `akashi.homePathOverrides`. */
+type HomePathOverrideTool = 'claude' | 'codex' | 'cursor' | 'gemini';
+
+function readRawHomePathOverride(tool: HomePathOverrideTool): string | undefined {
+  const obj = vscode.workspace
+    .getConfiguration('akashi')
+    .get<Partial<Record<HomePathOverrideTool, unknown>>>('homePathOverrides');
+  const v = obj?.[tool];
+  return typeof v === 'string' ? v : undefined;
+}
+
+function readOptionalSourcesDirForTool(tool: HomePathOverrideTool, homeDir: string): string | null {
+  return resolveOptionalUserConfigDir(readRawHomePathOverride(tool), homeDir);
+}
 
 /**
  * Effective user-scope config directories for tools that support non-default locations
  * (VS Code settings override env when set; env is only visible if the extension host inherited it).
- * Optional directory strings are read in `vscodeSourcesDirSettings.ts` (`homePathOverrides`, `resolveOptionalUserConfigDir`).
  */
 export function readToolUserRoots(homeDir: string): ToolUserRoots {
   return {
@@ -24,7 +32,7 @@ export function readToolUserRoots(homeDir: string): ToolUserRoots {
 }
 
 function resolveClaudeUserRoot(homeDir: string): string {
-  const fromSetting = readClaudeConfigDirSettingPath(homeDir);
+  const fromSetting = readOptionalSourcesDirForTool('claude', homeDir);
   if (fromSetting) {
     return fromSetting;
   }
@@ -36,7 +44,7 @@ function resolveClaudeUserRoot(homeDir: string): string {
 }
 
 function resolveGeminiUserRoot(homeDir: string): string {
-  const fromSetting = readGeminiConfigDirSettingPath(homeDir);
+  const fromSetting = readOptionalSourcesDirForTool('gemini', homeDir);
   if (fromSetting) {
     return fromSetting;
   }
@@ -48,7 +56,7 @@ function resolveGeminiUserRoot(homeDir: string): string {
 }
 
 function resolveCursorUserRoot(homeDir: string): string {
-  const fromSetting = readCursorConfigDirSettingPath(homeDir);
+  const fromSetting = readOptionalSourcesDirForTool('cursor', homeDir);
   if (fromSetting) {
     return fromSetting;
   }
@@ -56,7 +64,7 @@ function resolveCursorUserRoot(homeDir: string): string {
 }
 
 function resolveCodexUserRoot(homeDir: string): string {
-  const fromSetting = readCodexHomeSettingPath(homeDir);
+  const fromSetting = readOptionalSourcesDirForTool('codex', homeDir);
   if (fromSetting) {
     return fromSetting;
   }

@@ -7,13 +7,15 @@ import type {
   WorkspaceSourceScannerPort,
 } from '../application/ports';
 import { SourceScope, type SourceCategory } from '../domain/model';
-import type { SourcePresetId } from '../domain/sourcePresetDefinition';
+import type { ToolUserRootsResolver } from '../../../shared/config/workspaceConfigTypes';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import { SOURCE_RECORD_ID_FIELD_SEP, sourceRecordId } from '../../../shared/sourceRecordId';
 import { buildSourceFacetTags } from '../domain/sourceTags';
-import { readToolUserRoots } from './providerUserRoots';
 import { collectHomeSourcePaths, selectWorkspaceGlobRows } from './sourceDiscoveryPlan';
 
 export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort {
+  public constructor(private readonly resolveToolUserRoots: ToolUserRootsResolver) {}
+
   public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
     const activePresets = options.activePresets;
     if (activePresets.size === 0) {
@@ -69,7 +71,7 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
     activePresets: ReadonlySet<SourcePresetId>
   ): Promise<DiscoveredSource[]> {
     const home = os.homedir();
-    const roots = readToolUserRoots(home);
+    const roots = this.resolveToolUserRoots(home);
     const discovered = await collectHomeSourcePaths(home, activePresets, {
       claudeUserRoot: roots.claudeUserRoot,
       cursorUserRoot: roots.cursorUserRoot,

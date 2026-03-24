@@ -1,9 +1,6 @@
+import { ALL_SOURCE_PRESET_IDS, type SourcePresetId } from '../../shared/sourcePresetId';
 import type { SourceCategory } from './domain/model';
-import type {
-  HomePathTask,
-  SourcePresetDefinition,
-  SourcePresetId,
-} from './domain/sourcePresetDefinition';
+import type { HomePathTask, SourcePresetDefinition } from './domain/sourcePresetDefinition';
 import type { ArtifactTemplate } from './domain/artifactTemplate';
 import { antigravityPresetDefinition } from './presets/antigravity/preset';
 import { claudePresetDefinition } from './presets/claude/preset';
@@ -24,9 +21,17 @@ export const SOURCE_PRESET_DEFINITIONS: readonly SourcePresetDefinition[] = [
   codexPresetDefinition,
 ];
 
-export const ALL_SOURCE_PRESET_IDS: readonly SourcePresetId[] = SOURCE_PRESET_DEFINITIONS.map(
-  (p) => p.id
-);
+const derivedPresetIds = SOURCE_PRESET_DEFINITIONS.map((p) => p.id);
+if (
+  derivedPresetIds.length !== ALL_SOURCE_PRESET_IDS.length ||
+  !derivedPresetIds.every((id, i) => id === ALL_SOURCE_PRESET_IDS[i])
+) {
+  throw new Error(
+    'SOURCE_PRESET_DEFINITIONS ids/order must match shared/sourcePresetId ALL_SOURCE_PRESET_IDS'
+  );
+}
+
+export { ALL_SOURCE_PRESET_IDS };
 
 /** One workspace scan row: which preset owns the glob and category for matched files. */
 export interface WorkspaceGlobScanRow {

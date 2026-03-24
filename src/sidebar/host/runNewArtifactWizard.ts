@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { ArtifactTemplate } from '../../domains/sources/domain/artifactTemplate';
-import type { SourcePresetId } from '../../domains/sources/domain/sourcePresets';
+import type { SourcePresetId } from '../../shared/sourcePresetId';
 import { getArtifactTemplatesForContext } from '../../domains/sources/registerSourcePresets';
 import { validateSourceFileBaseName } from '../bridge/validateSourceFileBaseName';
 

@@ -1,5 +1,6 @@
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
+import type { ToolUserRoots } from '../../../shared/toolUserRoots';
 import type { SourceCategory } from './model';
-import type { ToolUserRoots } from './toolUserRoots';
 
 /** VS Code workspace glob and the category for every file matched by this preset's rule. */
 export interface WorkspaceGlobContribution {
@@ -23,8 +24,6 @@ export interface HomePathsContext {
 
 /** One async unit of user-home path discovery for a single preset. */
 export type HomePathTask = (ctx: HomePathsContext) => Promise<void>;
-
-export type SourcePresetId = 'claude' | 'cursor' | 'antigravity' | 'codex';
 
 /**
  * One tool preset: workspace globs and user-home scan tasks only.

@@ -3,11 +3,14 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { resolveArtifactCreation } from '../../../domains/sources/application/createArtifact';
 import { findArtifactTemplateById } from '../../../domains/sources/registerSourcePresets';
-import { readToolUserRoots } from '../../../domains/sources/infrastructure/providerUserRoots';
+import type {
+  ToolUserRootsResolver,
+  WorkbenchSidebarFsSettings,
+} from '../../../shared/config/workspaceConfigTypes';
 import { validateSourceFileBaseName } from '../../bridge/validateSourceFileBaseName';
 
 /**
- * Sidebar tree file ops on the extension host: `workspace.fs` plus `explorer.*` / `files.*` settings
+ * Sidebar tree file ops on the extension host: `workspace.fs` plus workbench settings (injected)
  * for confirmations and trash, and path allowlisting (workspace + home) for safety.
  */
 
@@ -45,11 +48,14 @@ export function isPathAllowedForSidebarFs(fsPath: string): boolean {
   return isPathInsideOrEqual(h, n);
 }
 
-export async function handleSidebarFsRename(payload: {
-  fromPath: string;
-  toPath: string;
-  confirmDragAndDrop?: boolean;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function handleSidebarFsRename(
+  payload: {
+    fromPath: string;
+    toPath: string;
+    confirmDragAndDrop?: boolean;
+  },
+  workbenchFs: WorkbenchSidebarFsSettings
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const fromN = path.normalize(payload.fromPath);
   const toN = path.normalize(payload.toPath);
   if (!isPathAllowedForSidebarFs(fromN) || !isPathAllowedForSidebarFs(toN)) {
@@ -66,8 +72,7 @@ export async function handleSidebarFsRename(payload: {
   }
 
   if (payload.confirmDragAndDrop) {
-    const ex = vscode.workspace.getConfiguration('explorer');
-    if (ex.get<boolean>('confirmDragAndDrop') !== false) {
+    if (workbenchFs.isConfirmDragAndDropEnabled()) {
       const base = path.basename(fromN);
       const choice = await vscode.window.showWarningMessage(
         `Are you sure you want to move '${base}'?`,
@@ -126,10 +131,13 @@ export async function handleSidebarFsRename(payload: {
   }
 }
 
-export async function handleSidebarFsDelete(payload: {
-  path: string;
-  isDirectory: boolean;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function handleSidebarFsDelete(
+  payload: {
+    path: string;
+    isDirectory: boolean;
+  },
+  workbenchFs: WorkbenchSidebarFsSettings
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const p = path.normalize(payload.path);
   if (!isPathAllowedForSidebarFs(p)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
@@ -145,10 +153,7 @@ export async function handleSidebarFsDelete(payload: {
   }
 
   const base = path.basename(p);
-  const files = vscode.workspace.getConfiguration('files');
-  const enableTrash = files.get<boolean>('enableTrash') !== false;
-  const explorer = vscode.workspace.getConfiguration('explorer');
-  const confirmDelete = explorer.get<boolean>('confirmDelete') !== false;
+  const { enableTrash, confirmDelete } = workbenchFs.getDeleteFlowSettings();
 
   if (confirmDelete) {
     const msg = enableTrash
@@ -225,11 +230,14 @@ export async function handleSidebarFsCreateFile(payload: {
   }
 }
 
-export async function handleSidebarFsCreateArtifact(payload: {
-  templateId: string;
-  fileName: string;
-  workspaceRoot: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function handleSidebarFsCreateArtifact(
+  payload: {
+    templateId: string;
+    fileName: string;
+    workspaceRoot: string;
+  },
+  resolveToolUserRoots: ToolUserRootsResolver
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const template = findArtifactTemplateById(payload.templateId);
   if (!template) {
     return { ok: false, error: `Unknown artifact template: ${payload.templateId}` };
@@ -240,7 +248,7 @@ export async function handleSidebarFsCreateArtifact(payload: {
     return { ok: false, error: nameErr };
   }
 
-  const roots = readToolUserRoots(os.homedir());
+  const roots = resolveToolUserRoots(os.homedir());
   const resolvedDir = template.targetDirResolver(payload.workspaceRoot, roots);
 
   const resolved = resolveArtifactCreation({

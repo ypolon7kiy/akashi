@@ -2,7 +2,7 @@ import type { Dirent } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { SourceCategory } from '../domain/model';
-import type { SourcePresetId } from '../domain/sourcePresetDefinition';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import { SOURCE_RECORD_ID_FIELD_SEP } from '../../../shared/sourceRecordId';
 import { HOME_PATH_TASKS, WORKSPACE_GLOB_SCAN_ROWS } from '../registerSourcePresets';
 
