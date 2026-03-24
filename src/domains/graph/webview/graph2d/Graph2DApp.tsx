@@ -364,8 +364,8 @@ export function Graph2DApp(): JSX.Element {
             {nodeBreakdown.tags})
           </p>
           <p className="akashi-graph-debug-line akashi-graph-debug-hint">
-            <strong>Controls</strong> Pan: drag background. Zoom: wheel. Drag nodes to reposition.
-            Double-click a file to open. Hover to focus a subgraph. Presets start as separate hubs
+            <strong>Controls</strong> Pan: middle mouse drag. Zoom: wheel. Left-drag nodes to reposition.
+            Right-click a node for the menu. Double-click a file to open. Hover to focus a subgraph. Presets start as separate hubs
             (project/global beside each); adjust “Preset cluster pull” if a cluster drifts.
           </p>
         </div>
