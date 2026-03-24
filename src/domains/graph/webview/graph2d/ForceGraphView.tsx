@@ -4,6 +4,7 @@ import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } 
 import type { Simulation } from 'd3-force';
 import { inferLayoutDepth } from '../../application/gridLayout';
 import { applyPointedFocusVisibility } from '../../application/applyPointedFocusVisibility';
+import { filterArtifactCreatorsForGraphNode } from '../../application/filterArtifactCreatorsForGraphNode';
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { getHoverColor, getNodeColor } from '../graphNodeColors';
 import { readCanvasThemeColors } from './canvasThemeColors';
@@ -15,6 +16,7 @@ import {
 } from './tierLabelContrast';
 import { Graph2DMessageType } from './messages';
 import { getVscodeApi } from '../../../../webview-shared/api';
+import type { ArtifactCreatorMenuEntry } from '../../../../shared/types/artifactCreatorMenuEntry';
 
 export type SimNode = GraphNode3D & {
   x: number;
@@ -575,6 +577,10 @@ export function ForceGraphView(props: {
   sim: ForceGraphSimProps;
   /** When set, category node fill/hover follow frozen host config. */
   categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>;
+  /** From graph snapshot; when absent, context menu has no create rows. */
+  artifactCreators?: readonly ArtifactCreatorMenuEntry[];
+  /** Same as graph preset toggles; `null` means all presets enabled. */
+  enabledPresetIds?: ReadonlySet<string> | null;
 }): JSX.Element {
   const simPropsRef = useRef(props.sim);
   simPropsRef.current = props.sim;
@@ -615,6 +621,13 @@ export function ForceGraphView(props: {
 
   const postCopyPath = useCallback((path: string) => {
     getVscodeApi()?.postMessage({ type: Graph2DMessageType.CopyPath, payload: { path } });
+  }, []);
+
+  const postRunArtifactCreator = useCallback((templateId: string) => {
+    getVscodeApi()?.postMessage({
+      type: Graph2DMessageType.RunArtifactCreator,
+      payload: { templateId },
+    });
   }, []);
 
   const draw = useCallback(() => {
@@ -1194,6 +1207,23 @@ export function ForceGraphView(props: {
           role="menu"
           onClick={(ev) => ev.stopPropagation()}
         >
+          {filterArtifactCreatorsForGraphNode(
+            props.artifactCreators ?? [],
+            contextMenu.node,
+            props.enabledPresetIds ?? null
+          ).map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className="akashi-graph-context-item"
+              onClick={() => {
+                postRunArtifactCreator(c.id);
+                setContextMenu(null);
+              }}
+            >
+              {c.label}
+            </button>
+          ))}
           {contextMenu.node.type === 'note' || contextMenu.node.type === 'folder' ? (
             <button
               type="button"

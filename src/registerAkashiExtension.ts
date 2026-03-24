@@ -5,11 +5,15 @@ import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
 import { createConfigDomain } from './domains/config';
 import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
-import { findArtifactCreatorById } from './domains/sources/registerSourcePresets';
+import {
+  buildArtifactCreatorMenuEntries,
+  findArtifactCreatorById,
+} from './domains/sources/registerSourcePresets';
 import { appendLine, getLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
 import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
+import { inferWorkspaceRoot } from './sidebar/host/inferWorkspaceRoot';
 import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 
 /**
@@ -27,11 +31,59 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
   const graphEnv: GraphPanelEnvironment = {
     getGraphPayload: async () => {
       const snap = await sourcesService.getLastSnapshot();
-      return buildSourcesSnapshotPayload(
+      const base = buildSourcesSnapshotPayload(
         snap,
         snapshotWorkspaceFolders(),
         config.getActiveSourcePresets
       );
+      if (!base) {
+        return null;
+      }
+      return { ...base, artifactCreators: buildArtifactCreatorMenuEntries() };
+    },
+    runArtifactCreator: async (templateId: string) => {
+      const id = (templateId ?? '').trim();
+      if (!id) {
+        return;
+      }
+      const creator = findArtifactCreatorById(id);
+      if (!creator) {
+        void vscode.window.showErrorMessage(`Unknown artifact template: ${id}`);
+        return;
+      }
+      if (creator.scope === 'workspace') {
+        const folders = vscode.workspace.workspaceFolders;
+        if (!folders?.length) {
+          void vscode.window.showErrorMessage(
+            'Open a folder or workspace to create workspace-scoped artifacts.'
+          );
+          return;
+        }
+      }
+      const roots = config.resolveToolUserRoots(os.homedir());
+      const workspaceRoot = inferWorkspaceRoot();
+      const planned = await creator.run({ workspaceRoot, roots });
+      if (planned.kind === 'cancelled') {
+        return;
+      }
+      if (planned.kind === 'error') {
+        void vscode.window.showErrorMessage(planned.error);
+        return;
+      }
+      const result = await executeCreationPlan(planned.plan);
+      if (!result.ok) {
+        void vscode.window.showErrorMessage(result.error);
+        return;
+      }
+      if (result.openPath) {
+        try {
+          const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
+          await vscode.window.showTextDocument(doc);
+        } catch {
+          // Opening is best-effort (e.g. binary or missing file).
+        }
+      }
+      await vscode.commands.executeCommand('akashi.sources.refresh');
     },
   };
 

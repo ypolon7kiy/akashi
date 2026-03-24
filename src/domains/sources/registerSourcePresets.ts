@@ -1,4 +1,5 @@
 import { ALL_SOURCE_PRESET_IDS, type SourcePresetId } from '../../shared/sourcePresetId';
+import type { ArtifactCreatorMenuEntry } from '../../shared/types/artifactCreatorMenuEntry';
 import type { SourceCategory } from './domain/model';
 import type { HomePathTask, SourcePresetDefinition } from './domain/sourcePresetDefinition';
 import type { ArtifactCreator } from './domain/artifactCreator';
@@ -91,4 +92,15 @@ export function getArtifactCreatorsForContext(
 /** Look up a creator by exact id — used host-side to validate incoming command payloads. */
 export function findArtifactCreatorById(id: string): ArtifactCreator | undefined {
   return ARTIFACT_CREATORS.find((c) => c.id === id);
+}
+
+/** Plain entries for graph webview context menu (no vscode / class instances). */
+export function buildArtifactCreatorMenuEntries(): readonly ArtifactCreatorMenuEntry[] {
+  return ARTIFACT_CREATORS.map((c) => ({
+    id: c.id,
+    label: c.label,
+    presetId: c.presetId,
+    scope: c.scope,
+    category: c.category,
+  }));
 }

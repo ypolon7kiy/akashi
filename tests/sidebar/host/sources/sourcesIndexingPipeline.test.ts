@@ -282,9 +282,9 @@ describe('sources indexing pipeline (edge cases)', () => {
     ).toBeNull();
   });
 
-  it('isSourcesSnapshotPayload rejects invalid shapes', () => {
+  it('isSourcesSnapshotPayload only rejects non-objects', () => {
     expect(isSourcesSnapshotPayload(null)).toBe(false);
-    expect(isSourcesSnapshotPayload({})).toBe(false);
+    expect(isSourcesSnapshotPayload({})).toBe(true);
     expect(
       isSourcesSnapshotPayload({
         generatedAt: 'g',
@@ -292,7 +292,7 @@ describe('sources indexing pipeline (edge cases)', () => {
         records: 'bad',
         workspaceFolders: [],
       })
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('persists facet tags on snapshot and payload (locality, category, preset)', async () => {

@@ -1,3 +1,4 @@
+import type { ArtifactCreatorMenuEntry } from '../../../shared/types/artifactCreatorMenuEntry';
 import type { ArtifactCreationPlan } from './artifactOperation';
 import type { SourceCategory } from './model';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
@@ -34,7 +35,7 @@ export type CreatorResult =
  * workflows, intentionally co-located with preset domain definitions rather
  * than placed in the application/ or ui/ layer.
  */
-export abstract class ArtifactCreator {
+export abstract class ArtifactCreator implements ArtifactCreatorMenuEntry {
   abstract readonly id: string;
   abstract readonly label: string;
   abstract readonly presetId: SourcePresetId;

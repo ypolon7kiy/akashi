@@ -286,6 +286,8 @@ export function Graph2DApp(): JSX.Element {
                 showEdges={showEdges}
                 sim={simProps}
                 categoryPalette={categoryPalette ?? undefined}
+                artifactCreators={snapshot?.artifactCreators}
+                enabledPresetIds={effectiveEnabledPresets}
               />
               <Graph2DViewControls
                 showLabels={showLabels}

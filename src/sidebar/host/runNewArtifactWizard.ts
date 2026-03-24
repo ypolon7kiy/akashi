@@ -5,6 +5,7 @@ import type { SourcePresetId } from '../../shared/sourcePresetId';
 import type { ToolUserRoots } from '../../shared/toolUserRoots';
 import { getArtifactCreatorsForContext } from '../../domains/sources/registerSourcePresets';
 import { executeCreationPlan } from '../../domains/sources/infrastructure/executeCreationPlan';
+import { inferWorkspaceRoot } from './inferWorkspaceRoot';
 
 const PRESET_LABELS: Record<SourcePresetId, string> = {
   claude: 'Claude',
@@ -16,19 +17,6 @@ const PRESET_LABELS: Record<SourcePresetId, string> = {
 type PresetQuickPickItem = vscode.QuickPickItem & { readonly presetId: SourcePresetId };
 
 type CreatorQuickPickItem = vscode.QuickPickItem & { readonly creator: ArtifactCreator };
-
-function inferWorkspaceRoot(): string {
-  const editor = vscode.window.activeTextEditor;
-  const uri = editor?.document.uri;
-  if (uri?.scheme === 'file') {
-    const wf = vscode.workspace.getWorkspaceFolder(uri);
-    if (wf) {
-      return wf.uri.fsPath;
-    }
-  }
-  const first = vscode.workspace.workspaceFolders?.[0];
-  return first?.uri.fsPath ?? '';
-}
 
 /**
  * Sidebar title-bar flow: preset → locality → artifact creator, then `creator.run()` + execute plan.

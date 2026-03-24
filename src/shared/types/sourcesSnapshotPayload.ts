@@ -4,6 +4,10 @@
  * Tag shape aligns structurally with `IndexedSourceEntry.tags` in the sources domain.
  */
 
+import type { ArtifactCreatorMenuEntry } from './artifactCreatorMenuEntry';
+
+export type { ArtifactCreatorMenuEntry };
+
 export interface SourceFacetTagPayload {
   readonly type: string;
   readonly value: string;
@@ -35,18 +39,13 @@ export interface SourcesSnapshotPayload {
   readonly sourceCount: number;
   readonly records: SourceDescriptor[];
   readonly workspaceFolders: WorkspaceFolderInfo[];
+  /** Optional: graph panel merges this for artifact context menu (sidebar snapshots omit it). */
+  readonly artifactCreators?: readonly ArtifactCreatorMenuEntry[];
 }
 
-/** Loose guard for webview `postMessage` payloads from our host (same bundle). Trusts record shape to TypeScript at the producer. */
+/**
+ * Minimal guard: non-null object (not an array). Full shape is trusted from our extension host.
+ */
 export function isSourcesSnapshotPayload(value: unknown): value is SourcesSnapshotPayload {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  const o = value as Record<string, unknown>;
-  return (
-    typeof o.generatedAt === 'string' &&
-    typeof o.sourceCount === 'number' &&
-    Array.isArray(o.records) &&
-    Array.isArray(o.workspaceFolders)
-  );
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

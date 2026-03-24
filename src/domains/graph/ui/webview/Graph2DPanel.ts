@@ -96,6 +96,14 @@ export class Graph2DPanel {
           if (typeof path === 'string') {
             await vscode.env.clipboard.writeText(path);
           }
+          return;
+        }
+        if (message?.type === Graph2DMessageType.RunArtifactCreator) {
+          const templateId = (message.payload as { templateId?: string } | undefined)?.templateId;
+          if (typeof templateId === 'string' && templateId.length > 0) {
+            await this.snapshotEnv?.runArtifactCreator?.(templateId);
+          }
+          return;
         }
       }
     );

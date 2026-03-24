@@ -65,6 +65,7 @@ vi.mock('../../src/sidebar/host/runNewArtifactWizard', () => ({
 
 vi.mock('../../src/domains/sources/registerSourcePresets', () => ({
   findArtifactCreatorById: vi.fn(),
+  buildArtifactCreatorMenuEntries: vi.fn(() => []),
 }));
 
 vi.mock('../../src/domains/sources/infrastructure/executeCreationPlan', () => ({

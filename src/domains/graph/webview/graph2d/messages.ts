@@ -8,6 +8,7 @@ export const Graph2DMessageType = {
   OpenPath: 'graph2d/openPath',
   CopyPath: 'graph2d/copyPath',
   FileColors: 'graph2d/fileColors',
+  RunArtifactCreator: 'graph2d/runArtifactCreator',
 } as const;
 
 /** Host → webview: category node fill/hover (frozen at activation). */
