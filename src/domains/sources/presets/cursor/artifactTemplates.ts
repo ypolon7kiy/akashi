@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import type { ArtifactTemplate } from '../../domain/artifactTemplate';
+import { simpleFileTemplate } from '../../domain/artifactTemplateHelpers';
 import { SourceCategoryId } from '../../domain/sourceTags';
 
 function skillContent(fileName: string): string {
@@ -18,77 +19,74 @@ function commandContent(fileName: string): string {
 }
 
 export const cursorArtifactTemplates: readonly ArtifactTemplate[] = [
-  {
+  simpleFileTemplate({
     id: 'cursor/skill/workspace',
     label: 'New Skill',
     presetId: 'cursor',
     category: SourceCategoryId.Skill,
     scope: 'workspace',
-    targetDirResolver: (workspaceRoot) =>
-      workspaceRoot ? path.join(workspaceRoot, '.cursor', 'skills') : '',
+    targetDir: (ws) => (ws ? path.join(ws, '.cursor', 'skills') : ''),
     suggestedExtension: '.md',
     initialContent: skillContent,
-  },
-  {
+  }),
+  simpleFileTemplate({
     id: 'cursor/skill/user',
     label: 'New Skill (global)',
     presetId: 'cursor',
     category: SourceCategoryId.Skill,
     scope: 'user',
-    targetDirResolver: (_workspaceRoot, roots) => path.join(roots.cursorUserRoot, 'skills'),
+    targetDir: (_ws, roots) => path.join(roots.cursorUserRoot, 'skills'),
     suggestedExtension: '.md',
     initialContent: skillContent,
-  },
-  {
+  }),
+  simpleFileTemplate({
     id: 'cursor/rule/workspace',
     label: 'New Rule',
     presetId: 'cursor',
     category: SourceCategoryId.Rule,
     scope: 'workspace',
-    targetDirResolver: (workspaceRoot) =>
-      workspaceRoot ? path.join(workspaceRoot, '.cursor', 'rules') : '',
+    targetDir: (ws) => (ws ? path.join(ws, '.cursor', 'rules') : ''),
     suggestedExtension: '.mdc',
     initialContent: ruleContent,
-  },
-  {
+  }),
+  simpleFileTemplate({
     id: 'cursor/rule/user',
     label: 'New Rule (global)',
     presetId: 'cursor',
     category: SourceCategoryId.Rule,
     scope: 'user',
-    targetDirResolver: (_workspaceRoot, roots) => path.join(roots.cursorUserRoot, 'rules'),
+    targetDir: (_ws, roots) => path.join(roots.cursorUserRoot, 'rules'),
     suggestedExtension: '.mdc',
     initialContent: ruleContent,
-  },
-  {
+  }),
+  simpleFileTemplate({
     id: 'cursor/command/workspace',
     label: 'New Command',
     presetId: 'cursor',
     category: SourceCategoryId.Command,
     scope: 'workspace',
-    targetDirResolver: (workspaceRoot) =>
-      workspaceRoot ? path.join(workspaceRoot, '.cursor', 'commands') : '',
+    targetDir: (ws) => (ws ? path.join(ws, '.cursor', 'commands') : ''),
     suggestedExtension: '.md',
     initialContent: commandContent,
-  },
-  {
+  }),
+  simpleFileTemplate({
     id: 'cursor/command/user',
     label: 'New Command (global)',
     presetId: 'cursor',
     category: SourceCategoryId.Command,
     scope: 'user',
-    targetDirResolver: (_workspaceRoot, roots) => path.join(roots.cursorUserRoot, 'commands'),
+    targetDir: (_ws, roots) => path.join(roots.cursorUserRoot, 'commands'),
     suggestedExtension: '.md',
     initialContent: commandContent,
-  },
-  {
+  }),
+  simpleFileTemplate({
     id: 'cursor/context/workspace',
     label: 'New Context File',
     presetId: 'cursor',
     category: SourceCategoryId.LlmGuideline,
     scope: 'workspace',
-    targetDirResolver: (workspaceRoot) => workspaceRoot,
+    targetDir: (ws) => ws,
     suggestedExtension: '.md',
     initialContent: '# Guidelines\n\n',
-  },
+  }),
 ];

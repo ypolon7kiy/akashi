@@ -1,16 +1,14 @@
 import * as os from 'node:os';
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
 import { createConfigDomain } from './domains/config';
-import { resolveArtifactCreation } from './domains/sources/application/createArtifact';
+import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
 import { findArtifactTemplateById } from './domains/sources/registerSourcePresets';
 import { appendLine, getLog, initLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
-import { isPathAllowedForSidebarFs } from './sidebar/host/fs/handleSourcesFsRequest';
 import { validateSourceFileBaseName } from './sidebar/bridge/validateSourceFileBaseName';
 import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
 import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
@@ -44,43 +42,37 @@ export function activate(context: vscode.ExtensionContext): void {
     // without importing sidebar types. Graph right-click will call this command.
     vscode.commands.registerCommand(
       'akashi.sources.createArtifact',
-      async (args: { templateId: string; fileName: string; workspaceRoot: string }) => {
+      async (args: { templateId: string; userInput: string; workspaceRoot: string }) => {
         const template = findArtifactTemplateById(args?.templateId);
         if (!template) {
           void vscode.window.showErrorMessage(`Unknown artifact template: ${args?.templateId}`);
           return;
         }
-        const nameErr = validateSourceFileBaseName((args.fileName ?? '').trim());
+        const userInput = (args.userInput ?? '').trim();
+        const nameErr = validateSourceFileBaseName(userInput);
         if (nameErr) {
           void vscode.window.showErrorMessage(nameErr);
           return;
         }
         const roots = config.resolveToolUserRoots(os.homedir());
-        const resolvedDir = template.targetDirResolver(args.workspaceRoot ?? '', roots);
-        const resolved = resolveArtifactCreation({
-          template,
-          fileName: args.fileName ?? '',
-          resolvedDir,
-        });
-        if (!resolved.ok) {
-          void vscode.window.showErrorMessage(resolved.error);
+        const planned = template.plan({ userInput, workspaceRoot: args.workspaceRoot ?? '', roots });
+        if (!planned.ok) {
+          void vscode.window.showErrorMessage(planned.error);
           return;
         }
-        if (!isPathAllowedForSidebarFs(resolved.absolutePath)) {
-          void vscode.window.showErrorMessage('This path cannot be modified from Akashi.');
+        const result = await executeCreationPlan(planned.plan);
+        if (!result.ok) {
+          void vscode.window.showErrorMessage(result.error);
           return;
         }
-        const fileUri = vscode.Uri.file(resolved.absolutePath);
-        try {
-          await vscode.workspace.fs.stat(fileUri);
-          void vscode.window.showErrorMessage('A file or folder with that name already exists.');
-          return;
-        } catch {
-          // absent — ok
+        if (result.openPath) {
+          try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
+            await vscode.window.showTextDocument(doc);
+          } catch {
+            // Opening is best-effort (e.g. binary or missing file).
+          }
         }
-        const parentUri = vscode.Uri.file(path.dirname(resolved.absolutePath));
-        await vscode.workspace.fs.createDirectory(parentUri);
-        await vscode.workspace.fs.writeFile(fileUri, Buffer.from(resolved.content, 'utf8'));
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
     ),

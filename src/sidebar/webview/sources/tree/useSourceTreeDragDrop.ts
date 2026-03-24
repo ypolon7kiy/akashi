@@ -8,7 +8,7 @@ import { basenameFsPath, joinDirSegment, type TreeNode } from './sourceTree';
 
 /**
  * Drag-move within the sources tree. Webview MIME / path checks are UX only; the extension host
- * enforces real safety via `isPathAllowedForSidebarFs` in `handleSourcesFsRequest.ts`.
+ * enforces real safety via `isPathAllowedForWorkspaceOrHome` (shared) / sidebar FS host.
  */
 export interface UseSourceTreeDragDropResult {
   readonly dropTargetId: string | null;

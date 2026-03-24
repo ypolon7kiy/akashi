@@ -102,11 +102,13 @@ export async function runNewArtifactWizard(
 
   const tpl = templatePick.template;
   const name = await vscode.window.showInputBox({
-    title: 'Name',
-    prompt: tpl.fixedFileName
-      ? `Folder name (creates ${tpl.fixedFileName} inside)`
-      : 'File name (extension added if omitted)',
-    validateInput: (v) => validateSourceFileBaseName(v.trim()) ?? undefined,
+    title: tpl.input.title ?? 'Name',
+    prompt: tpl.input.prompt,
+    validateInput: (v) => {
+      const base = validateSourceFileBaseName(v.trim());
+      if (base) return base;
+      return tpl.input.validate?.(v.trim()) ?? undefined;
+    },
   });
   if (name === undefined) {
     return;
@@ -120,7 +122,7 @@ export async function runNewArtifactWizard(
 
   await vscode.commands.executeCommand('akashi.sources.createArtifact', {
     templateId: tpl.id,
-    fileName: trimmed,
+    userInput: trimmed,
     workspaceRoot,
   });
 }

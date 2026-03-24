@@ -1,7 +1,7 @@
-import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { WorkbenchSidebarFsSettings } from '../../../shared/config/workspaceConfigTypes';
+import { isPathAllowedForWorkspaceOrHome } from '../../../shared/extensionHost/isPathAllowedForWorkspaceOrHome';
 import { validateSourceFileBaseName } from '../../bridge/validateSourceFileBaseName';
 
 /**
@@ -12,36 +12,7 @@ import { validateSourceFileBaseName } from '../../bridge/validateSourceFileBaseN
 /** Internal: user dismissed a confirm dialog — host maps to a successful no-op response for the webview. */
 export const SIDEBAR_FS_CANCELLED = 'SIDEBAR_FS_CANCELLED';
 
-function isPathInsideOrEqual(root: string, candidate: string): boolean {
-  const r = path.normalize(root);
-  const c = path.normalize(candidate);
-  if (r === c) {
-    return true;
-  }
-  const rel = path.relative(r, c);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
-}
-
-/**
- * Allow paths under any workspace folder, or under the user home directory (indexed “user” sources).
- * Prefer VS Code’s workspace containment (URI-aware) when a folder workspace is open; fall back to
- * home-directory prefix checks for indexed user-config paths outside the workspace.
- */
-export function isPathAllowedForSidebarFs(fsPath: string): boolean {
-  const uri = vscode.Uri.file(fsPath);
-  if ((vscode.workspace.workspaceFolders?.length ?? 0) > 0) {
-    if (vscode.workspace.getWorkspaceFolder(uri) !== undefined) {
-      return true;
-    }
-  }
-  const home = os.homedir();
-  if (!home) {
-    return false;
-  }
-  const n = path.normalize(fsPath);
-  const h = path.normalize(home);
-  return isPathInsideOrEqual(h, n);
-}
+export { isPathAllowedForWorkspaceOrHome as isPathAllowedForSidebarFs };
 
 export async function handleSidebarFsRename(
   payload: {
@@ -53,11 +24,11 @@ export async function handleSidebarFsRename(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const fromN = path.normalize(payload.fromPath);
   const toN = path.normalize(payload.toPath);
-  if (!isPathAllowedForSidebarFs(fromN) || !isPathAllowedForSidebarFs(toN)) {
+  if (!isPathAllowedForWorkspaceOrHome(fromN) || !isPathAllowedForWorkspaceOrHome(toN)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
   const parentTo = path.dirname(toN);
-  if (!isPathAllowedForSidebarFs(parentTo)) {
+  if (!isPathAllowedForWorkspaceOrHome(parentTo)) {
     return { ok: false, error: 'Destination folder is not allowed.' };
   }
 
@@ -134,7 +105,7 @@ export async function handleSidebarFsDelete(
   workbenchFs: WorkbenchSidebarFsSettings
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const p = path.normalize(payload.path);
-  if (!isPathAllowedForSidebarFs(p)) {
+  if (!isPathAllowedForWorkspaceOrHome(p)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 
@@ -186,7 +157,7 @@ export async function handleSidebarFsCreateFile(payload: {
     return { ok: false, error: nameErr };
   }
   const base = payload.fileName.trim();
-  if (!isPathAllowedForSidebarFs(parentN)) {
+  if (!isPathAllowedForWorkspaceOrHome(parentN)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 
@@ -205,7 +176,7 @@ export async function handleSidebarFsCreateFile(payload: {
   if (parentOfFile !== parentN) {
     return { ok: false, error: 'Enter a valid name.' };
   }
-  if (!isPathAllowedForSidebarFs(filePath) || !isPathAllowedForSidebarFs(parentOfFile)) {
+  if (!isPathAllowedForWorkspaceOrHome(filePath) || !isPathAllowedForWorkspaceOrHome(parentOfFile)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 
@@ -235,7 +206,7 @@ export async function handleSidebarFsCreateFolder(payload: {
     return { ok: false, error: nameErr };
   }
   const base = payload.folderName.trim();
-  if (!isPathAllowedForSidebarFs(parentN)) {
+  if (!isPathAllowedForWorkspaceOrHome(parentN)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 
@@ -254,7 +225,7 @@ export async function handleSidebarFsCreateFolder(payload: {
   if (parentOfFolder !== parentN) {
     return { ok: false, error: 'Enter a valid name.' };
   }
-  if (!isPathAllowedForSidebarFs(folderPath) || !isPathAllowedForSidebarFs(parentOfFolder)) {
+  if (!isPathAllowedForWorkspaceOrHome(folderPath) || !isPathAllowedForWorkspaceOrHome(parentOfFolder)) {
     return { ok: false, error: 'This path cannot be modified from the Akashi sidebar.' };
   }
 
