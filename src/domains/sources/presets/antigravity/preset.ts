@@ -1,5 +1,6 @@
 import type { SourcePresetDefinition } from '../../domain/sourcePresetDefinition';
 import { SourceCategoryId } from '../../domain/sourceTags';
+import { antigravityArtifactCreators } from './creators';
 import { antigravityHomePathTasks } from './homePathTasks';
 
 const WORKSPACE_GLOBS = [
@@ -13,4 +14,5 @@ export const antigravityPresetDefinition: SourcePresetDefinition = {
   id: 'antigravity',
   workspaceGlobContributions: [...WORKSPACE_GLOBS],
   homePathTasks: [...antigravityHomePathTasks],
+  artifactCreators: antigravityArtifactCreators,
 };

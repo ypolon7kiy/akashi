@@ -1,5 +1,6 @@
 import type { SourcePresetDefinition } from '../../domain/sourcePresetDefinition';
 import { SourceCategoryId } from '../../domain/sourceTags';
+import { cursorArtifactCreators } from './creators';
 import { cursorHomePathTasks } from './homePathTasks';
 
 const WORKSPACE_GLOBS = [
@@ -20,4 +21,5 @@ export const cursorPresetDefinition: SourcePresetDefinition = {
   id: 'cursor',
   workspaceGlobContributions: [...WORKSPACE_GLOBS],
   homePathTasks: [...cursorHomePathTasks],
+  artifactCreators: cursorArtifactCreators,
 };

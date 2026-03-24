@@ -7,10 +7,6 @@ import { antigravityPresetDefinition } from './presets/antigravity/preset';
 import { claudePresetDefinition } from './presets/claude/preset';
 import { codexPresetDefinition } from './presets/codex/preset';
 import { cursorPresetDefinition } from './presets/cursor/preset';
-import { claudeArtifactCreators } from './presets/claude/creators';
-import { cursorArtifactCreators } from './presets/cursor/creators';
-import { codexArtifactCreators } from './presets/codex/creators';
-import { antigravityArtifactCreators } from './presets/antigravity/creators';
 
 /**
  * Registration order is stable for logging; each preset is independent for discovery.
@@ -70,23 +66,19 @@ export const HOME_PATH_TASKS: readonly HomePathTask[] = SOURCE_PRESET_DEFINITION
 // Artifact creation registry
 // ---------------------------------------------------------------------------
 
-export const ARTIFACT_CREATORS: readonly ArtifactCreator[] = [
-  ...claudeArtifactCreators,
-  ...cursorArtifactCreators,
-  ...codexArtifactCreators,
-  ...antigravityArtifactCreators,
-];
+export const ARTIFACT_CREATORS: readonly ArtifactCreator[] =
+  SOURCE_PRESET_DEFINITIONS.flatMap((p) => p.artifactCreators);
 
 /**
- * Returns artifact creators for the given preset and scope.
- * Graph nodes use this with `{ presetId, scope }` decoded from node metadata —
+ * Returns artifact creators for the given preset and locality.
+ * Graph nodes use this with `{ presetId, locality }` decoded from node metadata —
  * no sidebar or webview types required.
  */
 export function getArtifactCreatorsForContext(
   presetId: SourcePresetId,
-  scope: 'workspace' | 'user'
+  locality: 'workspace' | 'user'
 ): readonly ArtifactCreator[] {
-  return ARTIFACT_CREATORS.filter((c) => c.presetId === presetId && c.scope === scope);
+  return ARTIFACT_CREATORS.filter((c) => c.presetId === presetId && c.locality === locality);
 }
 
 /** Look up a creator by exact id — used host-side to validate incoming command payloads. */
@@ -100,7 +92,7 @@ export function buildArtifactCreatorMenuEntries(): readonly ArtifactCreatorMenuE
     id: c.id,
     label: c.label,
     presetId: c.presetId,
-    scope: c.scope,
+    locality: c.locality,
     category: c.category,
   }));
 }

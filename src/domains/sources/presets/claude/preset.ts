@@ -1,5 +1,6 @@
 import type { SourcePresetDefinition } from '../../domain/sourcePresetDefinition';
 import { SourceCategoryId } from '../../domain/sourceTags';
+import { claudeArtifactCreators } from './creators';
 import { claudeHomePathTasks } from './homePathTasks';
 
 const WORKSPACE_GLOBS = [
@@ -18,4 +19,5 @@ export const claudePresetDefinition: SourcePresetDefinition = {
   id: 'claude',
   workspaceGlobContributions: [...WORKSPACE_GLOBS],
   homePathTasks: [...claudeHomePathTasks],
+  artifactCreators: claudeArtifactCreators,
 };

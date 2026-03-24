@@ -1,5 +1,6 @@
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import type { ToolUserRoots } from '../../../shared/toolUserRoots';
+import type { ArtifactCreator } from './artifactCreator';
 import type { SourceCategory } from './model';
 
 /** VS Code workspace glob and the category for every file matched by this preset's rule. */
@@ -33,4 +34,5 @@ export interface SourcePresetDefinition {
   readonly id: SourcePresetId;
   readonly workspaceGlobContributions: readonly WorkspaceGlobContribution[];
   readonly homePathTasks: readonly HomePathTask[];
+  readonly artifactCreators: readonly ArtifactCreator[];
 }
