@@ -25,10 +25,6 @@ import {
 } from './graph2dViewSettings';
 
 export function Graph2DViewControls(props: {
-  showLabels: boolean;
-  onShowLabelsChange: (v: boolean) => void;
-  showEdges: boolean;
-  onShowEdgesChange: (v: boolean) => void;
   controlsCollapsed: boolean;
   onControlsCollapsedChange: (v: boolean) => void;
   linkDistance: number;
@@ -74,25 +70,6 @@ export function Graph2DViewControls(props: {
             </button>
           </div>
           <div className="akashi-graph-view-controls__body">
-            <div className="akashi-graph-view-controls__row">
-              <label className="akashi-graph-view-controls__toggle">
-                <input
-                  type="checkbox"
-                  checked={props.showLabels}
-                  onChange={(e) => props.onShowLabelsChange(e.target.checked)}
-                />
-                <span>Labels</span>
-              </label>
-              <label className="akashi-graph-view-controls__toggle">
-                <input
-                  type="checkbox"
-                  checked={props.showEdges}
-                  onChange={(e) => props.onShowEdgesChange(e.target.checked)}
-                />
-                <span>Edges</span>
-              </label>
-            </div>
-
             <Graph2DSliderRow
               label="Link distance"
               value={props.linkDistance}
@@ -192,8 +169,6 @@ function Graph2DSliderRow(props: {
 }
 
 export function graph2DSettingsToPersisted(s: {
-  showLabels: boolean;
-  showEdges: boolean;
   controlsCollapsed: boolean;
   enabledPresets: ReadonlySet<string> | null;
   enabledCategories: ReadonlySet<string> | null;
@@ -206,8 +181,6 @@ export function graph2DSettingsToPersisted(s: {
   collidePadding: number;
 }): Graph2DWebviewPersistedState {
   return {
-    showLabels: s.showLabels,
-    showEdges: s.showEdges,
     controlsCollapsed: s.controlsCollapsed,
     enabledPresets: s.enabledPresets === null ? null : [...s.enabledPresets].sort(),
     enabledCategories: s.enabledCategories === null ? null : [...s.enabledCategories].sort(),

@@ -20,8 +20,6 @@ describe('parseGraph2DWebviewPersistedState', () => {
   it('uses fallback when enabledCategories key is omitted', () => {
     const d = defaultGraph2DWebviewPersistedState();
     const s = parseGraph2DWebviewPersistedState({
-      showLabels: d.showLabels,
-      showEdges: d.showEdges,
       controlsCollapsed: d.controlsCollapsed,
       enabledPresets: d.enabledPresets,
       linkDistance: d.linkDistance,

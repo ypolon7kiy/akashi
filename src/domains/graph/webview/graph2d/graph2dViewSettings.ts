@@ -4,8 +4,6 @@
 export const GRAPH2D_VIEW_SETTINGS_GLOBAL_STATE_KEY = 'akashi.graph2d.viewSettings.v1';
 
 export interface Graph2DWebviewPersistedState {
-  showLabels: boolean;
-  showEdges: boolean;
   controlsCollapsed: boolean;
   /** `null` = all presets from snapshot (default). */
   enabledPresets: string[] | null;
@@ -57,8 +55,6 @@ export const GRAPH2D_COLLIDE_STEP = 1;
 
 export function defaultGraph2DWebviewPersistedState(): Graph2DWebviewPersistedState {
   return {
-    showLabels: true,
-    showEdges: true,
     controlsCollapsed: true,
     enabledPresets: null,
     enabledCategories: null,
@@ -102,8 +98,6 @@ export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewP
   const o = raw as Record<string, unknown>;
 
   return {
-    showLabels: typeof o.showLabels === 'boolean' ? o.showLabels : d.showLabels,
-    showEdges: typeof o.showEdges === 'boolean' ? o.showEdges : d.showEdges,
     controlsCollapsed:
       typeof o.controlsCollapsed === 'boolean' ? o.controlsCollapsed : d.controlsCollapsed,
     enabledPresets: parseEnabledPresetsField(o.enabledPresets, d.enabledPresets),

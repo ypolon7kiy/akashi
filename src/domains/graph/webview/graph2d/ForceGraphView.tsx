@@ -572,8 +572,6 @@ export function ForceGraphView(props: {
   nodes: GraphNode3D[];
   edges: GraphEdge3D[];
   emptyHint: string | null;
-  showLabels: boolean;
-  showEdges: boolean;
   sim: ForceGraphSimProps;
   /** When set, category node fill/hover follow frozen host config. */
   categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>;
@@ -665,31 +663,29 @@ export function ForceGraphView(props: {
     const theme = readCanvasThemeColors();
     const simById = simByIdRef.current;
 
-    if (props.showEdges) {
-      for (const e of props.edges) {
-        const meta = focusEdgeById.get(e.id);
-        const vis = meta?.isVisible !== false;
-        const src = simById.get(e.source);
-        const tgt = simById.get(e.target);
-        if (!src || !tgt || src.x === undefined || src.y === undefined) {
-          continue;
-        }
-        if (tgt.x === undefined || tgt.y === undefined) {
-          continue;
-        }
-        const ep = pointedId !== null && (e.source === pointedId || e.target === pointedId);
-        ctx.beginPath();
-        ctx.moveTo(src.x, src.y);
-        ctx.lineTo(tgt.x, tgt.y);
-        ctx.strokeStyle = ep ? theme.edgeHighlight : theme.edge;
-        const edgeBaseOpacity = e.opacity ?? EDGE_DEFAULT_BASE_OPACITY;
-        ctx.globalAlpha = vis ? (ep ? 0.9 : edgeBaseOpacity) : 0.08;
-        ctx.lineWidth = ep
-          ? EDGE_POINTED_LINE_WIDTH / k
-          : (EDGE_IDLE_LINE_WIDTH_BASE + e.strength * EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE) / k;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
+    for (const e of props.edges) {
+      const meta = focusEdgeById.get(e.id);
+      const vis = meta?.isVisible !== false;
+      const src = simById.get(e.source);
+      const tgt = simById.get(e.target);
+      if (!src || !tgt || src.x === undefined || src.y === undefined) {
+        continue;
       }
+      if (tgt.x === undefined || tgt.y === undefined) {
+        continue;
+      }
+      const ep = pointedId !== null && (e.source === pointedId || e.target === pointedId);
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.lineTo(tgt.x, tgt.y);
+      ctx.strokeStyle = ep ? theme.edgeHighlight : theme.edge;
+      const edgeBaseOpacity = e.opacity ?? EDGE_DEFAULT_BASE_OPACITY;
+      ctx.globalAlpha = vis ? (ep ? 0.9 : edgeBaseOpacity) : 0.08;
+      ctx.lineWidth = ep
+        ? EDGE_POINTED_LINE_WIDTH / k
+        : (EDGE_IDLE_LINE_WIDTH_BASE + e.strength * EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE) / k;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
     const labelFontPx = zoomScaledCanvasFontPx(NODE_LABEL_FONT_BASE_PX);
@@ -802,7 +798,7 @@ export function ForceGraphView(props: {
 
           // Reset font for subsequent labels
           ctx.font = `${labelFontPx}px ${theme.fontFamily}`;
-        } else if (props.showLabels) {
+        } else {
           const label = n.label.length > 32 ? `${n.label.slice(0, 31)}…` : n.label;
           ctx.fillStyle = theme.label;
           ctx.fillText(label, n.x, n.y + r + labelFontPx * 0.85);
@@ -813,8 +809,6 @@ export function ForceGraphView(props: {
     ctx.restore();
   }, [
     props.edges,
-    props.showEdges,
-    props.showLabels,
     props.categoryPalette,
     pointedId,
     focusNodeById,

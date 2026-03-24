@@ -197,26 +197,6 @@ body {
   min-height: 0;
 }
 
-.akashi-graph-view-controls__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-}
-
-.akashi-graph-view-controls__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--vscode-foreground);
-  cursor: pointer;
-  user-select: none;
-}
-
-.akashi-graph-view-controls__toggle input {
-  accent-color: var(--vscode-button-background, var(--vscode-focusBorder));
-}
-
 .akashi-graph-view-controls__section {
   display: flex;
   flex-direction: column;

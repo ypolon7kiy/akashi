@@ -29,8 +29,6 @@ export function Graph2DApp(): JSX.Element {
   const [mountTime] = useState(() => new Date().toISOString());
   const [categoryPalette, setCategoryPalette] = useState<Graph2DFileColorsPayload | null>(null);
 
-  const [showLabels, setShowLabels] = useState(true);
-  const [showEdges, setShowEdges] = useState(true);
   const [controlsCollapsed, setControlsCollapsed] = useState(true);
   const [viewSettingsHydrated, setViewSettingsHydrated] = useState(false);
   const [enabledPresetOverride, setEnabledPresetOverride] = useState<ReadonlySet<string> | null>(
@@ -89,8 +87,6 @@ export function Graph2DApp(): JSX.Element {
       if (data?.type === Graph2DMessageType.ViewSettings) {
         const s = parseGraph2DWebviewPersistedState(data.payload);
         skipNextViewSettingsPersistRef.current = true;
-        setShowLabels(s.showLabels);
-        setShowEdges(s.showEdges);
         setControlsCollapsed(s.controlsCollapsed);
         setEnabledPresetOverride(s.enabledPresets === null ? null : new Set(s.enabledPresets));
         setEnabledCategoryOverride(
@@ -154,8 +150,6 @@ export function Graph2DApp(): JSX.Element {
       vscode.postMessage({
         type: Graph2DMessageType.SaveViewSettings,
         payload: graph2DSettingsToPersisted({
-          showLabels,
-          showEdges,
           controlsCollapsed,
           enabledPresets: enabledPresetOverride,
           enabledCategories: enabledCategoryOverride,
@@ -172,8 +166,6 @@ export function Graph2DApp(): JSX.Element {
     return () => window.clearTimeout(t);
   }, [
     viewSettingsHydrated,
-    showLabels,
-    showEdges,
     controlsCollapsed,
     enabledPresetOverride,
     enabledCategoryOverride,
@@ -361,18 +353,12 @@ export function Graph2DApp(): JSX.Element {
                 nodes={categoryViewModel.nodes}
                 edges={categoryViewModel.edges}
                 emptyHint={emptyHint}
-                showLabels={showLabels}
-                showEdges={showEdges}
                 sim={simProps}
                 categoryPalette={categoryPalette ?? undefined}
                 artifactCreators={snapshot?.artifactCreators}
                 enabledPresetIds={effectiveEnabledPresets}
               />
               <Graph2DViewControls
-                showLabels={showLabels}
-                onShowLabelsChange={setShowLabels}
-                showEdges={showEdges}
-                onShowEdgesChange={setShowEdges}
                 controlsCollapsed={controlsCollapsed}
                 onControlsCollapsedChange={setControlsCollapsed}
                 linkDistance={linkDistance}
