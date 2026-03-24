@@ -1,49 +1,8 @@
 import * as path from 'node:path';
-import type { ArtifactTemplate, ArtifactPlannerContext } from '../../domain/artifactTemplate';
-import { simpleFileTemplate } from '../../domain/artifactTemplateHelpers';
+import type { ArtifactCreator } from '../../domain/artifactCreator';
+import { SimpleFileCreator } from '../../domain/creators/SimpleFileCreator';
 import { SourceCategoryId } from '../../domain/sourceTags';
-
-const CODEX_CONFIG_TOML_STUB = `# Codex CLI configuration
-# https://github.com/openai/codex
-
-`;
-
-function codexConfigTomlTemplate(
-  id: string,
-  label: string,
-  scope: 'workspace' | 'user',
-  absolutePath: (ctx: ArtifactPlannerContext) => string
-): ArtifactTemplate {
-  return {
-    id,
-    label,
-    presetId: 'codex',
-    category: SourceCategoryId.Config,
-    scope,
-    input: {
-      title: 'config.toml',
-      prompt: 'Creates config.toml if it does not exist (name field ignored)',
-    },
-    plan(ctx: ArtifactPlannerContext) {
-      const abs = absolutePath(ctx);
-      if (!abs) {
-        return { ok: false, error: 'No target path could be determined.' };
-      }
-      return {
-        ok: true,
-        plan: {
-          operations: [
-            {
-              type: 'writeFile',
-              absolutePath: abs,
-              content: CODEX_CONFIG_TOML_STUB,
-            },
-          ],
-        },
-      };
-    },
-  };
-}
+import { CodexConfigTomlCreator } from './creators/CodexConfigTomlCreator';
 
 function skillContent(fileName: string): string {
   const name = fileName.replace(/\.md$/i, '');
@@ -55,8 +14,8 @@ function ruleContent(fileName: string): string {
   return `# ${name}\n\n`;
 }
 
-export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
-  simpleFileTemplate({
+export const codexArtifactCreators: readonly ArtifactCreator[] = [
+  new SimpleFileCreator({
     id: 'codex/skill/workspace',
     label: 'New Skill',
     presetId: 'codex',
@@ -66,7 +25,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.md',
     initialContent: skillContent,
   }),
-  simpleFileTemplate({
+  new SimpleFileCreator({
     id: 'codex/skill/user',
     label: 'New Skill (global)',
     presetId: 'codex',
@@ -76,7 +35,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.md',
     initialContent: skillContent,
   }),
-  simpleFileTemplate({
+  new SimpleFileCreator({
     id: 'codex/rule/workspace',
     label: 'New Rule',
     presetId: 'codex',
@@ -86,7 +45,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.rules',
     initialContent: ruleContent,
   }),
-  simpleFileTemplate({
+  new SimpleFileCreator({
     id: 'codex/rule/user',
     label: 'New Rule (global)',
     presetId: 'codex',
@@ -96,7 +55,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.rules',
     initialContent: ruleContent,
   }),
-  simpleFileTemplate({
+  new SimpleFileCreator({
     id: 'codex/context/workspace',
     label: 'New Context File (custom name)',
     presetId: 'codex',
@@ -106,7 +65,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
     suggestedExtension: '.md',
     initialContent: '# Guidelines\n\n',
   }),
-  simpleFileTemplate({
+  new SimpleFileCreator({
     id: 'codex/agents-md/workspace',
     label: 'New .codex/AGENTS.md',
     presetId: 'codex',
@@ -119,7 +78,7 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
       return `# ${name}\n\n`;
     },
   }),
-  simpleFileTemplate({
+  new SimpleFileCreator({
     id: 'codex/agents-md/user',
     label: 'New AGENTS.md (global Codex)',
     presetId: 'codex',
@@ -132,16 +91,17 @@ export const codexArtifactTemplates: readonly ArtifactTemplate[] = [
       return `# ${name}\n\n`;
     },
   }),
-  codexConfigTomlTemplate(
-    'codex/config-toml/workspace',
-    'New .codex/config.toml',
-    'workspace',
-    (ctx) => (ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.codex', 'config.toml') : '')
-  ),
-  codexConfigTomlTemplate(
-    'codex/config-toml/user',
-    'New config.toml (global Codex)',
-    'user',
-    (ctx) => path.join(ctx.roots.codexUserRoot, 'config.toml')
-  ),
+  new CodexConfigTomlCreator({
+    id: 'codex/config-toml/workspace',
+    label: 'New .codex/config.toml',
+    scope: 'workspace',
+    absolutePath: (ctx) =>
+      ctx.workspaceRoot ? path.join(ctx.workspaceRoot, '.codex', 'config.toml') : '',
+  }),
+  new CodexConfigTomlCreator({
+    id: 'codex/config-toml/user',
+    label: 'New config.toml (global Codex)',
+    scope: 'user',
+    absolutePath: (ctx) => path.join(ctx.roots.codexUserRoot, 'config.toml'),
+  }),
 ];

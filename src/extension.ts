@@ -5,11 +5,10 @@ import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
 import { createConfigDomain } from './domains/config';
 import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
-import { findArtifactTemplateById } from './domains/sources/registerSourcePresets';
+import { findArtifactCreatorById } from './domains/sources/registerSourcePresets';
 import { appendLine, getLog, initLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
-import { validateSourceFileBaseName } from './sidebar/bridge/validateSourceFileBaseName';
 import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
 import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 
@@ -49,31 +48,24 @@ export function activate(context: vscode.ExtensionContext): void {
         hookLifecycleEvent?: string;
         hookMatcher?: string;
       }) => {
-        const template = findArtifactTemplateById(args?.templateId);
-        if (!template) {
+        const creator = findArtifactCreatorById(args?.templateId);
+        if (!creator) {
           void vscode.window.showErrorMessage(`Unknown artifact template: ${args?.templateId}`);
           return;
         }
-        const userInput = (args.userInput ?? '').trim();
-        const nameErr =
-          template.input.valueKind === 'freeText'
-            ? userInput === ''
-              ? 'Enter a title.'
-              : null
-            : validateSourceFileBaseName(userInput);
-        if (nameErr) {
-          void vscode.window.showErrorMessage(nameErr);
+        const roots = config.resolveToolUserRoots(os.homedir());
+        const planned = creator.planWithProvidedInput(
+          { workspaceRoot: args.workspaceRoot ?? '', roots },
+          {
+            userInput: (args.userInput ?? '').trim(),
+            hookLifecycleEvent: args.hookLifecycleEvent,
+            hookMatcher: args.hookMatcher,
+          }
+        );
+        if (planned.kind === 'cancelled') {
           return;
         }
-        const roots = config.resolveToolUserRoots(os.homedir());
-        const planned = template.plan({
-          userInput,
-          workspaceRoot: args.workspaceRoot ?? '',
-          roots,
-          hookLifecycleEvent: args.hookLifecycleEvent,
-          hookMatcher: args.hookMatcher,
-        });
-        if (!planned.ok) {
+        if (planned.kind === 'error') {
           void vscode.window.showErrorMessage(planned.error);
           return;
         }
@@ -94,7 +86,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     ),
     vscode.commands.registerCommand('akashi.sources.newArtifact', async () => {
-      await runNewArtifactWizard(config.getActiveSourcePresets);
+      await runNewArtifactWizard(config.getActiveSourcePresets, config.resolveToolUserRoots);
     }),
     vscode.window.registerWebviewViewProvider(
       'akashi.sidebar',

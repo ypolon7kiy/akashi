@@ -41,7 +41,7 @@ export interface JsonMergeOp {
 export type ArtifactOperation = WriteFileOp | JsonMergeOp;
 
 /**
- * A creation plan returned by `ArtifactTemplate.plan()`.
+ * A creation plan returned by an `ArtifactCreator` (`planWithProvidedInput`).
  * Contains one or more ordered operations for the executor to apply.
  */
 export interface ArtifactCreationPlan {

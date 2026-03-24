@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { ArtifactPlannerContext } from '../domain/artifactTemplate';
+import type { CreatorContext } from '../domain/artifactCreator';
 import type { WriteFileOp, JsonMergeOp } from '../domain/artifactOperation';
-import { simpleFileTemplate, folderFileTemplate } from '../domain/artifactTemplateHelpers';
+import { SimpleFileCreator } from '../domain/creators/SimpleFileCreator';
+import { FolderFileCreator } from '../domain/creators/FolderFileCreator';
 
 const ROOTS = {
   claudeUserRoot: '/home/user/.claude',
@@ -10,17 +11,16 @@ const ROOTS = {
   codexUserRoot: '/home/user/.codex',
 };
 
-function ctx(overrides: Partial<ArtifactPlannerContext> = {}): ArtifactPlannerContext {
+function ctx(overrides: Partial<CreatorContext> = {}): CreatorContext {
   return {
-    userInput: 'my-skill',
     workspaceRoot: '/ws',
     roots: ROOTS,
     ...overrides,
   };
 }
 
-describe('simpleFileTemplate plan()', () => {
-  const template = simpleFileTemplate({
+describe('SimpleFileCreator planWithProvidedInput()', () => {
+  const creator = new SimpleFileCreator({
     id: 'test/skill/workspace',
     label: 'New Skill',
     presetId: 'claude',
@@ -32,32 +32,32 @@ describe('simpleFileTemplate plan()', () => {
   });
 
   it('appends extension when missing', () => {
-    const r = template.plan(ctx());
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
     expect(op.type).toBe('writeFile');
     expect(op.absolutePath).toBe('/ws/.claude/skills/my-skill.md');
   });
 
   it('does not double-append extension', () => {
-    const r = template.plan(ctx({ userInput: 'my-skill.md' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill.md' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
     expect(op.absolutePath).toBe('/ws/.claude/skills/my-skill.md');
   });
 
   it('writes verbatim string content', () => {
-    const r = template.plan(ctx());
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
     expect(op.content).toBe('# skill\n\n');
   });
 
   it('calls content factory with the final file name', () => {
-    const tpl = simpleFileTemplate({
+    const tpl = new SimpleFileCreator({
       id: 'test/skill/workspace',
       label: 'New Skill',
       presetId: 'claude',
@@ -67,25 +67,25 @@ describe('simpleFileTemplate plan()', () => {
       suggestedExtension: '.md',
       initialContent: (name) => `# ${name}\n`,
     });
-    const r = tpl.plan(ctx({ userInput: 'cool-skill' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = tpl.planWithProvidedInput(ctx(), { userInput: 'cool-skill' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect((r.plan.operations[0] as WriteFileOp).content).toBe('# cool-skill.md\n');
   });
 
   it('returns error when targetDir is empty', () => {
-    const r = template.plan(ctx({ workspaceRoot: '' }));
-    expect(r.ok).toBe(false);
+    const r = creator.planWithProvidedInput(ctx({ workspaceRoot: '' }), { userInput: 'x' });
+    expect(r.kind).toBe('error');
   });
 
   it('returns error when userInput is blank', () => {
-    const r = template.plan(ctx({ userInput: '   ' }));
-    expect(r.ok).toBe(false);
+    const r = creator.planWithProvidedInput(ctx(), { userInput: '   ' });
+    expect(r.kind).toBe('error');
   });
 });
 
-describe('folderFileTemplate plan()', () => {
-  const template = folderFileTemplate({
+describe('FolderFileCreator planWithProvidedInput()', () => {
+  const creator = new FolderFileCreator({
     id: 'test/skill/workspace',
     label: 'New Skill',
     presetId: 'antigravity',
@@ -97,34 +97,32 @@ describe('folderFileTemplate plan()', () => {
   });
 
   it('creates <dir>/<folderName>/<fixedFileName> path', () => {
-    const r = template.plan(ctx());
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
     expect(op.absolutePath).toBe('/ws/.agent/skills/my-skill/SKILL.md');
   });
 
   it('passes folder name (not file name) to content factory', () => {
-    const r = template.plan(ctx({ userInput: 'cool' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = creator.planWithProvidedInput(ctx(), { userInput: 'cool' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect((r.plan.operations[0] as WriteFileOp).content).toBe('# cool\n');
   });
 });
 
-describe('hook-config template plan()', () => {
+describe('Claude registered hook creator planWithProvidedInput()', () => {
   it('produces writeFile + jsonMerge with Claude Code hooks shape', async () => {
-    const { claudeArtifactTemplates, DEFAULT_CLAUDE_HOOK_EVENT } = await import(
-      '../presets/claude/artifactTemplates'
+    const { claudeArtifactCreators, DEFAULT_CLAUDE_HOOK_EVENT } = await import(
+      '../presets/claude/creators'
     );
-    const hookConfig = claudeArtifactTemplates.find(
-      (t) => t.id === 'claude/hook-config/workspace'
-    )!;
+    const hookConfig = claudeArtifactCreators.find((c) => c.id === 'claude/hook-config/workspace')!;
     expect(hookConfig).toBeDefined();
 
-    const r = hookConfig.plan(ctx({ userInput: 'lint-on-save' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = hookConfig.planWithProvidedInput(ctx(), { userInput: 'lint-on-save' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
 
     expect(r.plan.operations).toHaveLength(2);
     const [writeOp, mergeOp] = r.plan.operations;
@@ -142,19 +140,15 @@ describe('hook-config template plan()', () => {
   });
 
   it('respects hookLifecycleEvent and hookMatcher', async () => {
-    const { claudeArtifactTemplates } = await import('../presets/claude/artifactTemplates');
-    const hookConfig = claudeArtifactTemplates.find(
-      (t) => t.id === 'claude/hook-config/workspace'
-    )!;
-    const r = hookConfig.plan(
-      ctx({
-        userInput: 'x',
-        hookLifecycleEvent: 'PreToolUse',
-        hookMatcher: 'Write',
-      })
-    );
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { claudeArtifactCreators } = await import('../presets/claude/creators');
+    const hookConfig = claudeArtifactCreators.find((c) => c.id === 'claude/hook-config/workspace')!;
+    const r = hookConfig.planWithProvidedInput(ctx(), {
+      userInput: 'x',
+      hookLifecycleEvent: 'PreToolUse',
+      hookMatcher: 'Write',
+    });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const mergeOp = r.plan.operations[1] as JsonMergeOp;
     expect(mergeOp.jsonPath).toBe('hooks.PreToolUse');
     const block = (mergeOp.value as { matcher: string }[])[0]!;
@@ -162,16 +156,16 @@ describe('hook-config template plan()', () => {
   });
 });
 
-describe('Cursor registered hook template plan()', () => {
+describe('Cursor registered hook creator planWithProvidedInput()', () => {
   it('merges hooks.postToolUse with project-relative command', async () => {
-    const { cursorArtifactTemplates, DEFAULT_CURSOR_HOOK_EVENT } = await import(
-      '../presets/cursor/artifactTemplates'
+    const { cursorArtifactCreators, DEFAULT_CURSOR_HOOK_EVENT } = await import(
+      '../presets/cursor/creators'
     );
-    const tpl = cursorArtifactTemplates.find((t) => t.id === 'cursor/hook/workspace')!;
-    expect(tpl).toBeDefined();
-    const r = tpl.plan(ctx({ userInput: 'format' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const c = cursorArtifactCreators.find((x) => x.id === 'cursor/hook/workspace')!;
+    expect(c).toBeDefined();
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'format' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect(r.plan.operations).toHaveLength(2);
     const merge = r.plan.operations[1] as JsonMergeOp;
     expect(merge.jsonPath).toBe(`hooks.${DEFAULT_CURSOR_HOOK_EVENT}`);
@@ -183,85 +177,87 @@ describe('Cursor registered hook template plan()', () => {
 
 describe('Codex preset artifact plans', () => {
   it('AGENTS.md workspace targets .codex', async () => {
-    const { codexArtifactTemplates } = await import('../presets/codex/artifactTemplates');
-    const tpl = codexArtifactTemplates.find((t) => t.id === 'codex/agents-md/workspace')!;
-    const r = tpl.plan(ctx({ userInput: 'AGENTS' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { codexArtifactCreators } = await import('../presets/codex/creators');
+    const c = codexArtifactCreators.find((x) => x.id === 'codex/agents-md/workspace')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'AGENTS' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect((r.plan.operations[0] as WriteFileOp).absolutePath).toBe('/ws/.codex/AGENTS.md');
   });
 
   it('config.toml workspace targets .codex', async () => {
-    const { codexArtifactTemplates } = await import('../presets/codex/artifactTemplates');
-    const tpl = codexArtifactTemplates.find((t) => t.id === 'codex/config-toml/workspace')!;
-    const r = tpl.plan(ctx({ userInput: 'ignored' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { codexArtifactCreators } = await import('../presets/codex/creators');
+    const c = codexArtifactCreators.find((x) => x.id === 'codex/config-toml/workspace')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'ignored' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect((r.plan.operations[0] as WriteFileOp).absolutePath).toBe('/ws/.codex/config.toml');
   });
 });
 
-describe('fixed-path guideline templates', () => {
+describe('fixed-path guideline creators', () => {
   it('claude CLAUDE.md workspace', async () => {
-    const { claudeArtifactTemplates } = await import('../presets/claude/artifactTemplates');
-    const tpl = claudeArtifactTemplates.find((t) => t.id === 'claude/claude-md/workspace')!;
-    const r = tpl.plan(ctx({ userInput: 'My App' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { claudeArtifactCreators } = await import('../presets/claude/creators');
+    const c = claudeArtifactCreators.find((x) => x.id === 'claude/claude-md/workspace')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'My App' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
     expect(op.absolutePath).toBe('/ws/CLAUDE.md');
     expect(op.content).toContain('# My App');
   });
 
   it('cursor AGENTS.md workspace', async () => {
-    const { cursorArtifactTemplates } = await import('../presets/cursor/artifactTemplates');
-    const tpl = cursorArtifactTemplates.find((t) => t.id === 'cursor/agents-md-fixed/workspace')!;
-    const r = tpl.plan(ctx({ userInput: 'Agents' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { cursorArtifactCreators } = await import('../presets/cursor/creators');
+    const c = cursorArtifactCreators.find((x) => x.id === 'cursor/agents-md-fixed/workspace')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'Agents' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect((r.plan.operations[0] as WriteFileOp).absolutePath).toBe('/ws/AGENTS.md');
   });
 
   it('antigravity GEMINI.md workspace', async () => {
-    const { antigravityArtifactTemplates } = await import(
-      '../presets/antigravity/artifactTemplates'
-    );
-    const tpl = antigravityArtifactTemplates.find((t) => t.id === 'antigravity/gemini/workspace')!;
-    const r = tpl.plan(ctx({ userInput: 'Doc' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { antigravityArtifactCreators } = await import('../presets/antigravity/creators');
+    const c = antigravityArtifactCreators.find((x) => x.id === 'antigravity/gemini/workspace')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'Doc' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     expect((r.plan.operations[0] as WriteFileOp).absolutePath).toBe('/ws/GEMINI.md');
   });
 });
 
-describe('Antigravity user GEMINI template', () => {
+describe('Antigravity user GEMINI creator', () => {
   it('writes fixed GEMINI.md path under gemini user root', async () => {
-    const { antigravityArtifactTemplates } = await import(
-      '../presets/antigravity/artifactTemplates'
-    );
-    const tpl = antigravityArtifactTemplates.find((t) => t.id === 'antigravity/gemini/user')!;
-    const r = tpl.plan(ctx({ userInput: 'My Project' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const { antigravityArtifactCreators } = await import('../presets/antigravity/creators');
+    const c = antigravityArtifactCreators.find((x) => x.id === 'antigravity/gemini/user')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: 'My Project' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
     expect(op.absolutePath).toBe('/home/user/.config/gemini/GEMINI.md');
     expect(op.content).toContain('# My Project');
   });
+
+  it('falls back to defaultTitleIfEmpty when userInput is empty', async () => {
+    const { antigravityArtifactCreators } = await import('../presets/antigravity/creators');
+    const c = antigravityArtifactCreators.find((x) => x.id === 'antigravity/gemini/user')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: '  ' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
+    const op = r.plan.operations[0] as WriteFileOp;
+    expect(op.content).toBe('# GEMINI\n\n');
+  });
 });
 
-describe('mcp template plan()', () => {
+describe('Claude MCP creator planWithProvidedInput()', () => {
   it('produces jsonMerge operation', async () => {
-    const { claudeArtifactTemplates } = await import(
-      '../presets/claude/artifactTemplates'
-    );
-    const mcpTpl = claudeArtifactTemplates.find(
-      (t) => t.id === 'claude/mcp/workspace'
-    )!;
-    expect(mcpTpl).toBeDefined();
+    const { claudeArtifactCreators } = await import('../presets/claude/creators');
+    const mcp = claudeArtifactCreators.find((c) => c.id === 'claude/mcp/workspace')!;
+    expect(mcp).toBeDefined();
 
-    const r = mcpTpl.plan(ctx({ userInput: 'my-server' }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
+    const r = mcp.planWithProvidedInput(ctx(), { userInput: 'my-server' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
 
     expect(r.plan.operations).toHaveLength(1);
     const op = r.plan.operations[0] as JsonMergeOp;
@@ -269,5 +265,37 @@ describe('mcp template plan()', () => {
     expect(op.jsonPath).toBe('mcpServers');
     expect(op.absolutePath).toBe('/ws/.mcp.json');
     expect((op.value as Record<string, unknown>)['my-server']).toBeDefined();
+  });
+});
+
+describe('Cursor MCP creator planWithProvidedInput()', () => {
+  it('produces jsonMerge for .cursor/mcp.json', async () => {
+    const { cursorArtifactCreators } = await import('../presets/cursor/creators');
+    const mcp = cursorArtifactCreators.find((c) => c.id === 'cursor/mcp/workspace')!;
+    expect(mcp).toBeDefined();
+
+    const r = mcp.planWithProvidedInput(ctx(), { userInput: 'test-server' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
+
+    expect(r.plan.operations).toHaveLength(1);
+    const op = r.plan.operations[0] as JsonMergeOp;
+    expect(op.type).toBe('jsonMerge');
+    expect(op.jsonPath).toBe('mcpServers');
+    expect(op.absolutePath).toBe('/ws/.cursor/mcp.json');
+    expect((op.value as Record<string, unknown>)['test-server']).toBeDefined();
+  });
+});
+
+describe('Codex config.toml creator content', () => {
+  it('writes stub toml content', async () => {
+    const { codexArtifactCreators } = await import('../presets/codex/creators');
+    const c = codexArtifactCreators.find((x) => x.id === 'codex/config-toml/workspace')!;
+    const r = c.planWithProvidedInput(ctx(), { userInput: '' });
+    expect(r.kind).toBe('plan');
+    if (r.kind !== 'plan') return;
+    const op = r.plan.operations[0] as WriteFileOp;
+    expect(op.content).toContain('# Codex CLI configuration');
+    expect(op.content).toContain('https://github.com/openai/codex');
   });
 });

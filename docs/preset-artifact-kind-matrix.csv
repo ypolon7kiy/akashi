@@ -1,0 +1,5 @@
+preset,skill,rule,command,context,hook,mcp,config
+claude,1,1,1,1,1,1,0
+cursor,1,1,1,1,1,1,0
+antigravity,1,0,0,1,0,0,0
+codex,1,1,0,1,0,0,1

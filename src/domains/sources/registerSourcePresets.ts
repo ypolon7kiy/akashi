@@ -1,15 +1,15 @@
 import { ALL_SOURCE_PRESET_IDS, type SourcePresetId } from '../../shared/sourcePresetId';
 import type { SourceCategory } from './domain/model';
 import type { HomePathTask, SourcePresetDefinition } from './domain/sourcePresetDefinition';
-import type { ArtifactTemplate } from './domain/artifactTemplate';
+import type { ArtifactCreator } from './domain/artifactCreator';
 import { antigravityPresetDefinition } from './presets/antigravity/preset';
 import { claudePresetDefinition } from './presets/claude/preset';
 import { codexPresetDefinition } from './presets/codex/preset';
 import { cursorPresetDefinition } from './presets/cursor/preset';
-import { claudeArtifactTemplates } from './presets/claude/artifactTemplates';
-import { cursorArtifactTemplates } from './presets/cursor/artifactTemplates';
-import { codexArtifactTemplates } from './presets/codex/artifactTemplates';
-import { antigravityArtifactTemplates } from './presets/antigravity/artifactTemplates';
+import { claudeArtifactCreators } from './presets/claude/creators';
+import { cursorArtifactCreators } from './presets/cursor/creators';
+import { codexArtifactCreators } from './presets/codex/creators';
+import { antigravityArtifactCreators } from './presets/antigravity/creators';
 
 /**
  * Registration order is stable for logging; each preset is independent for discovery.
@@ -69,26 +69,26 @@ export const HOME_PATH_TASKS: readonly HomePathTask[] = SOURCE_PRESET_DEFINITION
 // Artifact creation registry
 // ---------------------------------------------------------------------------
 
-export const ARTIFACT_TEMPLATES: readonly ArtifactTemplate[] = [
-  ...claudeArtifactTemplates,
-  ...cursorArtifactTemplates,
-  ...codexArtifactTemplates,
-  ...antigravityArtifactTemplates,
+export const ARTIFACT_CREATORS: readonly ArtifactCreator[] = [
+  ...claudeArtifactCreators,
+  ...cursorArtifactCreators,
+  ...codexArtifactCreators,
+  ...antigravityArtifactCreators,
 ];
 
 /**
- * Returns artifact templates for the given preset and scope.
+ * Returns artifact creators for the given preset and scope.
  * Graph nodes use this with `{ presetId, scope }` decoded from node metadata —
  * no sidebar or webview types required.
  */
-export function getArtifactTemplatesForContext(
+export function getArtifactCreatorsForContext(
   presetId: SourcePresetId,
   scope: 'workspace' | 'user'
-): readonly ArtifactTemplate[] {
-  return ARTIFACT_TEMPLATES.filter((t) => t.presetId === presetId && t.scope === scope);
+): readonly ArtifactCreator[] {
+  return ARTIFACT_CREATORS.filter((c) => c.presetId === presetId && c.scope === scope);
 }
 
-/** Look up a template by exact id — used host-side to validate incoming RPC payloads. */
-export function findArtifactTemplateById(id: string): ArtifactTemplate | undefined {
-  return ARTIFACT_TEMPLATES.find((t) => t.id === id);
+/** Look up a creator by exact id — used host-side to validate incoming command payloads. */
+export function findArtifactCreatorById(id: string): ArtifactCreator | undefined {
+  return ARTIFACT_CREATORS.find((c) => c.id === id);
 }

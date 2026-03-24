@@ -1,8 +1,10 @@
+import * as os from 'node:os';
 import * as vscode from 'vscode';
-import type { ArtifactTemplate } from '../../domains/sources/domain/artifactTemplate';
+import type { ArtifactCreator } from '../../domains/sources/domain/artifactCreator';
 import type { SourcePresetId } from '../../shared/sourcePresetId';
-import { getArtifactTemplatesForContext } from '../../domains/sources/registerSourcePresets';
-import { validateSourceFileBaseName } from '../bridge/validateSourceFileBaseName';
+import type { ToolUserRoots } from '../../shared/toolUserRoots';
+import { getArtifactCreatorsForContext } from '../../domains/sources/registerSourcePresets';
+import { executeCreationPlan } from '../../domains/sources/infrastructure/executeCreationPlan';
 
 const PRESET_LABELS: Record<SourcePresetId, string> = {
   claude: 'Claude',
@@ -13,9 +15,7 @@ const PRESET_LABELS: Record<SourcePresetId, string> = {
 
 type PresetQuickPickItem = vscode.QuickPickItem & { readonly presetId: SourcePresetId };
 
-type TemplateQuickPickItem = vscode.QuickPickItem & { readonly template: ArtifactTemplate };
-
-type HookEventQuickPickItem = vscode.QuickPickItem & { readonly event: string };
+type CreatorQuickPickItem = vscode.QuickPickItem & { readonly creator: ArtifactCreator };
 
 function inferWorkspaceRoot(): string {
   const editor = vscode.window.activeTextEditor;
@@ -31,10 +31,11 @@ function inferWorkspaceRoot(): string {
 }
 
 /**
- * Sidebar title-bar flow: preset → locality → artifact template → name, then `akashi.sources.createArtifact`.
+ * Sidebar title-bar flow: preset → locality → artifact creator, then `creator.run()` + execute plan.
  */
 export async function runNewArtifactWizard(
-  getActivePresets: () => ReadonlySet<SourcePresetId>
+  getActivePresets: () => ReadonlySet<SourcePresetId>,
+  resolveToolUserRoots: (homeDir: string) => ToolUserRoots
 ): Promise<void> {
   const active = [...getActivePresets()].sort((a, b) => a.localeCompare(b));
   if (active.length === 0) {
@@ -84,89 +85,46 @@ export async function runNewArtifactWizard(
     workspaceRoot = inferWorkspaceRoot();
   }
 
-  const templates = [...getArtifactTemplatesForContext(presetId, locality.scope)];
-  if (templates.length === 0) {
+  const creators = [...getArtifactCreatorsForContext(presetId, locality.scope)];
+  if (creators.length === 0) {
     void vscode.window.showErrorMessage('No artifact types for this preset and location.');
     return;
   }
 
-  const templatePick = await vscode.window.showQuickPick<TemplateQuickPickItem>(
-    templates.map((t) => ({
-      label: t.label,
-      description: t.category,
-      template: t,
+  const creatorPick = await vscode.window.showQuickPick<CreatorQuickPickItem>(
+    creators.map((c) => ({
+      label: c.label,
+      description: c.category,
+      creator: c,
     })),
     { title: 'Artifact type', placeHolder: 'Choose what to create' }
   );
-  if (!templatePick) {
+  if (!creatorPick) {
     return;
   }
 
-  const tpl = templatePick.template;
-
-  let hookLifecycleEvent: string | undefined;
-  let hookMatcher: string | undefined;
-  const hookWiz = tpl.hookLifecycleWizard;
-  if (hookWiz) {
-    const evPick = await vscode.window.showQuickPick<HookEventQuickPickItem>(
-      hookWiz.events.map((e) => ({ label: e, event: e })),
-      {
-        title: 'Hook lifecycle event',
-        placeHolder: `Default: ${hookWiz.defaultEvent}`,
-      }
-    );
-    if (!evPick) {
-      return;
-    }
-    hookLifecycleEvent = evPick.event;
-    if (hookWiz.promptMatcher) {
-      const matcherRaw = await vscode.window.showInputBox({
-        title: 'Tool matcher (optional)',
-        prompt: 'Restrict which tools fire this hook; leave empty for all tools',
-      });
-      if (matcherRaw === undefined) {
-        return;
-      }
-      hookMatcher = matcherRaw.trim();
-    }
-  }
-
-  const name = await vscode.window.showInputBox({
-    title: tpl.input.title ?? 'Name',
-    prompt: tpl.input.prompt,
-    validateInput: (v) => {
-      if (tpl.input.valueKind === 'freeText') {
-        const t = v.trim();
-        if (t === '') return 'Enter a title.';
-        return tpl.input.validate?.(t) ?? undefined;
-      }
-      const base = validateSourceFileBaseName(v.trim());
-      if (base) return base;
-      return tpl.input.validate?.(v.trim()) ?? undefined;
-    },
-  });
-  if (name === undefined) {
+  const roots = resolveToolUserRoots(os.homedir());
+  const planned = await creatorPick.creator.run({ workspaceRoot, roots });
+  if (planned.kind === 'cancelled') {
     return;
   }
-  const trimmed = name.trim();
-  if (tpl.input.valueKind === 'freeText') {
-    if (!trimmed) {
-      void vscode.window.showErrorMessage('Enter a title.');
-      return;
-    }
-  } else {
-    const nameErr = validateSourceFileBaseName(trimmed);
-    if (nameErr) {
-      void vscode.window.showErrorMessage(nameErr);
-      return;
-    }
+  if (planned.kind === 'error') {
+    void vscode.window.showErrorMessage(planned.error);
+    return;
   }
 
-  await vscode.commands.executeCommand('akashi.sources.createArtifact', {
-    templateId: tpl.id,
-    userInput: trimmed,
-    workspaceRoot,
-    hookLifecycleEvent,
-    hookMatcher,
-  });
+  const result = await executeCreationPlan(planned.plan);
+  if (!result.ok) {
+    void vscode.window.showErrorMessage(result.error);
+    return;
+  }
+  if (result.openPath) {
+    try {
+      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
+      await vscode.window.showTextDocument(doc);
+    } catch {
+      // Opening is best-effort (e.g. binary or missing file).
+    }
+  }
+  await vscode.commands.executeCommand('akashi.sources.refresh');
 }
