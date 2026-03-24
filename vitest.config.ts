@@ -18,7 +18,16 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['**/*.test.ts', 'tests/**'],
+      exclude: [
+        '**/*.test.ts',
+        'tests/**',
+        // Browser webview bundles are not executed in the Node Vitest suite; excluding them
+        // keeps the report focused on extension-host and shared logic (AGENTS.md).
+        'src/sidebar/webview/**',
+        'src/domains/graph/webview/**',
+        'src/domains/graph/ui/webview/**',
+        'src/webview-shared/**',
+      ],
     },
   },
 });

@@ -1,0 +1,110 @@
+import * as os from 'node:os';
+import * as vscode from 'vscode';
+import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
+import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
+import { createConfigDomain } from './domains/config';
+import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
+import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
+import { findArtifactCreatorById } from './domains/sources/registerSourcePresets';
+import { appendLine, getLog } from './log';
+import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
+import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
+import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
+import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
+
+/**
+ * Registers Akashi commands, webviews, and graph UI. Used by {@link activate} and integration tests.
+ */
+export function registerAkashiExtension(context: vscode.ExtensionContext): void {
+  const config = createConfigDomain(context);
+  const sourcesService = createSourcesService(
+    context,
+    config.getActiveSourcePresets,
+    config.resolveToolUserRoots
+  );
+  void sourcesService.getLastSnapshot();
+
+  const graphEnv: GraphPanelEnvironment = {
+    getGraphPayload: async () => {
+      const snap = await sourcesService.getLastSnapshot();
+      return buildSourcesSnapshotPayload(
+        snap,
+        snapshotWorkspaceFolders(),
+        config.getActiveSourcePresets
+      );
+    },
+  };
+
+  const disposables = [
+    ...registerGraphUi(context, graphEnv, config.generalConfig),
+    vscode.commands.registerCommand(
+      'akashi.sources.createArtifact',
+      async (args: {
+        templateId: string;
+        userInput: string;
+        workspaceRoot: string;
+        hookLifecycleEvent?: string;
+        hookMatcher?: string;
+      }) => {
+        const creator = findArtifactCreatorById(args?.templateId);
+        if (!creator) {
+          void vscode.window.showErrorMessage(`Unknown artifact template: ${args?.templateId}`);
+          return;
+        }
+        const roots = config.resolveToolUserRoots(os.homedir());
+        const planned = creator.planWithProvidedInput(
+          { workspaceRoot: args.workspaceRoot ?? '', roots },
+          {
+            userInput: (args.userInput ?? '').trim(),
+            hookLifecycleEvent: args.hookLifecycleEvent,
+            hookMatcher: args.hookMatcher,
+          }
+        );
+        if (planned.kind === 'cancelled') {
+          return;
+        }
+        if (planned.kind === 'error') {
+          void vscode.window.showErrorMessage(planned.error);
+          return;
+        }
+        const result = await executeCreationPlan(planned.plan);
+        if (!result.ok) {
+          void vscode.window.showErrorMessage(result.error);
+          return;
+        }
+        if (result.openPath) {
+          try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(result.openPath));
+            await vscode.window.showTextDocument(doc);
+          } catch {
+            // Opening is best-effort (e.g. binary or missing file).
+          }
+        }
+        await vscode.commands.executeCommand('akashi.sources.refresh');
+      }
+    ),
+    vscode.commands.registerCommand('akashi.sources.newArtifact', async () => {
+      await runNewArtifactWizard(config.getActiveSourcePresets, config.resolveToolUserRoots);
+    }),
+    vscode.window.registerWebviewViewProvider(
+      'akashi.sidebar',
+      createSidebarViewProvider(context, sourcesService, config, {
+        onAfterSourcesSnapshotRefreshed: () => {
+          void Graph2DPanel.refreshIfOpen(graphEnv);
+        },
+      })
+    ),
+  ];
+
+  context.subscriptions.push(...disposables);
+  appendLine('[Akashi] Extension activated.');
+
+  if (context.extensionMode === vscode.ExtensionMode.Development) {
+    queueMicrotask(() => {
+      void vscode.commands.executeCommand('workbench.view.extension.akashi');
+      void vscode.commands.executeCommand('akashi.sidebar.focus');
+      Graph2DPanel.createOrShow(context, graphEnv, config.generalConfig);
+      getLog()?.show(false);
+    });
+  }
+}
