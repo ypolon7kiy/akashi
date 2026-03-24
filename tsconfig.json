@@ -16,9 +16,13 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "types": ["node", "vscode"],
-    "rootDir": "."
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"]
+    }
   },
-  "include": ["src", "webview-src", "vitest.config.ts"],
+  "include": ["src", "webview-src", "vitest.config.ts", "tests"],
   "exclude": ["dist", "node_modules", ".vscode-test"]
 }
 

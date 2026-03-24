@@ -7,23 +7,18 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   resolve: {
     alias: {
-      vscode: path.join(root, 'src/test/mocks/vscode.ts'),
+      vscode: path.join(root, 'tests/mocks/vscode.ts'),
+      '@src': path.join(root, 'src'),
     },
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary'],
-      include: [
-        'src/shared/validateSourceFileBaseName.ts',
-        'src/domains/sources/domain/artifactCreator.ts',
-        'src/domains/sources/domain/creators/**/*.ts',
-        'src/domains/sources/presets/**/creators.ts',
-        'src/domains/sources/presets/**/creators/**/*.ts',
-        'src/domains/sources/registerSourcePresets.ts',
-      ],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['**/*.test.ts', 'tests/**'],
     },
   },
 });
