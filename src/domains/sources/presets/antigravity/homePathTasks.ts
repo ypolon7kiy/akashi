@@ -16,6 +16,16 @@ export const antigravityHomePathTasks: readonly HomePathTask[] = [
     }
   },
   async (ctx) => {
+    const { activePresets, roots, add, fileExists } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
+    const abs = path.join(roots.geminiUserRoot, 'settings.json');
+    if (await fileExists(abs)) {
+      add(abs, PRESET_ID, SourceCategoryId.Config);
+    }
+  },
+  async (ctx) => {
     const { activePresets, roots, add, collectSkillMdRecursiveUnderDir } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;

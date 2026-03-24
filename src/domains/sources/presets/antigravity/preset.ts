@@ -5,6 +5,7 @@ import { antigravityHomePathTasks } from './homePathTasks';
 const WORKSPACE_GLOBS = [
   { glob: '**/GEMINI.md', category: SourceCategoryId.LlmGuideline },
   { glob: '**/gemini.md', category: SourceCategoryId.LlmGuideline },
+  { glob: '**/.gemini/settings.json', category: SourceCategoryId.Config },
   { glob: '**/.agent/skills/**/SKILL.md', category: SourceCategoryId.Skill },
 ] as const;
 

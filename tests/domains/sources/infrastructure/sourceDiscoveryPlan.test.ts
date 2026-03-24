@@ -1,7 +1,22 @@
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import type { SourcePresetId } from '@src/shared/sourcePresetId';
 import { WORKSPACE_GLOB_SCAN_ROWS } from '@src/domains/sources/registerSourcePresets';
-import { selectWorkspaceGlobRows } from '@src/domains/sources/infrastructure/sourceDiscoveryPlan';
+import {
+  collectHomeSourcePaths,
+  selectWorkspaceGlobRows,
+} from '@src/domains/sources/infrastructure/sourceDiscoveryPlan';
+
+function rootsForHome(homeDir: string) {
+  return {
+    claudeUserRoot: path.join(homeDir, '.claude'),
+    cursorUserRoot: path.join(homeDir, '.cursor'),
+    geminiUserRoot: path.join(homeDir, '.gemini'),
+    codexUserRoot: path.join(homeDir, '.codex'),
+  };
+}
 
 describe('selectWorkspaceGlobRows', () => {
   it('returns no rows when no active presets', () => {
@@ -76,5 +91,46 @@ describe('WORKSPACE_GLOB_SCAN_ROWS', () => {
     expect(codex('**/.codex/skills/**/*')?.category).toBe('skill');
     expect(codex('**/.agents/skills/**/*')?.category).toBe('skill');
     expect(codex('**/.agents.md')?.category).toBe('context');
+  });
+
+  it('assigns antigravity .gemini/settings.json glob to config category', () => {
+    const row = WORKSPACE_GLOB_SCAN_ROWS.find(
+      (r) => r.presetId === 'antigravity' && r.glob === '**/.gemini/settings.json'
+    );
+    expect(row?.category).toBe('config');
+  });
+});
+
+describe('collectHomeSourcePaths', () => {
+  it('discovers claude user-scope settings.json as config', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'akashi-src-home-'));
+    try {
+      await mkdir(path.join(tmp, '.claude'), { recursive: true });
+      const settingsPath = path.join(tmp, '.claude', 'settings.json');
+      await writeFile(settingsPath, '{}');
+      const out = await collectHomeSourcePaths(tmp, new Set<SourcePresetId>(['claude']), {
+        ...rootsForHome(tmp),
+      });
+      const hit = out.find((d) => d.path === settingsPath);
+      expect(hit).toMatchObject({ presetId: 'claude', category: 'config' });
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('discovers antigravity user-scope ~/.gemini/settings.json as config', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'akashi-src-gem-'));
+    try {
+      await mkdir(path.join(tmp, '.gemini'), { recursive: true });
+      const settingsPath = path.join(tmp, '.gemini', 'settings.json');
+      await writeFile(settingsPath, '{}');
+      const out = await collectHomeSourcePaths(tmp, new Set<SourcePresetId>(['antigravity']), {
+        ...rootsForHome(tmp),
+      });
+      const hit = out.find((d) => d.path === settingsPath);
+      expect(hit).toMatchObject({ presetId: 'antigravity', category: 'config' });
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 });
