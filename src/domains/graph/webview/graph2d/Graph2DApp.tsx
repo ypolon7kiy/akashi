@@ -356,10 +356,7 @@ export function Graph2DApp(): JSX.Element {
                     None
                   </button>
                 </div>
-                <div
-                  className="akashi-graph-toolbar__visibility-grid__sep"
-                  aria-hidden="true"
-                />
+                <div className="akashi-graph-toolbar__visibility-grid__sep" aria-hidden="true" />
                 <div className="akashi-graph-toolbar__visibility-grid__toggles">
                   <GraphPresetToggles
                     presetIds={snapshotPresetIds}
@@ -389,10 +386,7 @@ export function Graph2DApp(): JSX.Element {
                     None
                   </button>
                 </div>
-                <div
-                  className="akashi-graph-toolbar__visibility-grid__sep"
-                  aria-hidden="true"
-                />
+                <div className="akashi-graph-toolbar__visibility-grid__sep" aria-hidden="true" />
                 <div className="akashi-graph-toolbar__visibility-grid__toggles">
                   <GraphCategoryToggles
                     categoryIds={graphCategoryIds}

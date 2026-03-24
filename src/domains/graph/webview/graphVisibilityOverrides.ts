@@ -63,10 +63,7 @@ export function invertEnabledOverride(
   if (full.size === 0) {
     return null;
   }
-  const next =
-    prev === null
-      ? new Set<string>()
-      : new Set([...full].filter((id) => !prev.has(id)));
+  const next = prev === null ? new Set<string>() : new Set([...full].filter((id) => !prev.has(id)));
   return normalizeEnabledOverride(next, fullSortedIds);
 }
 

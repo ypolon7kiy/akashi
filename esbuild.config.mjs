@@ -1,4 +1,5 @@
 import { build, context } from 'esbuild';
+import { rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,10 +9,15 @@ const __dirname = dirname(__filename);
 const isWatch = process.argv.includes('--watch');
 
 async function main() {
+  const isProdBuild = !isWatch;
+  if (isProdBuild) {
+    rmSync(join(__dirname, 'dist'), { recursive: true, force: true });
+  }
+
   const common = {
     bundle: true,
-    sourcemap: true,
-    minify: false,
+    sourcemap: isWatch,
+    minify: isProdBuild,
     logLevel: 'info',
   };
 
@@ -28,11 +34,15 @@ async function main() {
     ...common,
     platform: 'browser',
     target: 'es2020',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(isProdBuild ? 'production' : 'development'),
+    },
     entryPoints: {
       'sidebar-main': join(__dirname, 'src', 'sidebar', 'webview', 'index.tsx'),
     },
     outdir: join(__dirname, 'dist', 'webview', 'sidebar'),
-    format: 'iife',
+    format: 'esm',
+    splitting: true,
     loader: { '.tsx': 'tsx' },
   };
 
@@ -40,11 +50,15 @@ async function main() {
     ...common,
     platform: 'browser',
     target: 'es2020',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(isProdBuild ? 'production' : 'development'),
+    },
     entryPoints: {
       'graph2d-main': join(__dirname, 'src', 'domains', 'graph', 'webview', 'graph2d', 'index.tsx'),
     },
     outdir: join(__dirname, 'dist', 'webview', 'graph2d'),
-    format: 'iife',
+    format: 'esm',
+    splitting: true,
     loader: { '.tsx': 'tsx' },
   };
 

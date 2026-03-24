@@ -199,7 +199,7 @@ export class Graph2DPanel {
 </head>
 <body>
   <div id="root"></div>
-  <script src="${scriptUri.toString()}"></script>
+  <script type="module" src="${scriptUri.toString()}"></script>
 </body>
 </html>`;
   }

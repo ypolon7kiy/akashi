@@ -50,7 +50,7 @@ export function getSidebarWebviewHtml(
 </head>
 <body>
   <div id="root"></div>
-  <script src="${scriptUri.toString()}${cacheQ}"></script>
+  <script type="module" src="${scriptUri.toString()}${cacheQ}"></script>
 </body>
 </html>`;
 }
