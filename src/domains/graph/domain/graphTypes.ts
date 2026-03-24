@@ -39,7 +39,7 @@ export interface GraphNode3D {
   graphLocality?: GraphLocality;
   /** `${presetId}:${locality}` for slice-aware focus; preset nodes use preset id only in logic. */
   graphSliceKey?: string;
-  /** Source category id for category-tier nodes (context, rule, skill, hook, config, mcp). */
+  /** Source category id for category-tier nodes (context, rule, skill, hook, config, mcp, command). */
   graphCategoryId?: string;
 }
 

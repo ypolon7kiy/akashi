@@ -12,6 +12,7 @@ export const DEFAULT_SIDEBAR_FILE_COLORS: Readonly<Record<SidebarSourceCategoryK
   hook: '#f14c4c',
   config: '#cca700',
   mcp: '#3794ff',
+  command: '#0ea5e9',
   unknown: '#cccccc',
 };
 

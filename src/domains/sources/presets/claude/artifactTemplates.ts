@@ -12,6 +12,11 @@ function ruleContent(fileName: string): string {
   return `---\ndescription: ${name}\n---\n\n`;
 }
 
+function commandContent(fileName: string): string {
+  const name = fileName.replace(/\.md$/i, '');
+  return `---\ndescription: ${name}\n---\n\n`;
+}
+
 export const claudeArtifactTemplates: readonly ArtifactTemplate[] = [
   {
     id: 'claude/skill/workspace',
@@ -54,6 +59,27 @@ export const claudeArtifactTemplates: readonly ArtifactTemplate[] = [
     targetDirResolver: (_workspaceRoot, roots) => path.join(roots.claudeUserRoot, 'rules'),
     suggestedExtension: '.md',
     initialContent: ruleContent,
+  },
+  {
+    id: 'claude/command/workspace',
+    label: 'New Command',
+    presetId: 'claude',
+    category: SourceCategoryId.Command,
+    scope: 'workspace',
+    targetDirResolver: (workspaceRoot) =>
+      workspaceRoot ? path.join(workspaceRoot, '.claude', 'commands') : '',
+    suggestedExtension: '.md',
+    initialContent: commandContent,
+  },
+  {
+    id: 'claude/command/user',
+    label: 'New Command (global)',
+    presetId: 'claude',
+    category: SourceCategoryId.Command,
+    scope: 'user',
+    targetDirResolver: (_workspaceRoot, roots) => path.join(roots.claudeUserRoot, 'commands'),
+    suggestedExtension: '.md',
+    initialContent: commandContent,
   },
   {
     id: 'claude/context/workspace',

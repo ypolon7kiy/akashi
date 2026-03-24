@@ -27,6 +27,7 @@ describe('resolveGraphSourceCategoryPalette', () => {
       hook: '#303030',
       config: '#404040',
       mcp: '#505050',
+      command: '#5a5a5a',
       unknown: '#606060',
     } as const;
     const palette = resolveGraphSourceCategoryPalette(fills);
@@ -45,6 +46,7 @@ describe('resolveGraphSourceCategoryPalette', () => {
       hook: '#303030',
       config: '#404040',
       mcp: '#505050',
+      command: '#5a5a5a',
       unknown: '#606060',
     });
     expect(palette.context.hover).toBe(GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.context.hover);

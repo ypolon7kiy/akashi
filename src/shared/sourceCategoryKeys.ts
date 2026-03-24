@@ -10,6 +10,7 @@ export const SIDEBAR_SOURCE_CATEGORY_KEYS = [
   'hook',
   'config',
   'mcp',
+  'command',
   'unknown',
 ] as const;
 

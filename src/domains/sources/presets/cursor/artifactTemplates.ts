@@ -12,6 +12,11 @@ function ruleContent(fileName: string): string {
   return `---\ndescription: ${name}\n---\n\n`;
 }
 
+function commandContent(fileName: string): string {
+  const name = fileName.replace(/\.md$/i, '');
+  return `---\ndescription: ${name}\n---\n\n`;
+}
+
 export const cursorArtifactTemplates: readonly ArtifactTemplate[] = [
   {
     id: 'cursor/skill/workspace',
@@ -54,6 +59,27 @@ export const cursorArtifactTemplates: readonly ArtifactTemplate[] = [
     targetDirResolver: (_workspaceRoot, roots) => path.join(roots.cursorUserRoot, 'rules'),
     suggestedExtension: '.mdc',
     initialContent: ruleContent,
+  },
+  {
+    id: 'cursor/command/workspace',
+    label: 'New Command',
+    presetId: 'cursor',
+    category: SourceCategoryId.Command,
+    scope: 'workspace',
+    targetDirResolver: (workspaceRoot) =>
+      workspaceRoot ? path.join(workspaceRoot, '.cursor', 'commands') : '',
+    suggestedExtension: '.md',
+    initialContent: commandContent,
+  },
+  {
+    id: 'cursor/command/user',
+    label: 'New Command (global)',
+    presetId: 'cursor',
+    category: SourceCategoryId.Command,
+    scope: 'user',
+    targetDirResolver: (_workspaceRoot, roots) => path.join(roots.cursorUserRoot, 'commands'),
+    suggestedExtension: '.md',
+    initialContent: commandContent,
   },
   {
     id: 'cursor/context/workspace',

@@ -97,6 +97,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   hook: 'Hooks',
   config: 'Config',
   mcp: 'MCP',
+  command: 'Commands',
   unknown: 'Other',
 };
 

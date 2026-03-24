@@ -25,6 +25,7 @@ const SIDEBAR_CATEGORY_LABEL: Readonly<Record<string, string>> = {
   context: 'ctx',
   config: 'cfg',
   mcp: 'mcp',
+  command: 'cmd',
   unknown: '?',
 };
 

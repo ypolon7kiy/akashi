@@ -175,6 +175,11 @@
               "format": "color",
               "default": "#3794ff"
             },
+            "command": {
+              "type": "string",
+              "format": "color",
+              "default": "#0ea5e9"
+            },
             "unknown": {
               "type": "string",
               "format": "color",
@@ -188,6 +193,7 @@
             "hook": "#f14c4c",
             "config": "#cca700",
             "mcp": "#3794ff",
+            "command": "#0ea5e9",
             "unknown": "#cccccc"
           }
         }

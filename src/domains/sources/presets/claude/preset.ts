@@ -9,6 +9,7 @@ const WORKSPACE_GLOBS = [
   { glob: '**/.claude/settings.local.json', category: SourceCategoryId.Config },
   { glob: '**/.claude/rules/**/*.md', category: SourceCategoryId.Rule },
   { glob: '**/.claude/hooks/**/*', category: SourceCategoryId.Hook },
+  { glob: '**/.claude/commands/**/*.md', category: SourceCategoryId.Command },
   { glob: '**/.claude/skills/**/*', category: SourceCategoryId.Skill },
   { glob: '**/.mcp.json', category: SourceCategoryId.Mcp },
 ] as const;

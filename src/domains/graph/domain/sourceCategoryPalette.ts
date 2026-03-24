@@ -21,6 +21,7 @@ export const GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS: GraphSourceCategoryPalette =
   hook: { fill: '#EF4444', hover: '#FCA5A5' },
   config: { fill: '#6B7280', hover: '#D1D5DB' },
   mcp: { fill: '#8B5CF6', hover: '#C4B5FD' },
+  command: { fill: '#06B6D4', hover: '#67E8F9' },
   unknown: { fill: '#9CA3AF', hover: '#D1D5DB' },
 };
 

@@ -41,6 +41,13 @@ describe('WORKSPACE_GLOB_SCAN_ROWS', () => {
     expect(settings?.category).toBe('config');
   });
 
+  it('assigns claude commands glob to command category', () => {
+    const row = WORKSPACE_GLOB_SCAN_ROWS.find(
+      (r) => r.presetId === 'claude' && r.glob === '**/.claude/commands/**/*.md'
+    );
+    expect(row?.category).toBe('command');
+  });
+
   it('assigns mcp globs for cursor and claude', () => {
     const cursorMcp = WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.glob === '**/.cursor/mcp.json');
     expect(cursorMcp?.presetId).toBe('cursor');
@@ -51,12 +58,13 @@ describe('WORKSPACE_GLOB_SCAN_ROWS', () => {
     expect(claudeMcp?.category).toBe('mcp');
   });
 
-  it('assigns cursor preset globs for rules markdown, hooks, and .agents skills', () => {
+  it('assigns cursor preset globs for rules markdown, hooks, commands, and .agents skills', () => {
     const cursor = (g: string) =>
       WORKSPACE_GLOB_SCAN_ROWS.find((r) => r.presetId === 'cursor' && r.glob === g);
 
     expect(cursor('**/.cursor/rules/**/*.md')?.category).toBe('rule');
     expect(cursor('**/.cursor/hooks.json')?.category).toBe('hook');
+    expect(cursor('**/.cursor/commands/**/*.md')?.category).toBe('command');
     expect(cursor('**/.agents/skills/**/*')?.category).toBe('skill');
   });
 

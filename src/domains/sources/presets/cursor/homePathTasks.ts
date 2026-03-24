@@ -36,6 +36,18 @@ export const cursorHomePathTasks: readonly HomePathTask[] = [
     }
   },
   async (ctx) => {
+    const { activePresets, roots, add, collectFilesRecursiveUnderDir } = ctx;
+    if (!activePresets.has(PRESET_ID)) {
+      return;
+    }
+    const commandsDir = path.join(roots.cursorUserRoot, 'commands');
+    for (const f of await collectFilesRecursiveUnderDir(commandsDir)) {
+      if (f.toLowerCase().endsWith('.md')) {
+        add(f, PRESET_ID, SourceCategoryId.Command);
+      }
+    }
+  },
+  async (ctx) => {
     const { activePresets, homeDir, add, fileExists } = ctx;
     if (!activePresets.has(PRESET_ID)) {
       return;

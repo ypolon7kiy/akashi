@@ -47,6 +47,7 @@ function discovered(
 const MIXED_PRESETS: DiscoveredSource[] = [
   discovered('/ws/CLAUDE.md', 'claude', SourceCategoryId.LlmGuideline, 'workspace'),
   discovered('/ws/.cursor/rules/x.mdc', 'cursor', SourceCategoryId.Rule, 'workspace'),
+  discovered('/ws/.cursor/commands/review.md', 'cursor', SourceCategoryId.Command, 'workspace'),
   discovered('/ws/.claude/settings.json', 'claude', SourceCategoryId.Config, 'workspace'),
   discovered('/ws/.codex/config.toml', 'codex', SourceCategoryId.Config, 'workspace'),
 ];
@@ -157,8 +158,8 @@ const MATRIX: MatrixRow[] = [
     includeHomeConfig: true,
     workspaceFolders: [],
     mockDiscovered: MIXED_PRESETS,
-    expectedPayloadPaths: ['/ws/.cursor/rules/x.mdc'],
-    assertRawSnapshotCount: 4,
+    expectedPayloadPaths: sortPaths(['/ws/.cursor/rules/x.mdc', '/ws/.cursor/commands/review.md']),
+    assertRawSnapshotCount: 5,
   },
   {
     label: 'all-presets-full-mix',
@@ -297,6 +298,7 @@ describe('sources indexing pipeline (edge cases)', () => {
   it('persists facet tags on snapshot and payload (locality, category, preset)', async () => {
     const mockDiscovered: DiscoveredSource[] = [
       discovered('/ws/.claude/hooks/run.sh', 'claude', SourceCategoryId.Hook, 'workspace'),
+      discovered('/ws/.cursor/commands/x.md', 'cursor', SourceCategoryId.Command, 'workspace'),
       discovered('/home/.cursor/mcp.json', 'cursor', SourceCategoryId.Mcp, 'user'),
     ];
     const { service, payloadFor } = createPipeline({
@@ -321,6 +323,16 @@ describe('sources indexing pipeline (edge cases)', () => {
       true
     );
 
+    const cmd = snap.records.find((r) => r.path === '/ws/.cursor/commands/x.md');
+    expect(cmd).toBeDefined();
+    expect(cmd!.tags).toContainEqual({
+      type: SourceTagType.Category,
+      value: SourceCategoryId.Command,
+    });
+    expect(cmd!.tags.some((t) => t.type === SourceTagType.Preset && t.value === 'cursor')).toBe(
+      true
+    );
+
     const mcp = snap.records.find((r) => r.path === '/home/.cursor/mcp.json');
     expect(mcp).toBeDefined();
     expect(mcp!.tags).toContainEqual({
@@ -336,6 +348,8 @@ describe('sources indexing pipeline (edge cases)', () => {
     expect(payload).not.toBeNull();
     const ph = payload!.records.find((r) => r.path === '/ws/.claude/hooks/run.sh');
     expect(ph!.tags).toEqual(hook!.tags);
+    const pcmd = payload!.records.find((r) => r.path === '/ws/.cursor/commands/x.md');
+    expect(pcmd!.tags).toEqual(cmd!.tags);
   });
 
   it('reuses in-flight indexWorkspace promise for concurrent callers', async () => {

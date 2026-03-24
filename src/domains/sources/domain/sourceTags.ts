@@ -18,6 +18,8 @@ export const SourceCategoryId = {
   Hook: 'hook',
   Config: 'config',
   Mcp: 'mcp',
+  /** Slash-command prompt files: `.cursor/commands`, `~/.cursor/commands`, `.claude/commands`. */
+  Command: 'command',
   Unknown: 'unknown',
 } as const;
 

@@ -204,6 +204,13 @@
       var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
     )
   );
+  --akashi-default-cat-command: var(
+    --vscode-charts-green,
+    var(
+      --vscode-symbolIcon-methodForeground,
+      var(--vscode-descriptionForeground, var(--vscode-foreground, var(--akashi-text-muted)))
+    )
+  );
   --akashi-default-cat-unknown: var(
     --vscode-charts-foreground,
     var(
@@ -235,6 +242,10 @@
 
 .akashi-tree__meta--cat-mcp {
   color: var(--akashi-source-cat-mcp, var(--akashi-default-cat-mcp));
+}
+
+.akashi-tree__meta--cat-command {
+  color: var(--akashi-source-cat-command, var(--akashi-default-cat-command));
 }
 
 .akashi-tree__meta--cat-unknown {
