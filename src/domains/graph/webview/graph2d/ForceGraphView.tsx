@@ -7,8 +7,12 @@ import { applyPointedFocusVisibility } from '../../application/applyPointedFocus
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { getHoverColor, getNodeColor } from '../graphNodeColors';
 import { readCanvasThemeColors } from './canvasThemeColors';
-import { pickContrastingTierLabelColor } from './tierLabelContrast';
 import { zoomScaledCanvasFontPx } from './labelZoom';
+import {
+  PRESET_TIER_LABEL_LUMINANCE_THRESHOLD,
+  TIER_LABEL_LUMINANCE_THRESHOLD,
+  tierLabelContrastingPair,
+} from './tierLabelContrast';
 import { Graph2DMessageType } from './messages';
 import { getVscodeApi } from '../../../../webview-shared/api';
 
@@ -34,7 +38,7 @@ type SimLink = GraphEdge3D & {
   target: string | SimNode;
 };
 
-/** Movement past this distance while panning/dragging suppresses the next context menu. */
+/** Movement past this distance while middle-panning or left-dragging a node suppresses the next context menu. */
 const CONTEXT_MENU_SUPPRESS_DRAG_PX = 5;
 
 function hashId(id: string): number {
@@ -428,6 +432,9 @@ const TIER_LABEL_PAD_DEFAULT = 5;
 const TIER_LABEL_PAD_CATEGORY = 6;
 const TIER_LABEL_FONT_MIN = 8;
 const TIER_LABEL_FONT_MAX = 13;
+/** Tier inside-label outline width in CSS px at zoom k=1 (scaled by 1/k like other graph strokes). */
+const TIER_LABEL_OUTLINE_MIN = 0.9;
+const TIER_LABEL_OUTLINE_FRAC_OF_FONT = 0.14;
 
 function tierLabelPadFor(n: GraphNode3D): number {
   return n.type === 'category' ? TIER_LABEL_PAD_CATEGORY : TIER_LABEL_PAD_DEFAULT;
@@ -756,10 +763,28 @@ export function ForceGraphView(props: {
           const innerLabel = truncateTierLabel(n.label);
           const innerFontPx = zoomScaledCanvasFontPx(n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN);
           ctx.font = `bold ${innerFontPx}px ${theme.fontFamily}`;
-          ctx.fillStyle = pickContrastingTierLabelColor(fillColor, '#ffffff', '#000000');
+          const tierLight = '#ffffff';
+          const tierDark = '#000000';
+          const { fill: tierFill, stroke: tierStroke } = tierLabelContrastingPair(
+            fillColor,
+            tierLight,
+            tierDark,
+            n.type === 'preset' ? PRESET_TIER_LABEL_LUMINANCE_THRESHOLD : TIER_LABEL_LUMINANCE_THRESHOLD
+          );
+          const labelY = n.y + innerFontPx * 0.12;
+          const outlineW =
+            Math.max(TIER_LABEL_OUTLINE_MIN, innerFontPx * TIER_LABEL_OUTLINE_FRAC_OF_FONT) / k;
+
+          ctx.save();
           ctx.globalAlpha = vis ? 0.95 : 0.12;
-          ctx.fillText(innerLabel, n.x, n.y + innerFontPx * 0.12);
-          ctx.globalAlpha = 1;
+          ctx.lineWidth = outlineW;
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = tierStroke;
+          ctx.strokeText(innerLabel, n.x, labelY);
+          ctx.fillStyle = tierFill;
+          ctx.fillText(innerLabel, n.x, labelY);
+          ctx.restore();
+
           // Reset font for subsequent labels
           ctx.font = `${labelFontPx}px ${theme.fontFamily}`;
         } else if (props.showLabels) {
@@ -1025,7 +1050,8 @@ export function ForceGraphView(props: {
       pointerGestureOriginRef.current = { x: e.clientX, y: e.clientY };
       const { wx, wy } = clientToWorld(e.clientX, e.clientY);
       const hit = pickNode(wx, wy);
-      if (hit) {
+      // Left: drag nodes only. Middle: pan canvas (even over nodes). Right: no capture — context menu only.
+      if (e.button === 0 && hit) {
         draggingRef.current = {
           id: hit.id,
           offsetX: wx - hit.x,
@@ -1039,15 +1065,23 @@ export function ForceGraphView(props: {
         return;
       }
       draggingRef.current = null;
-      panRef.current = {
-        sx: e.clientX,
-        sy: e.clientY,
-        tx0: transformRef.current.tx,
-        ty0: transformRef.current.ty,
-      };
-      setPointedId(null);
-      setContextMenu(null);
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      if (e.button === 1) {
+        e.preventDefault();
+        panRef.current = {
+          sx: e.clientX,
+          sy: e.clientY,
+          tx0: transformRef.current.tx,
+          ty0: transformRef.current.ty,
+        };
+        setPointedId(null);
+        setContextMenu(null);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        return;
+      }
+      if (e.button === 0 && !hit) {
+        setPointedId(null);
+        setContextMenu(null);
+      }
     },
     [clientToWorld, pickNode]
   );
