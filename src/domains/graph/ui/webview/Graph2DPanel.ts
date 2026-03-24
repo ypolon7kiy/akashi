@@ -176,14 +176,25 @@ export class Graph2DPanel {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'graph2d', 'graph2d-main.css')
     );
+    const codiconCssUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.extensionUri,
+        'node_modules',
+        '@vscode',
+        'codicons',
+        'dist',
+        'codicon.css'
+      )
+    );
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; img-src ${webview.cspSource} blob: data:; connect-src ${webview.cspSource}; worker-src ${webview.cspSource} blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; img-src ${webview.cspSource} blob: data:; connect-src ${webview.cspSource}; worker-src ${webview.cspSource} blob:;">
   <title>Akashi 2D graph</title>
+  <link rel="stylesheet" href="${codiconCssUri.toString()}">
   <link rel="stylesheet" href="${styleUri.toString()}">
 </head>
 <body>

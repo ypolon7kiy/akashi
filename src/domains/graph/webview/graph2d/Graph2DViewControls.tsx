@@ -27,6 +27,7 @@ import {
 export function Graph2DViewControls(props: {
   controlsCollapsed: boolean;
   onControlsCollapsedChange: (v: boolean) => void;
+  onResetForces: () => void;
   linkDistance: number;
   onLinkDistanceChange: (v: number) => void;
   linkStrength: number;
@@ -46,7 +47,7 @@ export function Graph2DViewControls(props: {
     <div
       className="akashi-graph2d-view-controls-float"
       role="region"
-      aria-label="2D graph controls"
+      aria-label="Layout force controls"
     >
       {props.controlsCollapsed ? (
         <button
@@ -54,85 +55,141 @@ export function Graph2DViewControls(props: {
           className="akashi-button akashi-button--secondary akashi-graph-view-controls__peek"
           onClick={() => props.onControlsCollapsedChange(false)}
         >
-          Graph forces
+          <span className="akashi-graph-view-controls__peek-inner">
+            <span className="codicon codicon-settings-gear" aria-hidden="true" />
+            <span>Layout forces</span>
+          </span>
         </button>
       ) : (
         <div className="akashi-graph-view-controls-panel akashi-graph2d-view-controls-panel">
           <div className="akashi-graph-view-controls__header">
-            <span className="akashi-graph-view-controls__title">2D graph</span>
+            <span className="akashi-graph-view-controls__title">Layout forces</span>
             <button
               type="button"
               className="akashi-graph-view-controls__hide"
               onClick={() => props.onControlsCollapsedChange(true)}
-              aria-label="Hide graph controls"
+              aria-label="Hide layout force controls"
             >
-              Hide
+              <span className="akashi-graph-view-controls__peek-inner">
+                <span className="codicon codicon-chevron-left" aria-hidden="true" />
+                <span>Hide</span>
+              </span>
             </button>
           </div>
           <div className="akashi-graph-view-controls__body">
-            <Graph2DSliderRow
-              label="Link distance"
-              value={props.linkDistance}
-              min={GRAPH2D_LINK_DISTANCE_MIN}
-              max={GRAPH2D_LINK_DISTANCE_MAX}
-              step={GRAPH2D_LINK_DISTANCE_STEP}
-              format={(v) => Math.round(v).toString()}
-              onChange={props.onLinkDistanceChange}
-            />
-            <Graph2DSliderRow
-              label="Link strength"
-              value={props.linkStrength}
-              min={GRAPH2D_LINK_STRENGTH_MIN}
-              max={GRAPH2D_LINK_STRENGTH_MAX}
-              step={GRAPH2D_LINK_STRENGTH_STEP}
-              format={(v) => v.toFixed(2)}
-              onChange={props.onLinkStrengthChange}
-            />
-            <Graph2DSliderRow
-              label="Repel force"
-              value={props.chargeStrength}
-              min={GRAPH2D_CHARGE_MIN}
-              max={GRAPH2D_CHARGE_MAX}
-              step={GRAPH2D_CHARGE_STEP}
-              format={(v) => Math.round(v).toString()}
-              onChange={props.onChargeStrengthChange}
-            />
-            <Graph2DSliderRow
-              label="Center gravity"
-              value={props.centerStrength}
-              min={GRAPH2D_CENTER_MIN}
-              max={GRAPH2D_CENTER_MAX}
-              step={GRAPH2D_CENTER_STEP}
-              format={(v) => v.toFixed(2)}
-              onChange={props.onCenterStrengthChange}
-            />
-            <Graph2DSliderRow
-              label="Preset cluster pull"
-              value={props.presetClusterStrength}
-              min={GRAPH2D_PRESET_CLUSTER_MIN}
-              max={GRAPH2D_PRESET_CLUSTER_MAX}
-              step={GRAPH2D_PRESET_CLUSTER_STEP}
-              format={(v) => v.toFixed(2)}
-              onChange={props.onPresetClusterStrengthChange}
-            />
-            <Graph2DSliderRow
-              label="Layer discipline"
-              value={props.layerBandStrength}
-              min={GRAPH2D_LAYER_BAND_MIN}
-              max={GRAPH2D_LAYER_BAND_MAX}
-              step={GRAPH2D_LAYER_BAND_STEP}
-              format={(v) => v.toFixed(2)}
-              onChange={props.onLayerBandStrengthChange}
-            />
-            <Graph2DSliderRow
-              label="Node padding"
-              value={props.collidePadding}
-              min={GRAPH2D_COLLIDE_MIN}
-              max={GRAPH2D_COLLIDE_MAX}
-              step={GRAPH2D_COLLIDE_STEP}
-              format={(v) => Math.round(v).toString()}
-              onChange={props.onCollidePaddingChange}
-            />
+            <div className="akashi-graph-view-controls__group">
+              <p className="akashi-graph-view-controls__group-title">Links</p>
+              <p className="akashi-graph-view-controls__group-hint">
+                How strongly edges pull and how long they prefer to be.
+              </p>
+              <Graph2DSliderRow
+                id="graph2d-force-link-distance"
+                label="Link distance"
+                hint="Preferred length between linked nodes."
+                value={props.linkDistance}
+                min={GRAPH2D_LINK_DISTANCE_MIN}
+                max={GRAPH2D_LINK_DISTANCE_MAX}
+                step={GRAPH2D_LINK_DISTANCE_STEP}
+                format={(v) => Math.round(v).toString()}
+                onChange={props.onLinkDistanceChange}
+              />
+              <Graph2DSliderRow
+                id="graph2d-force-link-strength"
+                label="Link strength"
+                hint="Higher values tighten edges toward the target distance."
+                value={props.linkStrength}
+                min={GRAPH2D_LINK_STRENGTH_MIN}
+                max={GRAPH2D_LINK_STRENGTH_MAX}
+                step={GRAPH2D_LINK_STRENGTH_STEP}
+                format={(v) => v.toFixed(2)}
+                onChange={props.onLinkStrengthChange}
+              />
+            </div>
+
+            <div className="akashi-graph-view-controls__group">
+              <p className="akashi-graph-view-controls__group-title">Forces and centering</p>
+              <p className="akashi-graph-view-controls__group-hint">
+                Spread nodes apart and pull the graph toward the middle of the view.
+              </p>
+              <Graph2DSliderRow
+                id="graph2d-force-charge"
+                label="Repel force"
+                hint="How strongly nodes push each other away."
+                value={props.chargeStrength}
+                min={GRAPH2D_CHARGE_MIN}
+                max={GRAPH2D_CHARGE_MAX}
+                step={GRAPH2D_CHARGE_STEP}
+                format={(v) => Math.round(v).toString()}
+                onChange={props.onChargeStrengthChange}
+              />
+              <Graph2DSliderRow
+                id="graph2d-force-center"
+                label="Center gravity"
+                hint="Keeps the whole graph from drifting off-screen."
+                value={props.centerStrength}
+                min={GRAPH2D_CENTER_MIN}
+                max={GRAPH2D_CENTER_MAX}
+                step={GRAPH2D_CENTER_STEP}
+                format={(v) => v.toFixed(2)}
+                onChange={props.onCenterStrengthChange}
+              />
+            </div>
+
+            <div className="akashi-graph-view-controls__group">
+              <p className="akashi-graph-view-controls__group-title">Preset clusters and layers</p>
+              <p className="akashi-graph-view-controls__group-hint">
+                Shapes each preset hub and keeps depth rows readable.
+              </p>
+              <Graph2DSliderRow
+                id="graph2d-force-preset-cluster"
+                label="Preset cluster pull"
+                hint="Pulls files and structure toward their preset hub."
+                value={props.presetClusterStrength}
+                min={GRAPH2D_PRESET_CLUSTER_MIN}
+                max={GRAPH2D_PRESET_CLUSTER_MAX}
+                step={GRAPH2D_PRESET_CLUSTER_STEP}
+                format={(v) => v.toFixed(2)}
+                onChange={props.onPresetClusterStrengthChange}
+              />
+              <Graph2DSliderRow
+                id="graph2d-force-layer-band"
+                label="Layer discipline"
+                hint="Vertical spacing between preset, locality, category, and file rows."
+                value={props.layerBandStrength}
+                min={GRAPH2D_LAYER_BAND_MIN}
+                max={GRAPH2D_LAYER_BAND_MAX}
+                step={GRAPH2D_LAYER_BAND_STEP}
+                format={(v) => v.toFixed(2)}
+                onChange={props.onLayerBandStrengthChange}
+              />
+            </div>
+
+            <div className="akashi-graph-view-controls__group">
+              <p className="akashi-graph-view-controls__group-title">Collision</p>
+              <p className="akashi-graph-view-controls__group-hint">
+                Minimum gap between node circles to reduce overlap.
+              </p>
+              <Graph2DSliderRow
+                id="graph2d-force-collide"
+                label="Node padding"
+                hint="Extra space added around each node for hit-testing and layout."
+                value={props.collidePadding}
+                min={GRAPH2D_COLLIDE_MIN}
+                max={GRAPH2D_COLLIDE_MAX}
+                step={GRAPH2D_COLLIDE_STEP}
+                format={(v) => Math.round(v).toString()}
+                onChange={props.onCollidePaddingChange}
+              />
+            </div>
+          </div>
+          <div className="akashi-graph-view-controls__footer">
+            <button
+              type="button"
+              className="akashi-button akashi-button--secondary"
+              onClick={props.onResetForces}
+            >
+              Reset to defaults
+            </button>
           </div>
         </div>
       )}
@@ -141,7 +198,9 @@ export function Graph2DViewControls(props: {
 }
 
 function Graph2DSliderRow(props: {
+  id: string;
   label: string;
+  hint: string;
   value: number;
   min: number;
   max: number;
@@ -149,19 +208,27 @@ function Graph2DSliderRow(props: {
   format: (v: number) => string;
   onChange: (v: number) => void;
 }): JSX.Element {
+  const shown = props.format(props.value);
   return (
     <div className="akashi-graph-view-controls__section">
       <div className="akashi-graph-view-controls__slider-head">
-        <span className="akashi-graph-view-controls__label">{props.label}</span>
-        <span className="akashi-graph-view-controls__value">{props.format(props.value)}</span>
+        <label htmlFor={props.id} className="akashi-graph-view-controls__label">
+          {props.label}
+        </label>
+        <span className="akashi-graph-view-controls__value" aria-hidden="true">
+          {shown}
+        </span>
       </div>
+      <p className="akashi-graph-view-controls__slider-hint">{props.hint}</p>
       <input
+        id={props.id}
         type="range"
         className="akashi-graph-view-controls__range"
         min={props.min}
         max={props.max}
         step={props.step}
         value={props.value}
+        aria-valuetext={shown}
         onChange={(e) => props.onChange(Number(e.target.value))}
       />
     </div>

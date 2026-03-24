@@ -9,7 +9,11 @@ export function GraphPresetToggles(props: {
     return null;
   }
   return (
-    <div className="akashi-graph-preset-toggles" role="group" aria-label="Show presets">
+    <div
+      className="akashi-graph-visibility-toggles akashi-graph-visibility-toggles--preset"
+      role="group"
+      aria-label="Show presets"
+    >
       {props.presetIds.map((id) => {
         const on = props.isPresetEnabled(id);
         return (
@@ -18,10 +22,11 @@ export function GraphPresetToggles(props: {
             type="button"
             className={
               on
-                ? 'akashi-graph-preset-toggle akashi-graph-preset-toggle--on'
-                : 'akashi-graph-preset-toggle'
+                ? 'akashi-graph-visibility-toggle akashi-graph-visibility-toggle--on'
+                : 'akashi-graph-visibility-toggle'
             }
             aria-pressed={on}
+            title={id}
             onClick={() => props.onToggle(id)}
           >
             {id}

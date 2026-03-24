@@ -7,6 +7,11 @@ import { labelGraphSourceCategory } from '../../domain/graphSourceCategoryLabels
 import { diagnoseInboundSnapshotMessage } from '../graphSnapshotDiagnostics';
 import { GraphCategoryToggles } from '../GraphCategoryToggles';
 import { GraphPresetToggles } from '../GraphPresetToggles';
+import {
+  selectAllEnabledOverride,
+  selectNoneEnabledOverride,
+  toggleEnabledId,
+} from '../graphVisibilityOverrides';
 import { Graph2DMessageType, type Graph2DFileColorsPayload } from './messages';
 import {
   defaultGraph2DWebviewPersistedState,
@@ -235,51 +240,51 @@ export function Graph2DApp(): JSX.Element {
 
   const onToggleCategory = useCallback(
     (cid: string) => {
-      setEnabledCategoryOverride((prev) => {
-        const full = new Set(graphCategoryIds);
-        if (prev === null) {
-          const next = new Set(full);
-          next.delete(cid);
-          return next;
-        }
-        const next = new Set(prev);
-        if (next.has(cid)) {
-          next.delete(cid);
-        } else {
-          next.add(cid);
-        }
-        if (next.size === full.size && [...full].every((c) => next.has(c))) {
-          return null;
-        }
-        return next;
-      });
+      setEnabledCategoryOverride((prev) => toggleEnabledId(prev, graphCategoryIds, cid));
     },
     [graphCategoryIds]
   );
 
   const onTogglePreset = useCallback(
     (pid: string) => {
-      setEnabledPresetOverride((prev) => {
-        const full = new Set(snapshotPresetIds);
-        if (prev === null) {
-          const next = new Set(full);
-          next.delete(pid);
-          return next;
-        }
-        const next = new Set(prev);
-        if (next.has(pid)) {
-          next.delete(pid);
-        } else {
-          next.add(pid);
-        }
-        if (next.size === full.size && [...full].every((p) => next.has(p))) {
-          return null;
-        }
-        return next;
-      });
+      setEnabledPresetOverride((prev) => toggleEnabledId(prev, snapshotPresetIds, pid));
     },
     [snapshotPresetIds]
   );
+
+  const presetAllDisabled = snapshotPresetIds.length === 0 || enabledPresetOverride === null;
+  const presetNoneDisabled =
+    snapshotPresetIds.length === 0 ||
+    (enabledPresetOverride !== null && enabledPresetOverride.size === 0);
+  const categoryAllDisabled = graphCategoryIds.length === 0 || enabledCategoryOverride === null;
+  const categoryNoneDisabled =
+    graphCategoryIds.length === 0 ||
+    (enabledCategoryOverride !== null && enabledCategoryOverride.size === 0);
+
+  const onPresetsAll = useCallback(() => {
+    setEnabledPresetOverride(selectAllEnabledOverride());
+  }, []);
+  const onPresetsNone = useCallback(() => {
+    setEnabledPresetOverride(selectNoneEnabledOverride(snapshotPresetIds));
+  }, [snapshotPresetIds]);
+
+  const onCategoriesAll = useCallback(() => {
+    setEnabledCategoryOverride(selectAllEnabledOverride());
+  }, []);
+  const onCategoriesNone = useCallback(() => {
+    setEnabledCategoryOverride(selectNoneEnabledOverride(graphCategoryIds));
+  }, [graphCategoryIds]);
+
+  const onResetForces = useCallback(() => {
+    const d = defaultGraph2DWebviewPersistedState();
+    setLinkDistance(d.linkDistance);
+    setLinkStrength(d.linkStrength);
+    setChargeStrength(d.chargeStrength);
+    setCenterStrength(d.centerStrength);
+    setPresetClusterStrength(d.presetClusterStrength);
+    setLayerBandStrength(d.layerBandStrength);
+    setCollidePadding(d.collidePadding);
+  }, []);
 
   const nodeBreakdown = useMemo(() => {
     const categories = model.nodes.filter((n) => n.type === 'category').length;
@@ -326,22 +331,80 @@ export function Graph2DApp(): JSX.Element {
   return (
     <div className="akashi-graph-app akashi-graph2d-app">
       <header className="akashi-graph-toolbar akashi-graph-toolbar--stacked">
-        <div className="akashi-graph-toolbar__row">
-          <GraphPresetToggles
-            presetIds={snapshotPresetIds}
-            isPresetEnabled={isPresetEnabled}
-            onToggle={onTogglePreset}
-          />
+        <div className="akashi-graph-toolbar__row akashi-graph-toolbar__row--status">
           <span className="akashi-graph-status">{statusText}</span>
         </div>
-        <div className="akashi-graph-toolbar__row">
-          <GraphCategoryToggles
-            categoryIds={graphCategoryIds}
-            labelForId={labelGraphSourceCategory}
-            isCategoryEnabled={isCategoryEnabled}
-            onToggle={onToggleCategory}
-          />
-        </div>
+        {snapshotPresetIds.length > 0 || graphCategoryIds.length > 0 ? (
+          <div className="akashi-graph-toolbar__visibility-grid">
+            {snapshotPresetIds.length > 0 ? (
+              <>
+                <div className="akashi-graph-toolbar__visibility-grid__actions">
+                  <button
+                    type="button"
+                    className="akashi-graph-toolbar__mini-action"
+                    disabled={presetAllDisabled}
+                    onClick={onPresetsAll}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className="akashi-graph-toolbar__mini-action"
+                    disabled={presetNoneDisabled}
+                    onClick={onPresetsNone}
+                  >
+                    None
+                  </button>
+                </div>
+                <div
+                  className="akashi-graph-toolbar__visibility-grid__sep"
+                  aria-hidden="true"
+                />
+                <div className="akashi-graph-toolbar__visibility-grid__toggles">
+                  <GraphPresetToggles
+                    presetIds={snapshotPresetIds}
+                    isPresetEnabled={isPresetEnabled}
+                    onToggle={onTogglePreset}
+                  />
+                </div>
+              </>
+            ) : null}
+            {graphCategoryIds.length > 0 ? (
+              <>
+                <div className="akashi-graph-toolbar__visibility-grid__actions">
+                  <button
+                    type="button"
+                    className="akashi-graph-toolbar__mini-action"
+                    disabled={categoryAllDisabled}
+                    onClick={onCategoriesAll}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className="akashi-graph-toolbar__mini-action"
+                    disabled={categoryNoneDisabled}
+                    onClick={onCategoriesNone}
+                  >
+                    None
+                  </button>
+                </div>
+                <div
+                  className="akashi-graph-toolbar__visibility-grid__sep"
+                  aria-hidden="true"
+                />
+                <div className="akashi-graph-toolbar__visibility-grid__toggles">
+                  <GraphCategoryToggles
+                    categoryIds={graphCategoryIds}
+                    labelForId={labelGraphSourceCategory}
+                    isCategoryEnabled={isCategoryEnabled}
+                    onToggle={onToggleCategory}
+                  />
+                </div>
+              </>
+            ) : null}
+          </div>
+        ) : null}
       </header>
       <div className="akashi-graph-scene">
         <div className="akashi-graph-scene-stack">
@@ -359,6 +422,7 @@ export function Graph2DApp(): JSX.Element {
               <Graph2DViewControls
                 controlsCollapsed={controlsCollapsed}
                 onControlsCollapsedChange={setControlsCollapsed}
+                onResetForces={onResetForces}
                 linkDistance={linkDistance}
                 onLinkDistanceChange={setLinkDistance}
                 linkStrength={linkStrength}

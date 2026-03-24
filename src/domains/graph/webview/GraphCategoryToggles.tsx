@@ -10,7 +10,11 @@ export function GraphCategoryToggles(props: {
     return null;
   }
   return (
-    <div className="akashi-graph-preset-toggles" role="group" aria-label="Show source categories">
+    <div
+      className="akashi-graph-visibility-toggles akashi-graph-visibility-toggles--category"
+      role="group"
+      aria-label="Show source categories"
+    >
       {props.categoryIds.map((id) => {
         const on = props.isCategoryEnabled(id);
         return (
@@ -19,8 +23,8 @@ export function GraphCategoryToggles(props: {
             type="button"
             className={
               on
-                ? 'akashi-graph-preset-toggle akashi-graph-preset-toggle--on'
-                : 'akashi-graph-preset-toggle'
+                ? 'akashi-graph-visibility-toggle akashi-graph-visibility-toggle--on'
+                : 'akashi-graph-visibility-toggle'
             }
             aria-pressed={on}
             onClick={() => props.onToggle(id)}
