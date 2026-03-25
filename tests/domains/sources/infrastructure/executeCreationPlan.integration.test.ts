@@ -46,6 +46,7 @@ vi.mock('vscode', () => ({
   },
 }));
 
+import type { ArtifactCreationPlan } from '@src/domains/sources/domain/artifactOperation';
 import { executeCreationPlan } from '@src/domains/sources/infrastructure/executeCreationPlan';
 
 describe('executeCreationPlan (integration)', () => {
@@ -56,10 +57,10 @@ describe('executeCreationPlan (integration)', () => {
   });
 
   it('writes a new file under workspace and returns openPath', async () => {
-    const plan = {
+    const plan: ArtifactCreationPlan = {
       operations: [
         {
-          type: 'writeFile' as const,
+          type: 'writeFile',
           absolutePath: '/ws/new-artifact.md',
           content: '# hello\n',
         },
@@ -71,10 +72,10 @@ describe('executeCreationPlan (integration)', () => {
   });
 
   it('rejects when path is outside workspace and home', async () => {
-    const plan = {
+    const plan: ArtifactCreationPlan = {
       operations: [
         {
-          type: 'writeFile' as const,
+          type: 'writeFile',
           absolutePath: '/etc/passwd',
           content: 'x',
         },
@@ -88,10 +89,10 @@ describe('executeCreationPlan (integration)', () => {
 
   it('fails writeFile when file already exists', async () => {
     hoisted.api.writeFileText('/ws/exists.md', 'old');
-    const plan = {
+    const plan: ArtifactCreationPlan = {
       operations: [
         {
-          type: 'writeFile' as const,
+          type: 'writeFile',
           absolutePath: '/ws/exists.md',
           content: 'new',
         },
@@ -106,10 +107,10 @@ describe('executeCreationPlan (integration)', () => {
   it('merges JSON when user continues', async () => {
     hoisted.showWarningMessage.mockResolvedValue('Continue' as unknown as string);
     hoisted.api.writeFileText('/ws/config.json', JSON.stringify({ a: 1 }));
-    const plan = {
+    const plan: ArtifactCreationPlan = {
       operations: [
         {
-          type: 'jsonMerge' as const,
+          type: 'jsonMerge',
           absolutePath: '/ws/config.json',
           jsonPath: '',
           value: { b: 2 },
@@ -130,10 +131,10 @@ describe('executeCreationPlan (integration)', () => {
   it('returns error when user cancels JSON merge', async () => {
     hoisted.showWarningMessage.mockResolvedValue(undefined);
     hoisted.api.writeFileText('/ws/hooks.json', '{}');
-    const plan = {
+    const plan: ArtifactCreationPlan = {
       operations: [
         {
-          type: 'jsonMerge' as const,
+          type: 'jsonMerge',
           absolutePath: '/ws/hooks.json',
           jsonPath: '',
           value: { x: 1 },

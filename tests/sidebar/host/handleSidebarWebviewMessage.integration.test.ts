@@ -119,7 +119,7 @@ describe('handleSidebarWebviewMessage (integration)', () => {
     const { service } = makeService();
     await service.indexWorkspace({ includeHomeConfig: false });
 
-    const webview = { postMessage: vi.fn(() => Promise.resolve()) };
+    const webview = { postMessage: vi.fn((_msg: any) => Promise.resolve()) };
     const notify = vi.fn();
     const actions = createSidebarSourcesHostActions({
       sourcesService: service,
@@ -162,7 +162,7 @@ describe('handleSidebarWebviewMessage (integration)', () => {
 
   it('SourcesIndexWorkspaceRequest runs index and responds with snapshot payload', async () => {
     const { service, scanner } = makeService();
-    const webview = { postMessage: vi.fn(() => Promise.resolve()) };
+    const webview = { postMessage: vi.fn((_msg: any) => Promise.resolve()) };
     const actions = createSidebarSourcesHostActions({
       sourcesService: service,
       getActiveSourcePresets: () => new Set(['cursor']),
@@ -203,7 +203,7 @@ describe('handleSidebarWebviewMessage (integration)', () => {
 
   it('SourcesFsCreateFile creates file and ends with SourcesResponse ok', async () => {
     const { service } = makeService();
-    const webview = { postMessage: vi.fn(() => Promise.resolve()) };
+    const webview = { postMessage: vi.fn((_msg: any) => Promise.resolve()) };
     const actions = createSidebarSourcesHostActions({
       sourcesService: service,
       getActiveSourcePresets: () => new Set(['cursor']),
