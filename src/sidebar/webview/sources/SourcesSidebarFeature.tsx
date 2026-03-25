@@ -12,6 +12,10 @@ import {
   serializeSearchQuery,
   type SerializedSourceSearchQuery,
 } from '../../../domains/search/domain/model';
+import type {
+  SourceDescriptor,
+  WorkspaceFolderInfo,
+} from '../../../shared/types/sourcesSnapshotPayload';
 import { SidebarCoreMessageType } from '../../bridge/messages/core';
 import { getVscodeApi } from '../../../webview-shared/api';
 
@@ -81,8 +85,8 @@ export function SourcesSidebarFeature(): JSX.Element {
 
 function SourcesSidebarFeatureInner(props: {
   isIndexing: boolean;
-  records: readonly import('../../../shared/types/sourcesSnapshotPayload').SourceDescriptor[];
-  workspaceFolders: readonly import('../../../shared/types/sourcesSnapshotPayload').WorkspaceFolderInfo[];
+  records: readonly SourceDescriptor[];
+  workspaceFolders: readonly WorkspaceFolderInfo[];
   initialFilter: SerializedSourceSearchQuery | null;
 }): JSX.Element {
   const { isIndexing, records, workspaceFolders, initialFilter } = props;
