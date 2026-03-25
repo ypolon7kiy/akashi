@@ -10,6 +10,7 @@ import {
 } from '../../../shared/sourceCategoryKeys';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import type { SourceLocality } from './artifactKind';
+import type { IndexedArtifact } from './artifact';
 
 /** Same ordered set as `SIDEBAR_SOURCE_CATEGORY_KEYS` / `akashi.sidebar.fileColors` / graph category ids. */
 export const SOURCE_CATEGORIES = SIDEBAR_SOURCE_CATEGORY_KEYS;
@@ -51,4 +52,6 @@ export interface SourceIndexSnapshot {
   generatedAt: string;
   sourceCount: number;
   records: IndexedSourceEntry[];
+  /** Artifact linkage computed post-indexing. Absent in v6 snapshots. */
+  artifacts?: readonly IndexedArtifact[];
 }

@@ -1,9 +1,11 @@
+import type { IndexedArtifact } from '../../../domains/sources/domain/artifact';
 import type {
   IndexedSourceEntry,
   SourceIndexSnapshot,
 } from '../../../domains/sources/domain/model';
 import type { ActiveSourcePresetsGetter } from '../../../shared/config/workspaceConfigTypes';
 import type {
+  ArtifactDescriptor,
   SourceDescriptor,
   SourcesSnapshotPayload,
   WorkspaceFolderInfo,
@@ -25,6 +27,19 @@ export function buildSourcesSnapshotPayload(
     sourceCount: filtered.length,
     records: filtered.map(toSourceDescriptor),
     workspaceFolders,
+    artifacts: snapshot.artifacts?.map(toArtifactDescriptor),
+  };
+}
+
+function toArtifactDescriptor(a: IndexedArtifact): ArtifactDescriptor {
+  return {
+    id: a.id,
+    presetId: a.presetId,
+    category: a.category,
+    locality: a.locality,
+    shape: a.shape,
+    memberRecordIds: a.memberRecordIds,
+    primaryPath: a.primaryPath,
   };
 }
 

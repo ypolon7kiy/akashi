@@ -3,6 +3,7 @@
  */
 
 export type {
+  ArtifactDescriptor,
   SourceDescriptor,
   SourceFacetTagPayload,
   SourcesSnapshotPayload,

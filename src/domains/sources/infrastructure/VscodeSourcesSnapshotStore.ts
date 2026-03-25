@@ -2,8 +2,8 @@ import type * as vscode from 'vscode';
 import type { SourceIndexSnapshot } from '../domain/model';
 import type { SourcesSnapshotStorePort } from '../application/ports';
 
-/** Bumped when persisted snapshot contract changes (v6: `origin` → `locality`, removed `scope`). */
-const SOURCES_SNAPSHOT_KEY = 'sources.lastSnapshot.v6';
+/** Bumped when persisted snapshot contract changes (v7: added `artifacts` linkage). */
+const SOURCES_SNAPSHOT_KEY = 'sources.lastSnapshot.v7';
 
 export class VscodeSourcesSnapshotStore implements SourcesSnapshotStorePort {
   public constructor(private readonly context: vscode.ExtensionContext) {}

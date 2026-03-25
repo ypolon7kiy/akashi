@@ -1,4 +1,5 @@
 import type { IndexedSourceEntry, SourceIndexSnapshot } from '../domain/model';
+import { linkArtifacts } from '../domain/artifactLinker';
 import type { ActiveSourcePresetsGetter } from '../../../shared/config/workspaceConfigTypes';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import type {
@@ -85,10 +86,12 @@ export class SourcesService {
       })
     );
 
+    const artifacts = linkArtifacts(records);
     const snapshot: SourceIndexSnapshot = {
       generatedAt: new Date().toISOString(),
       sourceCount: records.length,
       records,
+      artifacts,
     };
     this.snapshot = snapshot;
     await this.snapshotStore.save(snapshot);

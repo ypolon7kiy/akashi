@@ -16,6 +16,17 @@ export interface WorkspaceFolderInfo {
   readonly path: string;
 }
 
+/** Artifact linkage DTO for graph/sidebar compound display. */
+export interface ArtifactDescriptor {
+  readonly id: string;
+  readonly presetId: string;
+  readonly category: string;
+  readonly locality: 'workspace' | 'user';
+  readonly shape: string;
+  readonly memberRecordIds: readonly string[];
+  readonly primaryPath: string;
+}
+
 export interface SourceDescriptor {
   /** Stable index row id; not necessarily equal to `path` when one path matches multiple presets. */
   readonly id: string;
@@ -39,6 +50,8 @@ export interface SourcesSnapshotPayload {
   readonly workspaceFolders: WorkspaceFolderInfo[];
   /** Optional: graph panel merges this for artifact context menu (sidebar snapshots omit it). */
   readonly artifactCreators?: readonly ArtifactCreatorMenuEntry[];
+  /** Artifact linkage for graph/sidebar compound display. Absent until v7. */
+  readonly artifacts?: readonly ArtifactDescriptor[];
 }
 
 /**
