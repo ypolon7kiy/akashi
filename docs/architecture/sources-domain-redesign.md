@@ -1,6 +1,6 @@
 # Sources Domain — Core Model Redesign Analysis
 
-**Status:** Design proposal — not yet implemented
+**Status:** Implemented (R1–R9 complete)
 **Scope:** `src/domains/sources/`, `src/shared/`, `src/sidebar/bridge/`, sidebar webview tree layer
 
 ---
