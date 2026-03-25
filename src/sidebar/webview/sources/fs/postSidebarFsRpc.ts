@@ -62,6 +62,26 @@ export async function postSidebarFsDelete(
   }
 }
 
+export async function postSidebarFsBatchDelete(
+  vscode: VscodeApi,
+  items: ReadonlyArray<{ path: string; isDirectory: boolean }>
+): Promise<SidebarFsRpcOutcome> {
+  try {
+    const r = await postRequest<SourcesResponseMessage>(
+      vscode,
+      {
+        type: SidebarMessageType.SourcesFsBatchDelete,
+        payload: { items },
+      },
+      SidebarMessageType.SourcesResponse,
+      FS_RPC_TIMEOUT_MS
+    );
+    return interpretFsResponse(r);
+  } catch (e) {
+    return { kind: 'error', message: e instanceof Error ? e.message : 'Batch delete failed' };
+  }
+}
+
 export async function postSidebarFsCreateFile(
   vscode: VscodeApi,
   parentPath: string,

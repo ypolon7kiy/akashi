@@ -10,6 +10,7 @@ import {
 import { getVscodeApi } from '../../../../webview-shared/api';
 import { validateSourceFileBaseName } from '../../../bridge/validateSourceFileBaseName';
 import {
+  postSidebarFsBatchDelete,
   postSidebarFsCreateFile,
   postSidebarFsDelete,
   postSidebarFsRename,
@@ -20,7 +21,7 @@ import { dirnameFsPath, joinDirSegment, type TreeNode } from './sourceTree';
 
 export interface UseSourceTreeFsStateArgs {
   readonly roots: readonly TreeNode[];
-  readonly setSelectedId: Dispatch<SetStateAction<string | null>>;
+  readonly clearSelection: () => void;
   readonly setContextMenu: Dispatch<SetStateAction<SourceTreeContextMenuState | null>>;
   readonly setExpandedIds: Dispatch<SetStateAction<Set<string>>>;
 }
@@ -42,6 +43,7 @@ export interface UseSourceTreeFsStateResult {
     confirmDragAndDrop?: boolean
   ) => Promise<void>;
   readonly queueDelete: (path: string, isDirectory: boolean) => void;
+  readonly queueBatchDelete: (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => void;
   readonly beginRename: (node: TreeNode) => void;
   readonly commitRename: () => void;
   readonly cancelRename: () => void;
@@ -53,7 +55,7 @@ export interface UseSourceTreeFsStateResult {
 }
 
 export function useSourceTreeFsState(args: UseSourceTreeFsStateArgs): UseSourceTreeFsStateResult {
-  const { roots, setSelectedId, setContextMenu, setExpandedIds } = args;
+  const { roots, clearSelection, setContextMenu, setExpandedIds } = args;
 
   const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -99,9 +101,9 @@ export function useSourceTreeFsState(args: UseSourceTreeFsStateArgs): UseSourceT
         return;
       }
       setFsError(null);
-      setSelectedId(null);
+      clearSelection();
     },
-    [setSelectedId]
+    [clearSelection]
   );
 
   const runCreateFile = useCallback(async (parentPath: string, fileName: string) => {
@@ -127,6 +129,33 @@ export function useSourceTreeFsState(args: UseSourceTreeFsStateArgs): UseSourceT
       void runDelete(path, isDirectory);
     },
     [runDelete]
+  );
+
+  const runBatchDelete = useCallback(
+    async (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => {
+      const vscode = getVscodeApi();
+      if (!vscode) {
+        return;
+      }
+      const out = await postSidebarFsBatchDelete(vscode, items);
+      if (out.kind === 'cancelled') {
+        return;
+      }
+      if (out.kind === 'error') {
+        setFsError(out.message);
+        return;
+      }
+      setFsError(null);
+      clearSelection();
+    },
+    [clearSelection]
+  );
+
+  const queueBatchDelete = useCallback(
+    (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => {
+      void runBatchDelete(items);
+    },
+    [runBatchDelete]
   );
 
   const beginRename = useCallback(
@@ -267,6 +296,7 @@ export function useSourceTreeFsState(args: UseSourceTreeFsStateArgs): UseSourceT
     createFileInputRef,
     runRename,
     queueDelete,
+    queueBatchDelete,
     beginRename,
     commitRename,
     cancelRename,

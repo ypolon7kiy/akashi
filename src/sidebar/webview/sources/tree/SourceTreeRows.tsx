@@ -1,8 +1,7 @@
 import type { DragEvent, KeyboardEvent, MouseEvent, MutableRefObject } from 'react';
-import { getVscodeApi } from '../../../../webview-shared/api';
-import { SidebarMessageType } from '../../../bridge/messages';
 import { sidebarCategoryLabel, sidebarCategoryMetaModifier } from './categorySidebarLabel';
 import type { TreeNode } from './sourceTree';
+import { isPlatformMultiSelectKey } from './treeSelection';
 import { fsOperablePath, treeItemDomId } from '../fs/sourceTreeExplorerModel';
 
 function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
@@ -17,8 +16,9 @@ function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
 export interface TreeInteractions {
   expandedIds: ReadonlySet<string>;
   onToggle: (id: string) => void;
-  selectedId: string | null;
-  onSelect: (node: TreeNode) => void;
+  selectedIds: ReadonlySet<string>;
+  focusedId: string | null;
+  onRowClick: (node: TreeNode, e: MouseEvent) => void;
   focusTree: () => void;
   renamingNodeId: string | null;
   renameDraft: string;
@@ -50,7 +50,8 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
   const opPath = fsOperablePath(node);
   const canFs = opPath !== null;
   const isRenaming = ix.renamingNodeId === node.id;
-  const isSelected = ix.selectedId === node.id;
+  const isSelected = ix.selectedIds.has(node.id);
+  const isFocused = ix.focusedId === node.id;
   const isDropTarget = node.type === 'folder' && ix.dropTargetId === node.id && ix.dragActive;
 
   if (node.type === 'file') {
@@ -71,16 +72,12 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
           tabIndex={-1}
           aria-selected={isSelected}
           draggable={canFs && !isRenaming}
-          className={`akashi-tree__row akashi-tree__row--file${isSelected ? ' akashi-tree__row--selected' : ''}${isDropTarget ? ' akashi-tree__row--drop-target' : ''}`}
+          className={`akashi-tree__row akashi-tree__row--file${isSelected ? ' akashi-tree__row--selected' : ''}${isFocused ? ' akashi-tree__row--focused' : ''}${isDropTarget ? ' akashi-tree__row--drop-target' : ''}`}
           style={{ paddingLeft: pad }}
           title={title}
-          onClick={() => {
+          onClick={(e) => {
             ix.focusTree();
-            ix.onSelect(node);
-            getVscodeApi()?.postMessage({
-              type: SidebarMessageType.SourcesOpenPath,
-              payload: { path: node.path },
-            });
+            ix.onRowClick(node, e);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -124,12 +121,14 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
         aria-selected={isSelected}
         aria-expanded={hasChildren ? expanded : undefined}
         draggable={canFs && !isRenaming}
-        className={`akashi-tree__row akashi-tree__row--folder${isSelected ? ' akashi-tree__row--selected' : ''}${isDropTarget ? ' akashi-tree__row--drop-target' : ''}`}
+        className={`akashi-tree__row akashi-tree__row--folder${isSelected ? ' akashi-tree__row--selected' : ''}${isFocused ? ' akashi-tree__row--focused' : ''}${isDropTarget ? ' akashi-tree__row--drop-target' : ''}`}
         style={{ paddingLeft: pad }}
-        onClick={() => {
+        onClick={(e) => {
           ix.focusTree();
-          ix.onSelect(node);
-          ix.onToggle(node.id);
+          ix.onRowClick(node, e);
+          if (!e.shiftKey && !isPlatformMultiSelectKey(e)) {
+            ix.onToggle(node.id);
+          }
         }}
         onContextMenu={(e) => {
           e.preventDefault();

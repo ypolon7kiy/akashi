@@ -68,6 +68,42 @@ export function parseInboundSourcesFsDelete(message: unknown): InboundFsDeletePa
   };
 }
 
+export interface InboundFsBatchDeletePayload {
+  readonly items: ReadonlyArray<{ path: string; isDirectory: boolean }>;
+}
+
+export function parseInboundSourcesFsBatchDelete(
+  message: unknown
+): InboundFsBatchDeletePayload | null {
+  if (!message || typeof message !== 'object') {
+    return null;
+  }
+  const m = message as Record<string, unknown>;
+  if (m.type !== SidebarMessageType.SourcesFsBatchDelete) {
+    return null;
+  }
+  const payload = m.payload;
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const p = payload as Record<string, unknown>;
+  if (!Array.isArray(p.items) || p.items.length === 0) {
+    return null;
+  }
+  const items: Array<{ path: string; isDirectory: boolean }> = [];
+  for (const item of p.items) {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+    const it = item as Record<string, unknown>;
+    if (!isNonEmptyString(it.path)) {
+      return null;
+    }
+    items.push({ path: it.path, isDirectory: it.isDirectory === true });
+  }
+  return { items };
+}
+
 export function parseInboundSourcesFsCreateFile(
   message: unknown
 ): InboundFsCreateFilePayload | null {

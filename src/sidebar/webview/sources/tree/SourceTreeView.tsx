@@ -1,6 +1,6 @@
 /**
  * Indexed sources tree with Explorer-style rename (inline + F2), delete (Del + confirm), drag-move,
- * and a custom context menu (VS Code’s real workbench Explorer menu cannot run inside a webview).
+ * and a custom context menu (VS Code's real workbench Explorer menu cannot run inside a webview).
  */
 import {
   useCallback,
@@ -11,6 +11,8 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
+import { getVscodeApi } from '../../../../webview-shared/api';
+import { SidebarMessageType } from '../../../bridge/messages';
 import type { SourceDescriptor, WorkspaceFolderInfo } from '../../../bridge/sourceDescriptor';
 import {
   SourceTreeContextMenu,
@@ -25,6 +27,18 @@ import {
 } from '../fs/sourceTreeExplorerModel';
 import { TreeRows, type TreeInteractions } from './SourceTreeRows';
 import { buildSourceTree, type TreeNode } from './sourceTree';
+import {
+  EMPTY_SELECTION,
+  isPlatformMultiSelectKey,
+  selectAll,
+  selectExtendFocus,
+  selectMoveFocus,
+  selectNone,
+  selectRange,
+  selectSingle,
+  selectToggle,
+  type TreeSelectionState,
+} from './treeSelection';
 import { useSourceTreeDragDrop } from './useSourceTreeDragDrop';
 import { useSourceTreeFsState } from './useSourceTreeFsState';
 
@@ -43,15 +57,19 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
   );
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<TreeSelectionState>(EMPTY_SELECTION);
   const [contextMenu, setContextMenu] = useState<SourceTreeContextMenuState | null>(null);
+
+  const { selectedIds, focusedId } = selection;
 
   const treeRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const clearSelection = useCallback(() => setSelection(EMPTY_SELECTION), []);
+
   const fs = useSourceTreeFsState({
     roots,
-    setSelectedId,
+    clearSelection,
     setContextMenu,
     setExpandedIds,
   });
@@ -113,6 +131,15 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     };
   }, [contextMenu]);
 
+  // Scroll the focused row into view on keyboard navigation.
+  useEffect(() => {
+    if (!focusedId) {
+      return;
+    }
+    const el = document.getElementById(treeItemDomId(focusedId));
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [focusedId]);
+
   const onToggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -125,14 +152,45 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     });
   }, []);
 
-  const onRowContextMenu = useCallback((e: MouseEvent, node: TreeNode) => {
-    if (!fsOperablePath(node)) {
-      return;
-    }
-    treeRef.current?.focus();
-    setSelectedId(node.id);
-    setContextMenu({ x: e.clientX, y: e.clientY, node });
-  }, []);
+  const onRowClick = useCallback(
+    (node: TreeNode, e: MouseEvent) => {
+      const visibleIds = collectVisibleTreeNodes(roots, expandedIds).map((n) => n.id);
+
+      if (e.shiftKey) {
+        setSelection((prev) => selectRange(prev, node.id, visibleIds));
+      } else if (isPlatformMultiSelectKey(e)) {
+        setSelection((prev) => selectToggle(prev, node.id));
+      } else {
+        setSelection(selectSingle(node.id));
+        if (node.type === 'file') {
+          getVscodeApi()?.postMessage({
+            type: SidebarMessageType.SourcesOpenPath,
+            payload: { path: node.path },
+          });
+        }
+      }
+    },
+    [roots, expandedIds]
+  );
+
+  const onRowContextMenu = useCallback(
+    (e: MouseEvent, node: TreeNode) => {
+      if (!fsOperablePath(node)) {
+        return;
+      }
+      treeRef.current?.focus();
+      // If the right-clicked node is already selected, keep the multi-selection.
+      // Otherwise, select only the right-clicked node (VS Code behavior).
+      setSelection((prev) => {
+        if (prev.selectedIds.has(node.id)) {
+          return { ...prev, focusedId: node.id };
+        }
+        return selectSingle(node.id);
+      });
+      setContextMenu({ x: e.clientX, y: e.clientY, node });
+    },
+    []
+  );
 
   const focusTree = useCallback(() => {
     treeRef.current?.focus();
@@ -142,8 +200,9 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     () => ({
       expandedIds,
       onToggle,
-      selectedId,
-      onSelect: (n) => setSelectedId(n.id),
+      selectedIds,
+      focusedId,
+      onRowClick,
       focusTree,
       renamingNodeId: fs.renamingNodeId,
       renameDraft: fs.renameDraft,
@@ -165,7 +224,9 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     [
       expandedIds,
       onToggle,
-      selectedId,
+      selectedIds,
+      focusedId,
+      onRowClick,
       focusTree,
       fs.renamingNodeId,
       fs.renameDraft,
@@ -192,25 +253,40 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         return;
       }
       const visible = collectVisibleTreeNodes(roots, expandedIds);
-      const idx = selectedId ? visible.findIndex((n) => n.id === selectedId) : -1;
+      const visibleIds = visible.map((n) => n.id);
+      const idx = focusedId ? visible.findIndex((n) => n.id === focusedId) : -1;
 
-      if (!selectedId) {
+      if (!focusedId) {
         if (e.key === 'ArrowDown' || e.key === 'Home') {
           if (visible.length > 0) {
             e.preventDefault();
-            setSelectedId(visible[0].id);
+            setSelection(selectMoveFocus(visible[0].id));
           }
         } else if (e.key === 'End') {
           if (visible.length > 0) {
             e.preventDefault();
-            setSelectedId(visible[visible.length - 1].id);
+            setSelection(selectMoveFocus(visible[visible.length - 1].id));
           }
         }
         return;
       }
 
-      const node = findNodeById(roots, selectedId);
+      const node = findNodeById(roots, focusedId);
       if (!node) {
+        return;
+      }
+
+      // Ctrl/Cmd+A: select all visible
+      if (e.key === 'a' && isPlatformMultiSelectKey(e)) {
+        e.preventDefault();
+        setSelection(selectAll(visibleIds));
+        return;
+      }
+
+      // Escape: clear selection
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setSelection(selectNone());
         return;
       }
 
@@ -219,7 +295,11 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
           e.preventDefault();
           const next = visible[idx + 1];
           if (next) {
-            setSelectedId(next.id);
+            if (e.shiftKey) {
+              setSelection((prev) => selectExtendFocus(prev, next.id, visibleIds));
+            } else {
+              setSelection(selectMoveFocus(next.id));
+            }
           }
           break;
         }
@@ -227,21 +307,34 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
           e.preventDefault();
           const prev = visible[idx - 1];
           if (prev) {
-            setSelectedId(prev.id);
+            if (e.shiftKey) {
+              setSelection((p) => selectExtendFocus(p, prev.id, visibleIds));
+            } else {
+              setSelection(selectMoveFocus(prev.id));
+            }
           }
           break;
         }
         case 'Home': {
           e.preventDefault();
           if (visible.length > 0) {
-            setSelectedId(visible[0].id);
+            if (e.shiftKey) {
+              setSelection((prev) => selectExtendFocus(prev, visible[0].id, visibleIds));
+            } else {
+              setSelection(selectMoveFocus(visible[0].id));
+            }
           }
           break;
         }
         case 'End': {
           e.preventDefault();
           if (visible.length > 0) {
-            setSelectedId(visible[visible.length - 1].id);
+            const last = visible[visible.length - 1];
+            if (e.shiftKey) {
+              setSelection((prev) => selectExtendFocus(prev, last.id, visibleIds));
+            } else {
+              setSelection(selectMoveFocus(last.id));
+            }
           }
           break;
         }
@@ -253,7 +346,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
             } else if (node.children.length > 0) {
               const nextVis = visible[idx + 1];
               if (nextVis && findParentTreeNodeId(roots, nextVis.id) === node.id) {
-                setSelectedId(nextVis.id);
+                setSelection(selectMoveFocus(nextVis.id));
               }
             }
           }
@@ -264,10 +357,10 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
             e.preventDefault();
             onToggle(node.id);
           } else {
-            const parentId = findParentTreeNodeId(roots, selectedId);
+            const parentId = findParentTreeNodeId(roots, focusedId);
             if (parentId) {
               e.preventDefault();
-              setSelectedId(parentId);
+              setSelection(selectMoveFocus(parentId));
             }
           }
           break;
@@ -281,13 +374,22 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
           break;
         }
         case 'Delete': {
-          if (!fsOperablePath(node)) {
-            return;
-          }
           e.preventDefault();
-          const p = fsOperablePath(node);
-          if (p) {
-            fs.queueDelete(p, node.type === 'folder');
+          const deleteItems: Array<{ path: string; isDirectory: boolean }> = [];
+          for (const sid of selectedIds) {
+            const sNode = findNodeById(roots, sid);
+            if (!sNode) {
+              continue;
+            }
+            const p = fsOperablePath(sNode);
+            if (p) {
+              deleteItems.push({ path: p, isDirectory: sNode.type === 'folder' });
+            }
+          }
+          if (deleteItems.length === 1) {
+            fs.queueDelete(deleteItems[0].path, deleteItems[0].isDirectory);
+          } else if (deleteItems.length > 1) {
+            fs.queueBatchDelete(deleteItems);
           }
           break;
         }
@@ -300,7 +402,9 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
       fs.creatingFileParentId,
       fs.beginRename,
       fs.queueDelete,
-      selectedId,
+      fs.queueBatchDelete,
+      focusedId,
+      selectedIds,
       roots,
       expandedIds,
       onToggle,
@@ -327,9 +431,10 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         tabIndex={0}
         role="tree"
         aria-label="Indexed sources"
+        aria-multiselectable="true"
         aria-activedescendant={
-          selectedId && !fs.renamingNodeId && !fs.creatingFileParentId
-            ? treeItemDomId(selectedId)
+          focusedId && !fs.renamingNodeId && !fs.creatingFileParentId
+            ? treeItemDomId(focusedId)
             : undefined
         }
         onKeyDown={onTreeKeyDown}

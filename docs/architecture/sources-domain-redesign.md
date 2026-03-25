@@ -188,7 +188,7 @@ src/domains/sources/presets/claude/artifactTemplates.ts:28   id: 'claude/skill/u
 
 ---
 
-### T6 — `category` vs `categoryId` naming inconsistency
+### T6 — `category` vs `categoryId` naming inconsistencyP
 
 **What:** The same concept — the artifact category (`'skill'`, `'rule'`, `'context'`, …)
 — uses different field names in different layers.

@@ -111,6 +111,21 @@
   );
 }
 
+/* Focused row within a multi-selection — subtle outline distinguishes it. */
+.akashi-tree__row--focused.akashi-tree__row--selected {
+  outline: 1px solid var(--vscode-list-focusOutline, var(--vscode-focusBorder, transparent));
+  outline-offset: -1px;
+}
+
+/* Soften selection highlight when the tree loses focus. */
+.akashi-tree__focus-root:not(:focus-within) .akashi-tree__row--selected {
+  background: var(
+    --vscode-list-inactiveSelectionBackground,
+    color-mix(in srgb, var(--akashi-accent) 16%, transparent)
+  );
+  color: var(--vscode-list-inactiveSelectionForeground, inherit);
+}
+
 .akashi-tree__row--file {
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
   font-size: var(--vscode-font-size);

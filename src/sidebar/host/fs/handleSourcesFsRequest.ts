@@ -146,6 +146,59 @@ export async function handleSidebarFsDelete(
   }
 }
 
+export async function handleSidebarFsBatchDelete(
+  payload: {
+    items: ReadonlyArray<{ path: string; isDirectory: boolean }>;
+  },
+  workbenchFs: WorkbenchSidebarFsSettings
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Validate and stat all items up front.
+  const resolved: Array<{ uri: vscode.Uri; isDirectory: boolean; base: string }> = [];
+  for (const item of payload.items) {
+    const p = path.normalize(item.path);
+    if (!isPathAllowedForWorkspaceOrHome(p)) {
+      return { ok: false, error: `'${path.basename(p)}' cannot be modified from the Akashi sidebar.` };
+    }
+    const uri = vscode.Uri.file(p);
+    let isDirectory = item.isDirectory;
+    try {
+      const st = await vscode.workspace.fs.stat(uri);
+      isDirectory = st.type === vscode.FileType.Directory;
+    } catch {
+      return { ok: false, error: `'${path.basename(p)}' was not found.` };
+    }
+    resolved.push({ uri, isDirectory, base: path.basename(p) });
+  }
+
+  const { enableTrash, confirmDelete } = workbenchFs.getDeleteFlowSettings();
+
+  if (confirmDelete) {
+    const count = resolved.length;
+    const names = resolved.map((r) => r.base);
+    const nameList =
+      names.length <= 5 ? names.join(', ') : `${names.slice(0, 5).join(', ')} and ${names.length - 5} more`;
+    const msg = enableTrash
+      ? `Are you sure you want to delete the following ${count} items?`
+      : `Are you sure you want to permanently delete the following ${count} items?`;
+    const detail = enableTrash
+      ? `${nameList}\nYou can restore from the Trash later.`
+      : `${nameList}\nThis action cannot be undone.`;
+    const choice = await vscode.window.showWarningMessage(msg, { modal: true, detail }, 'Delete');
+    if (choice !== 'Delete') {
+      return { ok: false, error: SIDEBAR_FS_CANCELLED };
+    }
+  }
+
+  for (const { uri, isDirectory } of resolved) {
+    try {
+      await vscode.workspace.fs.delete(uri, { recursive: isDirectory, useTrash: enableTrash });
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  }
+  return { ok: true };
+}
+
 export async function handleSidebarFsCreateFile(payload: {
   parentPath: string;
   fileName: string;

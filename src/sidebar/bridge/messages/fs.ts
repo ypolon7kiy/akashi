@@ -7,6 +7,8 @@ export const SidebarFsMessageType = {
   SourcesFsRename: 'sources/fsRename',
   /** Delete a file or directory (`workspace.fs.delete`). */
   SourcesFsDelete: 'sources/fsDelete',
+  /** Delete multiple files/directories in one confirmation (`workspace.fs.delete`). */
+  SourcesFsBatchDelete: 'sources/fsBatchDelete',
   /** Create an empty file under a folder (`workspace.fs.writeFile`). */
   SourcesFsCreateFile: 'sources/fsCreateFile',
 } as const;
@@ -31,6 +33,14 @@ export interface SourcesFsDeleteRequestMessage {
   };
 }
 
+export interface SourcesFsBatchDeleteRequestMessage {
+  type: typeof SidebarFsMessageType.SourcesFsBatchDelete;
+  requestId: string;
+  payload: {
+    items: ReadonlyArray<{ path: string; isDirectory: boolean }>;
+  };
+}
+
 export interface SourcesFsCreateFileRequestMessage {
   type: typeof SidebarFsMessageType.SourcesFsCreateFile;
   requestId: string;
@@ -43,4 +53,5 @@ export interface SourcesFsCreateFileRequestMessage {
 export type SidebarFsRequestMessage =
   | SourcesFsRenameRequestMessage
   | SourcesFsDeleteRequestMessage
+  | SourcesFsBatchDeleteRequestMessage
   | SourcesFsCreateFileRequestMessage;

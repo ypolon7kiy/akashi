@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SidebarMessageType } from '@src/sidebar/bridge/messages';
 import {
+  parseInboundSourcesFsBatchDelete,
   parseInboundSourcesFsCreateFile,
   parseInboundSourcesFsDelete,
   parseInboundSourcesFsRename,
@@ -127,5 +128,65 @@ describe('parseInboundSourcesFsCreateFile', () => {
 
   it('rejects non-object message', () => {
     expect(parseInboundSourcesFsCreateFile(null)).toBeNull();
+  });
+});
+
+describe('parseInboundSourcesFsBatchDelete', () => {
+  it('accepts valid payload with multiple items', () => {
+    const p = parseInboundSourcesFsBatchDelete({
+      type: SidebarMessageType.SourcesFsBatchDelete,
+      requestId: 'r1',
+      payload: {
+        items: [
+          { path: '/a/b', isDirectory: false },
+          { path: '/c/d', isDirectory: true },
+        ],
+      },
+    });
+    expect(p).toEqual({
+      items: [
+        { path: '/a/b', isDirectory: false },
+        { path: '/c/d', isDirectory: true },
+      ],
+    });
+  });
+
+  it('rejects empty items array', () => {
+    expect(
+      parseInboundSourcesFsBatchDelete({
+        type: SidebarMessageType.SourcesFsBatchDelete,
+        requestId: 'r1',
+        payload: { items: [] },
+      })
+    ).toBeNull();
+  });
+
+  it('rejects item with missing path', () => {
+    expect(
+      parseInboundSourcesFsBatchDelete({
+        type: SidebarMessageType.SourcesFsBatchDelete,
+        requestId: 'r1',
+        payload: { items: [{ isDirectory: false }] },
+      })
+    ).toBeNull();
+  });
+
+  it('rejects wrong type', () => {
+    expect(
+      parseInboundSourcesFsBatchDelete({
+        type: SidebarMessageType.SourcesFsDelete,
+        requestId: 'r1',
+        payload: { items: [{ path: '/a', isDirectory: false }] },
+      })
+    ).toBeNull();
+  });
+
+  it('defaults isDirectory to false', () => {
+    const p = parseInboundSourcesFsBatchDelete({
+      type: SidebarMessageType.SourcesFsBatchDelete,
+      requestId: 'r1',
+      payload: { items: [{ path: '/a/b' }] },
+    });
+    expect(p?.items[0].isDirectory).toBe(false);
   });
 });

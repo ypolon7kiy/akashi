@@ -8,11 +8,13 @@ import {
   type SourcesResponseMessage,
 } from '../bridge/messages';
 import {
+  handleSidebarFsBatchDelete,
   handleSidebarFsCreateFile,
   handleSidebarFsDelete,
   handleSidebarFsRename,
 } from './fs/handleSourcesFsRequest';
 import {
+  parseInboundSourcesFsBatchDelete,
   parseInboundSourcesFsCreateFile,
   parseInboundSourcesFsDelete,
   parseInboundSourcesFsRename,
@@ -162,6 +164,26 @@ export async function handleSidebarWebviewMessage(
           path: parsed.path,
           isDirectory: parsed.isDirectory,
         },
+        workbenchFsSettings
+      );
+      await actions.completeSidebarFsMutation(webview, requestId, result);
+      return;
+    }
+
+    if (typedMessage.type === SidebarMessageType.SourcesFsBatchDelete) {
+      logSourcesCommand(typedMessage.type, requestId);
+      const parsed = parseInboundSourcesFsBatchDelete(message);
+      if (!parsed) {
+        await postSourcesResponse(webview, {
+          type: SidebarMessageType.SourcesResponse,
+          requestId,
+          ok: false,
+          error: 'Invalid batch delete payload',
+        });
+        return;
+      }
+      const result = await handleSidebarFsBatchDelete(
+        { items: parsed.items },
         workbenchFsSettings
       );
       await actions.completeSidebarFsMutation(webview, requestId, result);
