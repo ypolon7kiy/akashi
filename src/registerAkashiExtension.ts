@@ -9,6 +9,7 @@ import {
   buildArtifactCreatorMenuEntries,
   findArtifactCreatorById,
 } from './domains/sources/registerSourcePresets';
+import { createSourceFileWatcher } from './domains/sources/infrastructure/sourceFileWatcher';
 import { appendLine, getLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
@@ -86,6 +87,15 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       await vscode.commands.executeCommand('akashi.sources.refresh');
     },
   };
+
+  // Auto-detect file creation/change/deletion for preset-matched files.
+  context.subscriptions.push(
+    createSourceFileWatcher({
+      onFilesChanged: () => {
+        void vscode.commands.executeCommand('akashi.sources.refresh');
+      },
+    })
+  );
 
   const disposables = [
     ...registerGraphUi(context, graphEnv, config.generalConfig),

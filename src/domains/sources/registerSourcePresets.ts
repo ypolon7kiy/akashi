@@ -87,6 +87,48 @@ export function findArtifactCreatorById(id: string): ArtifactCreator | undefined
   return ARTIFACT_CREATORS.find((c) => c.id === id);
 }
 
+/**
+ * Build glob patterns suitable for `vscode.workspace.createFileSystemWatcher`.
+ * Returns two patterns derived from all preset workspace globs:
+ *   1. Standalone files at any depth (e.g. `CLAUDE.md`, `.mcp.json`)
+ *   2. Tool dot-directories at any depth (e.g. `.claude/**`, `.cursor/**`)
+ *
+ * The patterns intentionally cover ALL presets (not filtered by active presets)
+ * so the watcher doesn't need to be recreated when presets change — the re-index
+ * callback respects active presets on its own.
+ */
+export function buildWatcherGlobPatterns(): readonly string[] {
+  const standaloneFiles = new Set<string>();
+  const dotDirs = new Set<string>();
+
+  for (const row of WORKSPACE_GLOB_SCAN_ROWS) {
+    // All workspace globs start with `**/`; strip the prefix.
+    const suffix = row.glob.startsWith('**/')
+      ? row.glob.slice(3)
+      : row.glob;
+
+    // If the suffix starts with a dot-segment containing `/`, the first
+    // segment is a tool directory (e.g. `.claude/settings.json` → `.claude`).
+    const slashIdx = suffix.indexOf('/');
+    if (slashIdx > 0 && suffix.startsWith('.')) {
+      dotDirs.add(suffix.slice(0, slashIdx));
+    } else {
+      standaloneFiles.add(suffix);
+    }
+  }
+
+  const patterns: string[] = [];
+  if (standaloneFiles.size > 0) {
+    const joined = [...standaloneFiles].join(',');
+    patterns.push(standaloneFiles.size === 1 ? `**/${joined}` : `**/{${joined}}`);
+  }
+  if (dotDirs.size > 0) {
+    const joined = [...dotDirs].join(',');
+    patterns.push(dotDirs.size === 1 ? `**/${joined}/**` : `**/{${joined}}/**`);
+  }
+  return patterns;
+}
+
 /** Plain entries for graph webview context menu (no vscode / class instances). */
 export function buildArtifactCreatorMenuEntries(): readonly ArtifactCreatorMenuEntry[] {
   return ARTIFACT_CREATORS.map((c) => ({

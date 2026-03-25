@@ -84,7 +84,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--akashi-space-1);
+  gap: var(--akashi-space-2);
 }
 
 /* ── Combined facet row (presets | localities) ── */
@@ -92,7 +92,7 @@
 .akashi-search-bar__facet-combo {
   display: flex;
   align-items: center;
-  gap: var(--akashi-space-1);
+  gap: var(--akashi-space-2);
 }
 
 .akashi-search-bar__facet-sep {

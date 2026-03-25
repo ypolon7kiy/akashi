@@ -66,6 +66,7 @@ vi.mock('../../src/sidebar/host/runNewArtifactWizard', () => ({
 vi.mock('../../src/domains/sources/registerSourcePresets', () => ({
   findArtifactCreatorById: vi.fn(),
   buildArtifactCreatorMenuEntries: vi.fn(() => []),
+  buildWatcherGlobPatterns: vi.fn(() => ['**/CLAUDE.md']),
 }));
 
 vi.mock('../../src/domains/sources/infrastructure/executeCreationPlan', () => ({
@@ -93,7 +94,14 @@ vi.mock('vscode', () => ({
   workspace: {
     openTextDocument: vi.fn(),
     workspaceFolders: undefined,
+    createFileSystemWatcher: vi.fn(() => ({
+      onDidCreate: vi.fn(),
+      onDidChange: vi.fn(),
+      onDidDelete: vi.fn(),
+      dispose: vi.fn(),
+    })),
   },
+  Disposable: class { constructor(private fn: () => void) {} dispose() { this.fn(); } },
 }));
 
 import * as vscode from 'vscode';
