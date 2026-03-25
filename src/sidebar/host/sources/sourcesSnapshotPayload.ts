@@ -34,8 +34,7 @@ function toSourceDescriptor(record: IndexedSourceEntry): SourceDescriptor {
     path: record.path,
     preset: record.preset,
     category: record.category,
-    scope: record.scope,
-    origin: record.origin,
+    locality: record.locality,
     tags: [...record.tags],
     metadata: record.metadata,
   };

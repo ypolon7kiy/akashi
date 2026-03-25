@@ -1,6 +1,5 @@
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SourceScope } from '@src/domains/sources/domain/model';
 import { buildSourceFacetTags } from '@src/domains/sources/domain/sourceTags';
 import { SourceCategoryId } from '@src/domains/sources/domain/sourceTags';
 import { sourceRecordId } from '@src/shared/sourceRecordId';
@@ -88,12 +87,11 @@ describe('VscodeWorkspaceSourceScanner', () => {
       path: wsRulePath,
       preset: 'cursor',
       category: SourceCategoryId.Rule,
-      scope: SourceScope.File,
-      origin: 'workspace',
+      locality: 'workspace',
       tags: buildSourceFacetTags({
         category: SourceCategoryId.Rule,
         preset: 'cursor',
-        origin: 'workspace',
+        locality: 'workspace',
       }),
     });
   });
@@ -156,12 +154,11 @@ describe('VscodeWorkspaceSourceScanner', () => {
       path: mcpPath,
       preset: 'cursor',
       category: SourceCategoryId.Mcp,
-      origin: 'user',
-      scope: SourceScope.User,
+      locality: 'user',
       tags: buildSourceFacetTags({
         category: SourceCategoryId.Mcp,
         preset: 'cursor',
-        origin: 'user',
+        locality: 'user',
       }),
     });
   });

@@ -26,14 +26,14 @@ describe('collectVisibleTreeNodes', () => {
       categoryValue: 'x',
       presets: [],
       categories: [],
-      indexingOrigin: 'workspace',
+      indexingLocality: 'workspace',
     };
     const folder: TreeNode = {
       type: 'folder',
       id: 'd1',
       label: 'd',
       dirPath: '/d',
-      indexingOrigin: 'workspace',
+      indexingLocality: 'workspace',
       children: [child],
     };
     const collapsed = collectVisibleTreeNodes([folder], new Set());
@@ -54,14 +54,14 @@ describe('findParentTreeNodeId', () => {
       categoryValue: 'x',
       presets: [],
       categories: [],
-      indexingOrigin: 'workspace',
+      indexingLocality: 'workspace',
     };
     const folder: TreeNode = {
       type: 'folder',
       id: 'd1',
       label: 'd',
       dirPath: '/d',
-      indexingOrigin: 'workspace',
+      indexingLocality: 'workspace',
       children: [child],
     };
     expect(findParentTreeNodeId([folder], 'f1')).toBe('d1');

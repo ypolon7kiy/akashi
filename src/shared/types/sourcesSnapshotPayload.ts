@@ -24,8 +24,8 @@ export interface SourceDescriptor {
   readonly preset: string;
   /** Artifact category (context, rule, skill, …). */
   readonly category: string;
-  readonly scope: string;
-  readonly origin: 'workspace' | 'user';
+  /** Workspace-local vs user-home. */
+  readonly locality: 'workspace' | 'user';
   /** Facet tags: locality, category, preset (mirrors `IndexedSourceEntry.tags`). */
   readonly tags: readonly SourceFacetTagPayload[];
   readonly metadata: { byteLength: number; updatedAt: string };

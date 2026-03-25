@@ -80,7 +80,7 @@ function baseName(fsPath: string): string {
 }
 
 function localityForRecord(r: {
-  origin: string;
+  locality: string;
   tags: readonly { type: string; value: string }[];
 }): GraphLocality {
   const loc = r.tags.find((t) => t.type === 'locality');
@@ -90,7 +90,7 @@ function localityForRecord(r: {
   if (loc?.value === 'project') {
     return 'project';
   }
-  return r.origin === 'user' ? 'global' : 'project';
+  return r.locality === 'user' ? 'global' : 'project';
 }
 
 /** File node size: base 0.5, scaled up slightly by byteLength (max +0.3 at 10 KB). */

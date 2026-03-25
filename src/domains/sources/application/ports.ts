@@ -1,6 +1,7 @@
 import type { SourceCategory } from '../domain/model';
-import type { SourceFacetTag, SourceIndexSnapshot, SourceScope } from '../domain/model';
+import type { SourceFacetTag, SourceIndexSnapshot } from '../domain/model';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
+import type { SourceLocality } from '../domain/artifactKind';
 
 export interface DiscoveredSource {
   /** Stable row id (`sourceRecordId` in `shared/sourceRecordId`); not always equal to `path`. */
@@ -8,8 +9,8 @@ export interface DiscoveredSource {
   path: string;
   preset: SourcePresetId;
   category: SourceCategory;
-  scope: SourceScope;
-  origin: 'workspace' | 'user';
+  /** Workspace-local vs user-home. */
+  locality: SourceLocality;
   /** Facet tags built at scan time; propagated to index rows and snapshots unchanged. */
   tags: readonly SourceFacetTag[];
 }

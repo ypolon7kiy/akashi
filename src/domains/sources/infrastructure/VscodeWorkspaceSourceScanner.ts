@@ -6,7 +6,8 @@ import type {
   SourceScanOptions,
   WorkspaceSourceScannerPort,
 } from '../application/ports';
-import { SourceScope, type SourceCategory } from '../domain/model';
+import type { SourceCategory } from '../domain/model';
+import type { SourceLocality } from '../domain/artifactKind';
 import type { ToolUserRootsResolver } from '../../../shared/config/workspaceConfigTypes';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import { SOURCE_RECORD_ID_FIELD_SEP, sourceRecordId } from '../../../shared/sourceRecordId';
@@ -83,18 +84,17 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
 
   private toDiscoveredSource(
     filePath: string,
-    origin: 'workspace' | 'user',
+    locality: SourceLocality,
     preset: SourcePresetId,
     category: SourceCategory
   ): DiscoveredSource {
     return {
-      id: sourceRecordId(preset, origin, filePath),
+      id: sourceRecordId(preset, locality, filePath),
       path: filePath,
       preset,
       category,
-      scope: origin === 'user' ? SourceScope.User : SourceScope.File,
-      origin,
-      tags: buildSourceFacetTags({ category, preset, origin }),
+      locality,
+      tags: buildSourceFacetTags({ category, preset, locality }),
     };
   }
 }

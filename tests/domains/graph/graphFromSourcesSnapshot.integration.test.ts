@@ -11,20 +11,19 @@ import { sourceRecordId } from '@src/shared/sourceRecordId';
 function record(
   fsPath: string,
   preset: string,
-  origin: 'workspace' | 'user',
-  locality: 'project' | 'global',
+  locality: 'workspace' | 'user',
+  graphLocality: 'project' | 'global',
   category = 'context',
   byteLength = 10
 ): SourcesSnapshotPayload['records'][number] {
   return {
-    id: sourceRecordId(preset, origin, fsPath),
+    id: sourceRecordId(preset, locality, fsPath),
     path: fsPath,
     preset,
     category,
-    scope: origin === 'user' ? 'user' : 'workspace',
-    origin,
+    locality,
     tags: [
-      { type: 'locality', value: locality },
+      { type: 'locality', value: graphLocality },
       { type: 'category', value: category },
       { type: 'preset', value: preset },
     ],

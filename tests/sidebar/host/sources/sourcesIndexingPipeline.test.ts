@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { SourcesService } from '@src/domains/sources/application/SourcesService';
 import type { DiscoveredSource } from '@src/domains/sources/application/ports';
 import type { SourceCategory } from '@src/domains/sources/domain/model';
-import { SourceScope } from '@src/domains/sources/domain/model';
 import type { SourceIndexSnapshot } from '@src/domains/sources/domain/model';
 import { ALL_SOURCE_PRESET_IDS, type SourcePresetId } from '@src/shared/sourcePresetId';
 import {
@@ -31,16 +30,15 @@ function discovered(
   path: string,
   preset: SourcePresetId,
   category: SourceCategory,
-  origin: 'workspace' | 'user'
+  locality: 'workspace' | 'user'
 ): DiscoveredSource {
   return {
-    id: sourceRecordId(preset, origin, path),
+    id: sourceRecordId(preset, locality, path),
     path,
     preset,
     category,
-    scope: origin === 'user' ? SourceScope.User : SourceScope.File,
-    origin,
-    tags: buildSourceFacetTags({ category, preset, origin }),
+    locality,
+    tags: buildSourceFacetTags({ category, preset, locality }),
   };
 }
 
@@ -59,7 +57,7 @@ function effectiveMockDiscovered(
   if (includeHomeConfig) {
     return world;
   }
-  return world.filter((d) => d.origin !== 'user');
+  return world.filter((d) => d.locality !== 'user');
 }
 
 const WORLD_MIXED_WS_USER: DiscoveredSource[] = [

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SourcesService } from '@src/domains/sources/application/SourcesService';
-import { SourceScope } from '@src/domains/sources/domain/model';
 import type { SourceIndexSnapshot } from '@src/domains/sources/domain/model';
 import { SourceCategoryId } from '@src/domains/sources/domain/sourceTags';
 import { buildSourceFacetTags } from '@src/domains/sources/domain/sourceTags';
@@ -81,12 +80,11 @@ function makeService() {
           path: '/ws/.cursor/rules/x.mdc',
           preset: 'cursor' as const,
           category: SourceCategoryId.Rule,
-          scope: SourceScope.File,
-          origin: 'workspace' as const,
+          locality: 'workspace' as const,
           tags: buildSourceFacetTags({
             category: SourceCategoryId.Rule,
             preset: 'cursor',
-            origin: 'workspace',
+            locality: 'workspace',
           }),
         },
       ])

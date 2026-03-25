@@ -7,14 +7,14 @@ export const SOURCE_RECORD_ID_FIELD_SEP = '\u001f';
 /**
  * Stable unique id for one indexed source row. The same filesystem path may appear
  * in multiple rows when it matches discovery rules for more than one preset.
- * Includes `origin` so workspace vs user rows never collide.
+ * Includes `locality` so workspace vs user rows never collide.
  *
- * Argument order matches the encoded segments: `preset`, `origin`, `filePath`.
+ * Argument order matches the encoded segments: `preset`, `locality`, `filePath`.
  */
 export function sourceRecordId(
   preset: string,
-  origin: 'workspace' | 'user',
+  locality: 'workspace' | 'user',
   filePath: string
 ): string {
-  return [preset, origin, filePath].join(SOURCE_RECORD_ID_FIELD_SEP);
+  return [preset, locality, filePath].join(SOURCE_RECORD_ID_FIELD_SEP);
 }

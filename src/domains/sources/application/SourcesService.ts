@@ -77,8 +77,7 @@ export class SourcesService {
           path: item.path,
           preset: item.preset,
           category: item.category,
-          scope: item.scope,
-          origin: item.origin,
+          locality: item.locality,
           tags: item.tags,
           metadata,
         };

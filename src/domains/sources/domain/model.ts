@@ -8,19 +8,13 @@ import {
   SIDEBAR_SOURCE_CATEGORY_KEYS,
   type SidebarSourceCategoryKey,
 } from '../../../shared/sourceCategoryKeys';
+import type { SourcePresetId } from '../../../shared/sourcePresetId';
+import type { SourceLocality } from './artifactKind';
 
 /** Same ordered set as `SIDEBAR_SOURCE_CATEGORY_KEYS` / `akashi.sidebar.fileColors` / graph category ids. */
 export const SOURCE_CATEGORIES = SIDEBAR_SOURCE_CATEGORY_KEYS;
 
 export type SourceCategory = SidebarSourceCategoryKey;
-
-export const SourceScope = {
-  Workspace: 'workspace',
-  File: 'file',
-  User: 'user',
-} as const;
-
-export type SourceScope = (typeof SourceScope)[keyof typeof SourceScope];
 
 export const SourceTagType = {
   Preset: 'preset',
@@ -41,10 +35,10 @@ export interface IndexedSourceEntry {
   id: string;
   path: string;
   /** Preset that owns the discovery rule for this path. */
-  preset: string;
+  preset: SourcePresetId;
   category: SourceCategory;
-  scope: SourceScope;
-  origin: 'workspace' | 'user';
+  /** Workspace-local vs user-home. */
+  locality: SourceLocality;
   /** Facet tags: locality, category, preset (see `sourceTags.ts`). */
   tags: readonly SourceFacetTag[];
   metadata: {

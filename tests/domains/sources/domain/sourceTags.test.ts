@@ -11,7 +11,7 @@ describe('sourceTags', () => {
     const tags = buildSourceFacetTags({
       category: SourceCategoryId.Rule,
       preset: 'cursor',
-      origin: 'workspace',
+      locality: 'workspace',
     });
     expect(tags[0]).toEqual({
       type: SourceTagType.Locality,
@@ -21,11 +21,11 @@ describe('sourceTags', () => {
     expect(tags[2]).toEqual({ type: SourceTagType.Preset, value: 'cursor' });
   });
 
-  it('uses global locality for user origin', () => {
+  it('uses global locality for user locality', () => {
     const tags = buildSourceFacetTags({
       category: SourceCategoryId.Mcp,
       preset: 'cursor',
-      origin: 'user',
+      locality: 'user',
     });
     expect(tags[0]?.value).toBe(SourceLocalityTagValue.Global);
   });

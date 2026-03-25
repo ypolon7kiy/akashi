@@ -15,20 +15,19 @@ import { sourceRecordId } from '@src/shared/sourceRecordId';
 function record(
   path: string,
   preset: string,
-  origin: 'workspace' | 'user',
-  locality: 'project' | 'global',
+  locality: 'workspace' | 'user',
+  graphLocality: 'project' | 'global',
   category = 'context',
   byteLength = 10
 ): SourcesSnapshotPayload['records'][number] {
   return {
-    id: sourceRecordId(preset, origin, path),
+    id: sourceRecordId(preset, locality, path),
     path,
     preset,
     category,
-    scope: origin === 'user' ? 'user' : 'workspace',
-    origin,
+    locality,
     tags: [
-      { type: 'locality', value: locality },
+      { type: 'locality', value: graphLocality },
       { type: 'category', value: category },
       { type: 'preset', value: preset },
     ],
@@ -225,7 +224,7 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(nodes.some((n) => n.graphPresetId === 'cursor')).toBe(true);
   });
 
-  it('places user-origin record in global locality bucket', () => {
+  it('places user-locality record in global locality bucket', () => {
     const payload: SourcesSnapshotPayload = {
       generatedAt: '2025-01-01T00:00:00.000Z',
       sourceCount: 1,
@@ -236,8 +235,7 @@ describe('buildGraphFromSourcesPayload', () => {
           path: '/home/user/.cursor/mcp.json',
           preset: 'cursor',
           category: 'mcp',
-          scope: 'user',
-          origin: 'user',
+          locality: 'user',
           tags: [
             { type: 'locality', value: 'global' },
             { type: 'category', value: 'mcp' },

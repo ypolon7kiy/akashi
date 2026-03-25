@@ -27,12 +27,12 @@ export type TreeNode =
        * Set when every leaf descriptor in this subtree also shares a single category.
        * Narrows the artifact menu to only matching templates.
        */
-      categoryId?: string;
+      category?: string;
       /**
-       * Which top-level indexing branch this node belongs to (matches `SourceDescriptor.origin`
-       * split in `buildSourceTree`). Used to filter artifact templates by `template.scope`.
+       * Which top-level indexing branch this node belongs to (matches `SourceDescriptor.locality`
+       * split in `buildSourceTree`). Used to filter artifact creators by locality.
        */
-      indexingOrigin: 'workspace' | 'user';
+      indexingLocality: 'workspace' | 'user';
       children: TreeNode[];
     }
   | {
@@ -48,7 +48,7 @@ export type TreeNode =
       presets: readonly string[];
       /** Distinct category ids across merged descriptors, sorted (for tooltip when length > 1). */
       categories: readonly string[];
-      indexingOrigin: 'workspace' | 'user';
+      indexingLocality: 'workspace' | 'user';
     };
 
 type TrieEntry =
@@ -236,7 +236,7 @@ function trieToTreeNodes(
   map: TrieMap,
   idPrefix: string,
   parentDirFsPath: string,
-  indexingOrigin: 'workspace' | 'user'
+  indexingLocality: 'workspace' | 'user'
 ): TreeNode[] {
   const nodes: TreeNode[] = [];
   for (const [name, entry] of map.entries()) {
@@ -259,12 +259,12 @@ function trieToTreeNodes(
         categoryValue: categoryForDescriptor(first),
         presets,
         categories,
-        indexingOrigin,
+        indexingLocality,
       });
     } else {
       const dirPath = joinDirSegment(parentDirFsPath, name);
       const childId = `${idPrefix}:dir:${name}`;
-      const children = trieToTreeNodes(entry.children, childId, dirPath, indexingOrigin);
+      const children = trieToTreeNodes(entry.children, childId, dirPath, indexingLocality);
       const meta = collectTrieMeta(entry.children);
       nodes.push({
         type: 'folder',
@@ -272,8 +272,8 @@ function trieToTreeNodes(
         label: name,
         dirPath,
         presetId: meta.presets.size === 1 ? [...meta.presets][0] : undefined,
-        categoryId: meta.categories.size === 1 ? [...meta.categories][0] : undefined,
-        indexingOrigin,
+        category: meta.categories.size === 1 ? [...meta.categories][0] : undefined,
+        indexingLocality,
         children,
       });
     }
@@ -311,7 +311,7 @@ export function buildSourceTree(
   const unmatchedWorkspace: SourceDescriptor[] = [];
 
   for (const r of records) {
-    if (r.origin === 'user') {
+    if (r.locality === 'user') {
       userRecords.push(r);
     } else {
       workspaceRecords.push(r);
@@ -358,7 +358,7 @@ export function buildSourceTree(
       id: `root:ws:${wsPath}`,
       label: f.name,
       dirPath: wsPath,
-      indexingOrigin: 'workspace',
+      indexingLocality: 'workspace',
       children: sortTreeRoots(children),
     });
   }
@@ -373,7 +373,7 @@ export function buildSourceTree(
       type: 'folder',
       id: 'root:workspace-other',
       label: 'Workspace (other)',
-      indexingOrigin: 'workspace',
+      indexingLocality: 'workspace',
       children: sortTreeRoots(children),
     });
   }
@@ -387,7 +387,7 @@ export function buildSourceTree(
       type: 'folder',
       id: 'root:user',
       label: 'User configuration',
-      indexingOrigin: 'user',
+      indexingLocality: 'user',
       children: sortTreeRoots(trieToTreeNodes(userTrie, 'root:user', '', 'user')),
     });
   }

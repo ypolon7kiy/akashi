@@ -1,6 +1,7 @@
 import type { SourceFacetTag } from './model';
 import { SourceTagType } from './model';
 import type { SourceCategory } from './model';
+import type { SourceLocality } from './artifactKind';
 
 /** Values for `type: 'locality'` — project tree vs user-home config. */
 export const SourceLocalityTagValue = {
@@ -23,24 +24,24 @@ export const SourceCategoryId = {
   Unknown: 'unknown',
 } as const;
 
-function localityTagForOrigin(origin: 'workspace' | 'user'): SourceFacetTag {
+function localityTagForLocality(locality: SourceLocality): SourceFacetTag {
   return {
     type: SourceTagType.Locality,
-    value: origin === 'user' ? SourceLocalityTagValue.Global : SourceLocalityTagValue.Project,
+    value: locality === 'user' ? SourceLocalityTagValue.Global : SourceLocalityTagValue.Project,
   };
 }
 
 export interface SourceFacetTagInput {
   readonly category: SourceCategory;
   readonly preset: string;
-  readonly origin: 'workspace' | 'user';
+  readonly locality: SourceLocality;
 }
 
 /**
  * Ordered facet tags: locality, category, preset — stable for snapshots.
  */
 export function buildSourceFacetTags(input: SourceFacetTagInput): readonly SourceFacetTag[] {
-  const locality = localityTagForOrigin(input.origin);
+  const locality = localityTagForLocality(input.locality);
   const category: SourceFacetTag = {
     type: SourceTagType.Category,
     value: input.category,
