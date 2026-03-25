@@ -665,7 +665,7 @@ export function ForceGraphView(props: {
 
     for (const e of props.edges) {
       const meta = focusEdgeById.get(e.id);
-      const vis = meta?.isVisible !== false;
+      if (meta?.isVisible === false) continue;
       const src = simById.get(e.source);
       const tgt = simById.get(e.target);
       if (!src || !tgt || src.x === undefined || src.y === undefined) {
@@ -680,7 +680,7 @@ export function ForceGraphView(props: {
       ctx.lineTo(tgt.x, tgt.y);
       ctx.strokeStyle = ep ? theme.edgeHighlight : theme.edge;
       const edgeBaseOpacity = e.opacity ?? EDGE_DEFAULT_BASE_OPACITY;
-      ctx.globalAlpha = vis ? (ep ? 0.9 : edgeBaseOpacity) : 0.08;
+      ctx.globalAlpha = ep ? 0.9 : edgeBaseOpacity;
       ctx.lineWidth = ep
         ? EDGE_POINTED_LINE_WIDTH / k
         : (EDGE_IDLE_LINE_WIDTH_BASE + e.strength * EDGE_IDLE_LINE_WIDTH_STRENGTH_SCALE) / k;
@@ -695,7 +695,7 @@ export function ForceGraphView(props: {
 
     for (const n of simNodes) {
       const meta = focusNodeById.get(n.id);
-      const vis = meta?.isVisible !== false;
+      if (meta?.isVisible === false) continue;
       if (n.x === undefined || n.y === undefined) {
         continue;
       }
@@ -707,15 +707,13 @@ export function ForceGraphView(props: {
         ? getHoverColor(n.type, n, props.categoryPalette)
         : getNodeColor(n.type, n, props.categoryPalette);
 
-      const rimAlpha = vis ? 1 : 0.12;
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
       ctx.strokeStyle = theme.nodeRimStroke;
       ctx.lineWidth = NODE_RIM_LINE_WIDTH / k;
-      ctx.globalAlpha = rimAlpha;
+      ctx.globalAlpha = 1;
       ctx.stroke();
 
-      const bodyAlpha = vis ? 1 : 0.12;
       if (isPresetHub) {
         const haloOuter = r + PRESET_HALO_EXTRA_R;
         const grad = ctx.createRadialGradient(n.x, n.y, r * 0.2, n.x, n.y, haloOuter);
@@ -725,7 +723,7 @@ export function ForceGraphView(props: {
         ctx.beginPath();
         ctx.arc(n.x, n.y, haloOuter, 0, Math.PI * 2);
         ctx.fillStyle = grad;
-        ctx.globalAlpha = bodyAlpha;
+        ctx.globalAlpha = 1;
         ctx.fill();
 
         ctx.beginPath();
@@ -741,19 +739,19 @@ export function ForceGraphView(props: {
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fillStyle = fillColor;
-        ctx.globalAlpha = bodyAlpha;
+        ctx.globalAlpha = 1;
         ctx.fill();
       } else {
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        if (isTierNode && vis) {
+        if (isTierNode) {
           ctx.shadowColor = theme.nodeShadow;
           ctx.shadowBlur = TIER_NODE_SHADOW_BLUR / k;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = TIER_NODE_SHADOW_OFFSET_Y / k;
         }
         ctx.fillStyle = fillColor;
-        ctx.globalAlpha = bodyAlpha;
+        ctx.globalAlpha = 1;
         ctx.fill();
         clearCanvasShadow(ctx);
       }
@@ -762,47 +760,44 @@ export function ForceGraphView(props: {
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
       ctx.strokeStyle = np ? theme.nodeStrokeHighlight : theme.nodeStroke;
       ctx.lineWidth = (np ? NODE_INNER_STROKE_WIDTH_FOCUSED : NODE_INNER_STROKE_WIDTH) / k;
-      ctx.globalAlpha = vis ? 1 : 0.15;
-      ctx.stroke();
       ctx.globalAlpha = 1;
+      ctx.stroke();
 
       // Labels: inside node for tiers 0-2 (preset, locality, category), below for files
-      if (vis) {
-        if (isTierNode) {
-          const innerLabel = truncateTierLabel(n.label);
-          const innerFontPx = zoomScaledCanvasFontPx(n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN);
-          ctx.font = `bold ${innerFontPx}px ${theme.fontFamily}`;
-          const tierLight = '#ffffff';
-          const tierDark = '#000000';
-          const { fill: tierFill, stroke: tierStroke } = tierLabelContrastingPair(
-            fillColor,
-            tierLight,
-            tierDark,
-            n.type === 'preset'
-              ? PRESET_TIER_LABEL_LUMINANCE_THRESHOLD
-              : TIER_LABEL_LUMINANCE_THRESHOLD
-          );
-          const labelY = n.y + innerFontPx * 0.12;
-          const outlineW =
-            Math.max(TIER_LABEL_OUTLINE_MIN, innerFontPx * TIER_LABEL_OUTLINE_FRAC_OF_FONT) / k;
+      if (isTierNode) {
+        const innerLabel = truncateTierLabel(n.label);
+        const innerFontPx = zoomScaledCanvasFontPx(n.tierLabelFontPx ?? TIER_LABEL_FONT_MIN);
+        ctx.font = `bold ${innerFontPx}px ${theme.fontFamily}`;
+        const tierLight = '#ffffff';
+        const tierDark = '#000000';
+        const { fill: tierFill, stroke: tierStroke } = tierLabelContrastingPair(
+          fillColor,
+          tierLight,
+          tierDark,
+          n.type === 'preset'
+            ? PRESET_TIER_LABEL_LUMINANCE_THRESHOLD
+            : TIER_LABEL_LUMINANCE_THRESHOLD
+        );
+        const labelY = n.y + innerFontPx * 0.12;
+        const outlineW =
+          Math.max(TIER_LABEL_OUTLINE_MIN, innerFontPx * TIER_LABEL_OUTLINE_FRAC_OF_FONT) / k;
 
-          ctx.save();
-          ctx.globalAlpha = vis ? 0.95 : 0.12;
-          ctx.lineWidth = outlineW;
-          ctx.lineJoin = 'round';
-          ctx.strokeStyle = tierStroke;
-          ctx.strokeText(innerLabel, n.x, labelY);
-          ctx.fillStyle = tierFill;
-          ctx.fillText(innerLabel, n.x, labelY);
-          ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.lineWidth = outlineW;
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = tierStroke;
+        ctx.strokeText(innerLabel, n.x, labelY);
+        ctx.fillStyle = tierFill;
+        ctx.fillText(innerLabel, n.x, labelY);
+        ctx.restore();
 
-          // Reset font for subsequent labels
-          ctx.font = `${labelFontPx}px ${theme.fontFamily}`;
-        } else {
-          const label = n.label.length > 32 ? `${n.label.slice(0, 31)}…` : n.label;
-          ctx.fillStyle = theme.label;
-          ctx.fillText(label, n.x, n.y + r + labelFontPx * 0.85);
-        }
+        // Reset font for subsequent labels
+        ctx.font = `${labelFontPx}px ${theme.fontFamily}`;
+      } else {
+        const label = n.label.length > 32 ? `${n.label.slice(0, 31)}…` : n.label;
+        ctx.fillStyle = theme.label;
+        ctx.fillText(label, n.x, n.y + r + labelFontPx * 0.85);
       }
     }
 
@@ -1010,6 +1005,7 @@ export function ForceGraphView(props: {
     let best: SimNode | null = null;
     let bestD = Infinity;
     for (const n of simNodesRef.current) {
+      if (!n.isVisible) continue;
       if (n.x === undefined || n.y === undefined) {
         continue;
       }

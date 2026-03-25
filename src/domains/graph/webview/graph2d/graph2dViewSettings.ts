@@ -5,10 +5,6 @@ export const GRAPH2D_VIEW_SETTINGS_GLOBAL_STATE_KEY = 'akashi.graph2d.viewSettin
 
 export interface Graph2DWebviewPersistedState {
   controlsCollapsed: boolean;
-  /** `null` = all presets from snapshot (default). */
-  enabledPresets: string[] | null;
-  /** `null` = all source categories visible (default). */
-  enabledCategories: string[] | null;
   /** Target link distance in simulation space. */
   linkDistance: number;
   /** Link strength multiplier (0–1 scale in UI). */
@@ -56,8 +52,6 @@ export const GRAPH2D_COLLIDE_STEP = 1;
 export function defaultGraph2DWebviewPersistedState(): Graph2DWebviewPersistedState {
   return {
     controlsCollapsed: true,
-    enabledPresets: null,
-    enabledCategories: null,
     linkDistance: 72,
     linkStrength: 0.55,
     chargeStrength: 220,
@@ -72,24 +66,6 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-function parseEnabledPresetsField(raw: unknown, fallback: string[] | null): string[] | null {
-  if (raw === null) {
-    return null;
-  }
-  if (raw === undefined) {
-    return fallback;
-  }
-  if (!Array.isArray(raw)) {
-    return fallback;
-  }
-  const ids = raw.filter((x): x is string => typeof x === 'string' && x.trim().length > 0);
-  return [...new Set(ids)];
-}
-
-function parseEnabledCategoriesField(raw: unknown, fallback: string[] | null): string[] | null {
-  return parseEnabledPresetsField(raw, fallback);
-}
-
 export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewPersistedState {
   const d = defaultGraph2DWebviewPersistedState();
   if (raw === null || raw === undefined || typeof raw !== 'object') {
@@ -100,8 +76,6 @@ export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewP
   return {
     controlsCollapsed:
       typeof o.controlsCollapsed === 'boolean' ? o.controlsCollapsed : d.controlsCollapsed,
-    enabledPresets: parseEnabledPresetsField(o.enabledPresets, d.enabledPresets),
-    enabledCategories: parseEnabledCategoriesField(o.enabledCategories, d.enabledCategories),
     linkDistance: clamp(
       typeof o.linkDistance === 'number' && Number.isFinite(o.linkDistance)
         ? o.linkDistance

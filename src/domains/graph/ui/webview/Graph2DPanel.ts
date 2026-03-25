@@ -53,6 +53,16 @@ export class Graph2DPanel {
     }
   }
 
+  public static pushFilterIfOpen(matchedPaths: readonly string[] | null): void {
+    const p = Graph2DPanel.currentPanel;
+    if (p) {
+      void p.panel.webview.postMessage({
+        type: Graph2DMessageType.FilterQuery,
+        payload: matchedPaths,
+      });
+    }
+  }
+
   private constructor(
     public readonly panel: vscode.WebviewPanel,
     private readonly extensionUri: vscode.Uri,

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { ConfigDomain } from '../../domains/config';
+import type { SerializedSourceSearchQuery } from '../../domains/search/domain/model';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { appendLine } from '../../log';
 import {
@@ -34,6 +35,8 @@ export interface HandleSidebarWebviewMessageContext {
   sourcesService: SourcesService;
   configDomain: ConfigDomain;
   actions: SidebarSourcesHostActions;
+  notifyFilterChanged?: (matchedPaths: readonly string[] | null) => void;
+  saveFilterState?: (query: SerializedSourceSearchQuery) => void;
 }
 
 export async function handleSidebarWebviewMessage(
@@ -69,6 +72,22 @@ export async function handleSidebarWebviewMessage(
 
   if (typedMessage?.type === SidebarMessageType.SourcesRevealFileInOs) {
     await revealPathInFileOs(typedMessage.payload?.path);
+    return;
+  }
+
+  if (typedMessage?.type === SidebarMessageType.SourcesFilterChanged) {
+    const p = typedMessage.payload;
+    if (p === null || Array.isArray(p)) {
+      ctx.notifyFilterChanged?.(p);
+    }
+    return;
+  }
+
+  if (typedMessage?.type === SidebarMessageType.SourcesSaveFilterState) {
+    const p = typedMessage.payload;
+    if (p !== null && typeof p === 'object' && !Array.isArray(p)) {
+      ctx.saveFilterState?.(p as SerializedSourceSearchQuery);
+    }
     return;
   }
 

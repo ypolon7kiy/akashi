@@ -144,6 +144,9 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         onAfterSourcesSnapshotRefreshed: () => {
           void Graph2DPanel.refreshIfOpen(graphEnv);
         },
+        onFilterChanged: (matchedPaths) => {
+          Graph2DPanel.pushFilterIfOpen(matchedPaths);
+        },
       })
     ),
   ];

@@ -384,6 +384,31 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(fileNode?.graphArtifactId).toBe(artifactId);
   });
 
+  it('matchedPaths filter excludes empty category nodes', () => {
+    const payload: SourcesSnapshotPayload = {
+      ...basePayload(),
+      sourceCount: 2,
+      records: [
+        record('/ws/CLAUDE.md', 'claude', 'workspace', 'project', 'context'),
+        record('/ws/.claude/rules/a.md', 'claude', 'workspace', 'project', 'rule'),
+      ],
+    };
+
+    // Without filter: all known categories are present (including empties like skill, hook, …)
+    const withoutFilter = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
+    const allCatNodes = withoutFilter.nodes.filter((n) => n.type === 'category');
+    expect(allCatNodes.length).toBeGreaterThan(2); // includes empty stubs
+
+    // With filter matching only 'context' file: only 'context' category should survive
+    const withFilter = buildGraphFromSourcesPayload(payload, {
+      applyGridLayout: false,
+      matchedPaths: new Set(['/ws/CLAUDE.md']),
+    });
+    const filteredCatNodes = withFilter.nodes.filter((n) => n.type === 'category');
+    expect(filteredCatNodes).toHaveLength(1);
+    expect(filteredCatNodes[0].graphCategoryId).toBe('context');
+  });
+
   it('leaves graphArtifactId undefined when no artifacts are provided', () => {
     const payload = basePayload();
     const { nodes } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });

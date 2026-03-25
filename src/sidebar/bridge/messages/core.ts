@@ -2,6 +2,7 @@
  * Non–file-system sidebar ↔ host message types.
  */
 
+import type { SerializedSourceSearchQuery } from '../../../domains/search/domain/model';
 import type { SourcesSnapshotPayload } from '../sourceDescriptor';
 
 export const SidebarCoreMessageType = {
@@ -16,6 +17,12 @@ export const SidebarCoreMessageType = {
   SourcesSnapshotPush: 'sources/snapshotPush',
   /** Host → webview: title-bar refresh / long index; drives progress UI without an RPC round-trip. */
   SourcesIndexingState: 'sources/indexingState',
+  /** Webview → host: sidebar filter state changed (fire-and-forget). */
+  SourcesFilterChanged: 'sources/filterChanged',
+  /** Webview → host: persist current filter state to globalState. */
+  SourcesSaveFilterState: 'sources/saveFilterState',
+  /** Host → webview: restore saved filter state on mount. */
+  SourcesFilterState: 'sources/filterState',
 } as const;
 
 /** Triggers a full workspace index; indexing options come from workspace settings (`akashi.presets`, `akashi.includeHomeConfig`, `akashi.homePathOverrides`). */
@@ -67,9 +74,32 @@ export interface SourcesIndexingStateMessage {
   busy: boolean;
 }
 
+/**
+ * Sidebar webview → host: filter result (matched paths) changed.
+ * `null` = no filter active (show all). Empty array = nothing matches (hide all).
+ */
+export interface SourcesFilterChangedMessage {
+  type: typeof SidebarCoreMessageType.SourcesFilterChanged;
+  payload: readonly string[] | null;
+}
+
+/** Sidebar webview → host: persist filter state to globalState. */
+export interface SourcesSaveFilterStateMessage {
+  type: typeof SidebarCoreMessageType.SourcesSaveFilterState;
+  payload: SerializedSourceSearchQuery;
+}
+
+/** Host → sidebar webview: restore saved filter state. */
+export interface SourcesFilterStateMessage {
+  type: typeof SidebarCoreMessageType.SourcesFilterState;
+  payload: SerializedSourceSearchQuery | null;
+}
+
 export type SidebarCoreRequestMessage =
   | SourcesIndexWorkspaceRequestMessage
   | SourcesGetSnapshotRequestMessage
   | SourcesOpenPathMessage
   | SourcesRevealInExplorerMessage
-  | SourcesRevealFileInOsMessage;
+  | SourcesRevealFileInOsMessage
+  | SourcesFilterChangedMessage
+  | SourcesSaveFilterStateMessage;

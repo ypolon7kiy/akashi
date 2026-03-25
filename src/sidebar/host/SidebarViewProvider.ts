@@ -1,14 +1,20 @@
 import * as vscode from 'vscode';
 import type { ConfigDomain } from '../../domains/config';
+import type { SerializedSourceSearchQuery } from '../../domains/search/domain/model';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { appendLine } from '../../log';
+import { SidebarCoreMessageType } from '../bridge/messages/core';
 import { handleSidebarWebviewMessage } from './handleSidebarWebviewMessage';
 import { createSidebarSourcesHostActions } from './sidebarSourcesHostActions';
 import { codiconsDistRoot, getSidebarWebviewHtml } from './sidebarWebviewHtml';
 
+const SIDEBAR_FILTER_STATE_KEY = 'akashi.sidebar.filterState.v1';
+
 export interface SidebarViewProviderOptions {
   /** Called after the sidebar (and filtered snapshot) has been updated — e.g. refresh graph panel. */
   onAfterSourcesSnapshotRefreshed?: () => void;
+  /** Called when the sidebar filter result changes — relay matched paths to graph panel. */
+  onFilterChanged?: (matchedPaths: readonly string[] | null) => void;
 }
 
 export function createSidebarViewProvider(
@@ -116,14 +122,46 @@ export function createSidebarViewProvider(
         configDomain.generalConfig
       );
 
+      const notifyFilterChanged = (matchedPaths: readonly string[] | null): void => {
+        try {
+          options.onFilterChanged?.(matchedPaths);
+        } catch (err) {
+          appendLine(
+            `[Akashi] Sidebar: onFilterChanged failed: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      };
+
+      const saveFilterState = (query: SerializedSourceSearchQuery): void => {
+        context.globalState.update(SIDEBAR_FILTER_STATE_KEY, query).then(
+          undefined,
+          (err) =>
+            appendLine(
+              `[Akashi] Sidebar: failed to save filter state: ${err instanceof Error ? err.message : String(err)}`
+            ),
+        );
+      };
+
       const messageCtx = {
         sourcesService,
         configDomain,
         actions,
+        notifyFilterChanged,
+        saveFilterState,
       };
 
       webviewView.webview.onDidReceiveMessage((message: unknown) => {
         void handleSidebarWebviewMessage(webviewView.webview, message, messageCtx);
+      });
+
+      // Push saved filter state to webview so it can hydrate on mount.
+      const savedFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
+        SIDEBAR_FILTER_STATE_KEY,
+        null,
+      );
+      void webviewView.webview.postMessage({
+        type: SidebarCoreMessageType.SourcesFilterState,
+        payload: savedFilter,
       });
     },
   };

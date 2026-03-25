@@ -13,47 +13,47 @@ describe('parseGraph2DWebviewPersistedState', () => {
     expect(parseGraph2DWebviewPersistedState('x')).toEqual(d);
   });
 
-  it('defaults enabledCategories to null', () => {
-    expect(defaultGraph2DWebviewPersistedState().enabledCategories).toBe(null);
-  });
-
-  it('uses fallback when enabledCategories key is omitted', () => {
-    const d = defaultGraph2DWebviewPersistedState();
+  it('preserves valid force settings', () => {
     const s = parseGraph2DWebviewPersistedState({
-      controlsCollapsed: d.controlsCollapsed,
-      enabledPresets: d.enabledPresets,
-      linkDistance: d.linkDistance,
-      linkStrength: d.linkStrength,
-      chargeStrength: d.chargeStrength,
-      centerStrength: d.centerStrength,
-      presetClusterStrength: d.presetClusterStrength,
-      layerBandStrength: d.layerBandStrength,
-      collidePadding: d.collidePadding,
+      controlsCollapsed: false,
+      linkDistance: 80,
+      linkStrength: 0.7,
+      chargeStrength: 300,
+      centerStrength: 0.1,
+      presetClusterStrength: 0.3,
+      layerBandStrength: 0.2,
+      collidePadding: 10,
     });
-    expect(s.enabledCategories).toBe(null);
+    expect(s.controlsCollapsed).toBe(false);
+    expect(s.linkDistance).toBe(80);
+    expect(s.linkStrength).toBe(0.7);
+    expect(s.chargeStrength).toBe(300);
   });
 
-  it('parses enabledCategories null as all', () => {
-    const d = defaultGraph2DWebviewPersistedState();
-    const s = parseGraph2DWebviewPersistedState({ ...d, enabledCategories: null });
-    expect(s.enabledCategories).toBe(null);
-  });
-
-  it('parses enabledCategories array with dedupe and trim filter', () => {
-    const d = defaultGraph2DWebviewPersistedState();
+  it('clamps out-of-range values to valid bounds', () => {
     const s = parseGraph2DWebviewPersistedState({
-      ...d,
-      enabledCategories: ['context', 'rule', 'context', '  ', 'skill'],
+      linkDistance: 9999,
+      chargeStrength: -10,
     });
-    expect(s.enabledCategories).toEqual(['context', 'rule', 'skill']);
+    const d = defaultGraph2DWebviewPersistedState();
+    // linkDistance is clamped to max (160)
+    expect(s.linkDistance).toBe(160);
+    // chargeStrength is clamped to min (20)
+    expect(s.chargeStrength).toBe(20);
+    // Other fields get defaults
+    expect(s.controlsCollapsed).toBe(d.controlsCollapsed);
   });
 
-  it('falls back when enabledCategories is invalid', () => {
-    const d = defaultGraph2DWebviewPersistedState();
+  it('ignores legacy enabledPresets/enabledCategories fields without error', () => {
     const s = parseGraph2DWebviewPersistedState({
-      ...d,
-      enabledCategories: 'nope' as unknown as string[],
+      enabledPresets: ['cursor'],
+      enabledCategories: ['context'],
+      linkDistance: 72,
     });
-    expect(s.enabledCategories).toBe(d.enabledCategories);
+    // Should parse without error and return valid state
+    expect(s.linkDistance).toBe(72);
+    // No enabledPresets or enabledCategories on the result
+    expect('enabledPresets' in s).toBe(false);
+    expect('enabledCategories' in s).toBe(false);
   });
 });

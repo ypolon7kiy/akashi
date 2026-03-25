@@ -237,8 +237,6 @@ function Graph2DSliderRow(props: {
 
 export function graph2DSettingsToPersisted(s: {
   controlsCollapsed: boolean;
-  enabledPresets: ReadonlySet<string> | null;
-  enabledCategories: ReadonlySet<string> | null;
   linkDistance: number;
   linkStrength: number;
   chargeStrength: number;
@@ -249,8 +247,6 @@ export function graph2DSettingsToPersisted(s: {
 }): Graph2DWebviewPersistedState {
   return {
     controlsCollapsed: s.controlsCollapsed,
-    enabledPresets: s.enabledPresets === null ? null : [...s.enabledPresets].sort(),
-    enabledCategories: s.enabledCategories === null ? null : [...s.enabledCategories].sort(),
     linkDistance: s.linkDistance,
     linkStrength: s.linkStrength,
     chargeStrength: s.chargeStrength,

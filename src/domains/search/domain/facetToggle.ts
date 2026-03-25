@@ -1,6 +1,7 @@
 /**
- * Pure helpers for graph webview preset/category visibility overrides.
- * `null` = every id in the full set is enabled; non-null `Set` = exactly those ids are enabled.
+ * Pure helpers for facet toggle state (preset, category, locality, etc.).
+ * Uses the `null = all` convention: `null` means every id is enabled;
+ * a non-null `Set` restricts to exactly those ids.
  */
 
 export function normalizeEnabledOverride(

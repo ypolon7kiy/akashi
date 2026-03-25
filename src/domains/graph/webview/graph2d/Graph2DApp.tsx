@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { applySourceCategoryVisibility } from '../../algorithms/applySourceCategoryVisibility';
 import { buildGraphFromSourcesPayload } from '../../application/buildGraphFromSourcesPayload';
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
-import { labelGraphSourceCategory } from '../../domain/graphSourceCategoryLabels';
 import { diagnoseInboundSnapshotMessage } from '../graphSnapshotDiagnostics';
-import { GraphCategoryToggles } from '../GraphCategoryToggles';
-import { GraphPresetToggles } from '../GraphPresetToggles';
-import {
-  selectAllEnabledOverride,
-  selectNoneEnabledOverride,
-  toggleEnabledId,
-} from '../graphVisibilityOverrides';
 import { Graph2DMessageType, type Graph2DFileColorsPayload } from './messages';
 import {
   defaultGraph2DWebviewPersistedState,
@@ -36,11 +27,6 @@ export function Graph2DApp(): JSX.Element {
 
   const [controlsCollapsed, setControlsCollapsed] = useState(true);
   const [viewSettingsHydrated, setViewSettingsHydrated] = useState(false);
-  const [enabledPresetOverride, setEnabledPresetOverride] = useState<ReadonlySet<string> | null>(
-    null
-  );
-  const [enabledCategoryOverride, setEnabledCategoryOverride] =
-    useState<ReadonlySet<string> | null>(null);
 
   const [linkDistance, setLinkDistance] = useState(
     defaultGraph2DWebviewPersistedState().linkDistance
@@ -63,6 +49,9 @@ export function Graph2DApp(): JSX.Element {
   const [collidePadding, setCollidePadding] = useState(
     defaultGraph2DWebviewPersistedState().collidePadding
   );
+
+  /** Sidebar filter result: matched file paths. null = no filter active → show all. */
+  const [sidebarMatchedPaths, setSidebarMatchedPaths] = useState<ReadonlySet<string> | null>(null);
 
   const skipNextViewSettingsPersistRef = useRef(false);
 
@@ -88,14 +77,28 @@ export function Graph2DApp(): JSX.Element {
         }
         return;
       }
+      if (data?.type === Graph2DMessageType.FilterQuery) {
+        const p = data.payload;
+        if (p === null) {
+          setSidebarMatchedPaths((prev) => (prev === null ? prev : null));
+        } else if (Array.isArray(p)) {
+          const arr = p as string[];
+          setSidebarMatchedPaths((prev) => {
+            if (prev !== null && prev.size === arr.length && arr.every((v) => prev.has(v))) {
+              return prev;
+            }
+            return new Set(arr);
+          });
+        } else {
+          // Unexpected payload shape — clear filter to avoid stale state.
+          setSidebarMatchedPaths((prev) => (prev === null ? prev : null));
+        }
+        return;
+      }
       if (data?.type === Graph2DMessageType.ViewSettings) {
         const s = parseGraph2DWebviewPersistedState(data.payload);
         skipNextViewSettingsPersistRef.current = true;
         setControlsCollapsed(s.controlsCollapsed);
-        setEnabledPresetOverride(s.enabledPresets === null ? null : new Set(s.enabledPresets));
-        setEnabledCategoryOverride(
-          s.enabledCategories === null ? null : new Set(s.enabledCategories)
-        );
         setLinkDistance(s.linkDistance);
         setLinkStrength(s.linkStrength);
         setChargeStrength(s.chargeStrength);
@@ -125,19 +128,6 @@ export function Graph2DApp(): JSX.Element {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  const snapshotPresetIds = useMemo(() => {
-    const s = new Set<string>();
-    snapshot?.records.forEach((r) => {
-      if (r.preset) {
-        s.add(r.preset);
-      }
-    });
-    return [...s].sort();
-  }, [snapshot]);
-
-  const effectiveEnabledPresets = enabledPresetOverride;
-  const effectiveEnabledCategories = enabledCategoryOverride;
-
   useEffect(() => {
     if (!viewSettingsHydrated) {
       return;
@@ -155,8 +145,6 @@ export function Graph2DApp(): JSX.Element {
         type: Graph2DMessageType.SaveViewSettings,
         payload: graph2DSettingsToPersisted({
           controlsCollapsed,
-          enabledPresets: enabledPresetOverride,
-          enabledCategories: enabledCategoryOverride,
           linkDistance,
           linkStrength,
           chargeStrength,
@@ -171,8 +159,6 @@ export function Graph2DApp(): JSX.Element {
   }, [
     viewSettingsHydrated,
     controlsCollapsed,
-    enabledPresetOverride,
-    enabledCategoryOverride,
     linkDistance,
     linkStrength,
     chargeStrength,
@@ -185,25 +171,10 @@ export function Graph2DApp(): JSX.Element {
   const model = useMemo(
     () =>
       buildGraphFromSourcesPayload(snapshot, {
-        enabledPresets: effectiveEnabledPresets,
+        matchedPaths: sidebarMatchedPaths,
         applyGridLayout: false,
       }),
-    [snapshot, effectiveEnabledPresets]
-  );
-
-  const graphCategoryIds = useMemo(() => {
-    const s = new Set<string>();
-    for (const n of model.nodes) {
-      if (n.type === 'category' && n.graphCategoryId) {
-        s.add(n.graphCategoryId);
-      }
-    }
-    return [...s].sort();
-  }, [model.nodes]);
-
-  const categoryViewModel = useMemo(
-    () => applySourceCategoryVisibility(model.nodes, model.edges, effectiveEnabledCategories),
-    [model.nodes, model.edges, effectiveEnabledCategories]
+    [snapshot, sidebarMatchedPaths]
   );
 
   const simProps: ForceGraphSimProps = useMemo(
@@ -226,54 +197,6 @@ export function Graph2DApp(): JSX.Element {
       collidePadding,
     ]
   );
-
-  const isPresetEnabled = useCallback(
-    (pid: string): boolean => effectiveEnabledPresets === null || effectiveEnabledPresets.has(pid),
-    [effectiveEnabledPresets]
-  );
-
-  const isCategoryEnabled = useCallback(
-    (cid: string): boolean =>
-      effectiveEnabledCategories === null || effectiveEnabledCategories.has(cid),
-    [effectiveEnabledCategories]
-  );
-
-  const onToggleCategory = useCallback(
-    (cid: string) => {
-      setEnabledCategoryOverride((prev) => toggleEnabledId(prev, graphCategoryIds, cid));
-    },
-    [graphCategoryIds]
-  );
-
-  const onTogglePreset = useCallback(
-    (pid: string) => {
-      setEnabledPresetOverride((prev) => toggleEnabledId(prev, snapshotPresetIds, pid));
-    },
-    [snapshotPresetIds]
-  );
-
-  const presetAllDisabled = snapshotPresetIds.length === 0 || enabledPresetOverride === null;
-  const presetNoneDisabled =
-    snapshotPresetIds.length === 0 ||
-    (enabledPresetOverride !== null && enabledPresetOverride.size === 0);
-  const categoryAllDisabled = graphCategoryIds.length === 0 || enabledCategoryOverride === null;
-  const categoryNoneDisabled =
-    graphCategoryIds.length === 0 ||
-    (enabledCategoryOverride !== null && enabledCategoryOverride.size === 0);
-
-  const onPresetsAll = useCallback(() => {
-    setEnabledPresetOverride(selectAllEnabledOverride());
-  }, []);
-  const onPresetsNone = useCallback(() => {
-    setEnabledPresetOverride(selectNoneEnabledOverride(snapshotPresetIds));
-  }, [snapshotPresetIds]);
-
-  const onCategoriesAll = useCallback(() => {
-    setEnabledCategoryOverride(selectAllEnabledOverride());
-  }, []);
-  const onCategoriesNone = useCallback(() => {
-    setEnabledCategoryOverride(selectNoneEnabledOverride(graphCategoryIds));
-  }, [graphCategoryIds]);
 
   const onResetForces = useCallback(() => {
     const d = defaultGraph2DWebviewPersistedState();
@@ -303,29 +226,8 @@ export function Graph2DApp(): JSX.Element {
   }, [snapshot]);
 
   const emptyHint = useMemo(
-    () =>
-      buildEmptyHint(snapshot, model, {
-        allCategoriesHidden:
-          graphCategoryIds.length > 0 &&
-          effectiveEnabledCategories !== null &&
-          effectiveEnabledCategories.size === 0,
-        allPresetsHidden:
-          !!snapshot &&
-          snapshot.records.length > 0 &&
-          snapshotPresetIds.length > 0 &&
-          effectiveEnabledPresets !== null &&
-          effectiveEnabledPresets.size === 0,
-        noPresetsOnRecords:
-          !!snapshot && snapshot.records.length > 0 && snapshotPresetIds.length === 0,
-      }),
-    [
-      snapshot,
-      model,
-      snapshotPresetIds,
-      effectiveEnabledPresets,
-      graphCategoryIds,
-      effectiveEnabledCategories,
-    ]
+    () => buildEmptyHint(snapshot, model, sidebarMatchedPaths !== null),
+    [snapshot, model, sidebarMatchedPaths]
   );
 
   return (
@@ -334,84 +236,18 @@ export function Graph2DApp(): JSX.Element {
         <div className="akashi-graph-toolbar__row akashi-graph-toolbar__row--status">
           <span className="akashi-graph-status">{statusText}</span>
         </div>
-        {snapshotPresetIds.length > 0 || graphCategoryIds.length > 0 ? (
-          <div className="akashi-graph-toolbar__visibility-grid">
-            {snapshotPresetIds.length > 0 ? (
-              <>
-                <div className="akashi-graph-toolbar__visibility-grid__actions">
-                  <button
-                    type="button"
-                    className="akashi-graph-toolbar__mini-action"
-                    disabled={presetAllDisabled}
-                    onClick={onPresetsAll}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    className="akashi-graph-toolbar__mini-action"
-                    disabled={presetNoneDisabled}
-                    onClick={onPresetsNone}
-                  >
-                    None
-                  </button>
-                </div>
-                <div className="akashi-graph-toolbar__visibility-grid__sep" aria-hidden="true" />
-                <div className="akashi-graph-toolbar__visibility-grid__toggles">
-                  <GraphPresetToggles
-                    presetIds={snapshotPresetIds}
-                    isPresetEnabled={isPresetEnabled}
-                    onToggle={onTogglePreset}
-                  />
-                </div>
-              </>
-            ) : null}
-            {graphCategoryIds.length > 0 ? (
-              <>
-                <div className="akashi-graph-toolbar__visibility-grid__actions">
-                  <button
-                    type="button"
-                    className="akashi-graph-toolbar__mini-action"
-                    disabled={categoryAllDisabled}
-                    onClick={onCategoriesAll}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    className="akashi-graph-toolbar__mini-action"
-                    disabled={categoryNoneDisabled}
-                    onClick={onCategoriesNone}
-                  >
-                    None
-                  </button>
-                </div>
-                <div className="akashi-graph-toolbar__visibility-grid__sep" aria-hidden="true" />
-                <div className="akashi-graph-toolbar__visibility-grid__toggles">
-                  <GraphCategoryToggles
-                    categoryIds={graphCategoryIds}
-                    labelForId={labelGraphSourceCategory}
-                    isCategoryEnabled={isCategoryEnabled}
-                    onToggle={onToggleCategory}
-                  />
-                </div>
-              </>
-            ) : null}
-          </div>
-        ) : null}
       </header>
       <div className="akashi-graph-scene">
         <div className="akashi-graph-scene-stack">
           {sceneReady ? (
             <>
               <ForceGraphView
-                nodes={categoryViewModel.nodes}
-                edges={categoryViewModel.edges}
+                nodes={model.nodes}
+                edges={model.edges}
                 emptyHint={emptyHint}
                 sim={simProps}
                 categoryPalette={categoryPalette ?? undefined}
                 artifactCreators={snapshot?.artifactCreators}
-                enabledPresetIds={effectiveEnabledPresets}
               />
               <Graph2DViewControls
                 controlsCollapsed={controlsCollapsed}
@@ -489,8 +325,8 @@ export function Graph2DApp(): JSX.Element {
           <p className="akashi-graph-debug-line akashi-graph-debug-hint">
             <strong>Controls</strong> Pan: middle mouse drag. Zoom: wheel. Left-drag nodes to
             reposition. Right-click a node for the menu. Double-click a file to open. Hover to focus
-            a subgraph. Presets start as separate hubs (project/global beside each); adjust “Preset
-            cluster pull” if a cluster drifts.
+            a subgraph. Presets start as separate hubs (project/global beside each); adjust "Preset
+            cluster pull" if a cluster drifts.
           </p>
         </div>
       </details>
@@ -501,29 +337,19 @@ export function Graph2DApp(): JSX.Element {
 function buildEmptyHint(
   snapshot: SourcesSnapshotPayload | null,
   model: { nodes: GraphNode3D[]; edges: GraphEdge3D[] },
-  opts?: {
-    allCategoriesHidden?: boolean;
-    allPresetsHidden?: boolean;
-    noPresetsOnRecords?: boolean;
-  }
+  isFilterActive: boolean,
 ): string | null {
-  if (opts?.allCategoriesHidden) {
-    return 'All categories are hidden. Turn on at least one category toggle above.';
-  }
   if (model.nodes.length > 0) {
     return null;
   }
   if (!snapshot) {
-    return 'Waiting for index data. Run “Index sources” in the Akashi sidebar, then open the 2D graph again.';
+    return 'Waiting for index data. Run "Index sources" in the Akashi sidebar, then open the 2D graph again.';
   }
   if (snapshot.records.length === 0) {
     return 'Snapshot has 0 records after preset filter. Adjust Akashi presets or index again.';
   }
-  if (opts?.allPresetsHidden) {
-    return 'All presets are hidden. Turn on at least one preset toggle above.';
-  }
-  if (opts?.noPresetsOnRecords) {
-    return 'Indexed records are missing a preset id; re-run “Index sources” after upgrading.';
+  if (isFilterActive) {
+    return 'No sources match the current search filter.';
   }
   return 'Graph builder returned no nodes (unexpected). See Graph2D debug below.';
 }

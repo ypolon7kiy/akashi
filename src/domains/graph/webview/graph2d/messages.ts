@@ -9,6 +9,8 @@ export const Graph2DMessageType = {
   CopyPath: 'graph2d/copyPath',
   FileColors: 'graph2d/fileColors',
   RunArtifactCreator: 'graph2d/runArtifactCreator',
+  /** Host → webview: sidebar filter query (relayed from sidebar webview). */
+  FilterQuery: 'graph2d/filterQuery',
 } as const;
 
 /** Host → webview: category node fill/hover (frozen at activation). */

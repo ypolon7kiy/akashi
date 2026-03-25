@@ -24,6 +24,8 @@ export {
 } from './fs';
 
 export {
+  type SourcesFilterChangedMessage,
+  type SourcesFilterStateMessage,
   type SourcesGetSnapshotRequestMessage,
   type SourcesIndexingStateMessage,
   type SourcesIndexWorkspaceRequestMessage,
@@ -31,6 +33,7 @@ export {
   type SourcesResponseMessage,
   type SourcesRevealFileInOsMessage,
   type SourcesRevealInExplorerMessage,
+  type SourcesSaveFilterStateMessage,
   type SourcesSnapshotPushMessage,
   type SidebarCoreRequestMessage,
   SidebarCoreMessageType,

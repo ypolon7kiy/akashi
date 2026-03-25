@@ -146,6 +146,12 @@ function folderNodeDisplayLabel(absoluteDirPath: string): string {
 export interface BuildSourcesGraphOptions {
   /** If set, only buckets for these preset ids are built. */
   enabledPresets?: ReadonlySet<string> | null;
+  /**
+   * If set, only records whose `path` is in this set are included.
+   * `null` means include all records (no filter). This is the sidebar's
+   * filter result — records not in this set are excluded from the graph entirely.
+   */
+  matchedPaths?: ReadonlySet<string> | null;
   /** Grid horizontal cell spacing (see {@link applyGridLayout} default 6). */
   gridCellSize?: number;
   /** Grid vertical spacing between depth layers (see {@link applyGridLayout} default 12). */
@@ -193,6 +199,7 @@ export function buildGraphFromSourcesPayload(
   }
 
   const enabled = options?.enabledPresets ?? null;
+  const filteredPaths = options?.matchedPaths ?? null;
   const minFilesForFolderNode = options?.minFilesForFolderNode ?? DEFAULT_MIN_FILES_FOR_FOLDER_NODE;
 
   type BucketKey = string;
@@ -204,6 +211,9 @@ export function buildGraphFromSourcesPayload(
       continue;
     }
     if (enabled !== null && !enabled.has(presetId)) {
+      continue;
+    }
+    if (filteredPaths !== null && !filteredPaths.has(r.path)) {
       continue;
     }
     const loc = localityForRecord(r);
@@ -312,9 +322,12 @@ export function buildGraphFromSourcesPayload(
     // Ensure all known categories appear even when no records belong to them.
     // 'unknown' ("Other") is intentionally excluded — it's a catch-all that only
     // makes sense when files are actually present without a recognised category.
-    for (const cat of GRAPH_SOURCE_CATEGORY_IDS_FOR_EMPTY_NODES) {
-      if (!byCategory.has(cat)) {
-        byCategory.set(cat, []);
+    // When a sidebar filter is active we skip this so empty categories are pruned.
+    if (filteredPaths === null) {
+      for (const cat of GRAPH_SOURCE_CATEGORY_IDS_FOR_EMPTY_NODES) {
+        if (!byCategory.has(cat)) {
+          byCategory.set(cat, []);
+        }
       }
     }
 
