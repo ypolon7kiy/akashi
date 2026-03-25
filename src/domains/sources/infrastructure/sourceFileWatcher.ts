@@ -16,9 +16,7 @@ export interface SourceFileWatcherOptions {
  *
  * Returns a `Disposable` that tears down all watchers.
  */
-export function createSourceFileWatcher(
-  options: SourceFileWatcherOptions
-): vscode.Disposable {
+export function createSourceFileWatcher(options: SourceFileWatcherOptions): vscode.Disposable {
   const debounceMs = options.debounceMs ?? 800;
   let timer: ReturnType<typeof setTimeout> | null = null;
 

@@ -101,7 +101,12 @@ vi.mock('vscode', () => ({
       dispose: vi.fn(),
     })),
   },
-  Disposable: class { constructor(private fn: () => void) {} dispose() { this.fn(); } },
+  Disposable: class {
+    constructor(private fn: () => void) {}
+    dispose() {
+      this.fn();
+    }
+  },
 }));
 
 import * as vscode from 'vscode';

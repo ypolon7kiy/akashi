@@ -103,9 +103,7 @@ export function buildWatcherGlobPatterns(): readonly string[] {
 
   for (const row of WORKSPACE_GLOB_SCAN_ROWS) {
     // All workspace globs start with `**/`; strip the prefix.
-    const suffix = row.glob.startsWith('**/')
-      ? row.glob.slice(3)
-      : row.glob;
+    const suffix = row.glob.startsWith('**/') ? row.glob.slice(3) : row.glob;
 
     // If the suffix starts with a dot-segment containing `/`, the first
     // segment is a tool directory (e.g. `.claude/settings.json` → `.claude`).
