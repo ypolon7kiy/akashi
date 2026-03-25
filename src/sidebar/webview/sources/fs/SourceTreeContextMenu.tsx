@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useState } from 'react';
 import { getVscodeApi } from '../../../../webview-shared/api';
 import { SidebarMessageType } from '../../../bridge/messages';
 import type { TreeNode } from '../tree/sourceTree';
-import { fsOperablePath } from './sourceTreeExplorerModel';
+import { findNodeById, fsOperablePath } from './sourceTreeExplorerModel';
 
 export interface SourceTreeContextMenuState {
   readonly x: number;
@@ -18,6 +18,9 @@ export interface SourceTreeContextMenuProps {
   readonly beginCreateFile: (node: TreeNode) => void;
   readonly beginRename: (node: TreeNode) => void;
   readonly runDelete: (path: string, isDirectory: boolean) => void;
+  readonly selectedIds: ReadonlySet<string>;
+  readonly runBatchDelete: (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => void;
+  readonly roots: readonly TreeNode[];
 }
 
 function clampMenuPosition(
@@ -36,7 +39,7 @@ function clampMenuPosition(
 }
 
 export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.Element | null {
-  const { menuRef, contextMenu, onClose, beginCreateFile, beginRename, runDelete } = props;
+  const { menuRef, contextMenu, onClose, beginCreateFile, beginRename, runDelete, selectedIds, runBatchDelete, roots } = props;
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useLayoutEffect(() => {
@@ -222,10 +225,30 @@ export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.El
         className="akashi-tree-context__item akashi-tree-context__item--danger"
         role="menuitem"
         onClick={() => {
-          const p = fsOperablePath(node);
           onClose();
-          if (p) {
-            runDelete(p, node.type === 'folder');
+          // When the right-clicked node is part of a multi-selection, delete all selected items.
+          if (selectedIds.has(node.id) && selectedIds.size > 1) {
+            const items: Array<{ path: string; isDirectory: boolean }> = [];
+            for (const sid of selectedIds) {
+              const sNode = findNodeById(roots, sid);
+              if (!sNode) {
+                continue;
+              }
+              const p = fsOperablePath(sNode);
+              if (p) {
+                items.push({ path: p, isDirectory: sNode.type === 'folder' });
+              }
+            }
+            if (items.length > 1) {
+              runBatchDelete(items);
+            } else if (items.length === 1) {
+              runDelete(items[0].path, items[0].isDirectory);
+            }
+          } else {
+            const p = fsOperablePath(node);
+            if (p) {
+              runDelete(p, node.type === 'folder');
+            }
           }
         }}
       >

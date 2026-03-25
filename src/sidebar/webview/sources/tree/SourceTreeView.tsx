@@ -46,15 +46,20 @@ export interface SourceTreeViewProps {
   records: readonly SourceDescriptor[];
   workspaceFolders: readonly WorkspaceFolderInfo[];
   isBusy?: boolean;
+  /** When provided, only these (pre-filtered) roots are rendered and navigable. */
+  filteredRoots?: readonly TreeNode[];
 }
 
 export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
-  const { records, workspaceFolders, isBusy } = props;
+  const { records, workspaceFolders, isBusy, filteredRoots } = props;
 
   const roots = useMemo(
     () => buildSourceTree(records, workspaceFolders),
     [records, workspaceFolders]
   );
+
+  /** Roots used for rendering and navigation — filtered when search is active. */
+  const displayRoots = filteredRoots ?? roots;
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [selection, setSelection] = useState<TreeSelectionState>(EMPTY_SELECTION);
@@ -154,7 +159,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
 
   const onRowClick = useCallback(
     (node: TreeNode, e: MouseEvent) => {
-      const visibleIds = collectVisibleTreeNodes(roots, expandedIds).map((n) => n.id);
+      const visibleIds = collectVisibleTreeNodes(displayRoots, expandedIds).map((n) => n.id);
 
       if (e.shiftKey) {
         setSelection((prev) => selectRange(prev, node.id, visibleIds));
@@ -170,7 +175,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         }
       }
     },
-    [roots, expandedIds]
+    [displayRoots, expandedIds]
   );
 
   const onRowContextMenu = useCallback(
@@ -252,7 +257,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
       if (fs.renamingNodeId || fs.creatingFileParentId) {
         return;
       }
-      const visible = collectVisibleTreeNodes(roots, expandedIds);
+      const visible = collectVisibleTreeNodes(displayRoots, expandedIds);
       const visibleIds = visible.map((n) => n.id);
       const idx = focusedId ? visible.findIndex((n) => n.id === focusedId) : -1;
 
@@ -406,6 +411,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
       focusedId,
       selectedIds,
       roots,
+      displayRoots,
       expandedIds,
       onToggle,
     ]
@@ -441,7 +447,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         onFocus={() => fs.setFsError(null)}
       >
         <ul className="akashi-tree__list akashi-tree__list--root" role="none">
-          {roots.map((node) => (
+          {displayRoots.map((node) => (
             <TreeRows key={node.id} node={node} depth={0} ix={ix} />
           ))}
         </ul>
@@ -453,6 +459,9 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         beginCreateFile={fs.beginCreateFile}
         beginRename={fs.beginRename}
         runDelete={fs.queueDelete}
+        selectedIds={selectedIds}
+        runBatchDelete={fs.queueBatchDelete}
+        roots={roots}
       />
     </div>
   );
