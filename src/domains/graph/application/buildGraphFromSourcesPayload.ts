@@ -2,6 +2,7 @@ import type {
   SourceDescriptor,
   SourcesSnapshotPayload,
 } from '../../../shared/types/sourcesSnapshotPayload';
+import { buildRecordToArtifactMap } from '../../sources/domain/artifactLookup';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
 import {
   GRAPH_SOURCE_CATEGORY_IDS_FOR_EMPTY_NODES,
@@ -219,6 +220,10 @@ export function buildGraphFromSourcesPayload(
     return { nodes: [], edges: [] };
   }
 
+  const recordArtifactMap = payload.artifacts
+    ? buildRecordToArtifactMap(payload.artifacts)
+    : null;
+
   const nodes: GraphNode3D[] = [];
   const edges: GraphEdge3D[] = [];
   let edgeSeq = 0;
@@ -388,6 +393,7 @@ export function buildGraphFromSourcesPayload(
               graphLocality: locality,
               graphSliceKey: key,
               graphCategoryId: cat,
+              graphArtifactId: recordArtifactMap?.get(r.id) ?? undefined,
             });
             addEdge(folId, nid, 'contains', 'leaf');
           }
@@ -413,6 +419,7 @@ export function buildGraphFromSourcesPayload(
               graphLocality: locality,
               graphSliceKey: key,
               graphCategoryId: cat,
+              graphArtifactId: recordArtifactMap?.get(r.id) ?? undefined,
             });
             addEdge(catId, nid, 'contains', 'leaf');
           }

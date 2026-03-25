@@ -357,4 +357,39 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(large).toBeDefined();
     expect(large!.size).toBeGreaterThan(small!.size);
   });
+
+  it('sets graphArtifactId on file nodes when artifacts are provided', () => {
+    const r = record('/ws/CLAUDE.md', 'claude', 'workspace', 'project');
+    const artifactId = 'artifact:single-file:test-id';
+    const payload: SourcesSnapshotPayload = {
+      ...basePayload(),
+      sourceCount: 1,
+      records: [r],
+      artifacts: [
+        {
+          id: artifactId,
+          presetId: 'claude',
+          category: 'context',
+          locality: 'workspace',
+          shape: 'single-file',
+          memberRecordIds: [r.id],
+          primaryPath: '/ws/CLAUDE.md',
+        },
+      ],
+    };
+    const { nodes } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
+    const fileNode = nodes.find(
+      (n) => n.id === graphFileNodeId('claude', 'project', '/ws/CLAUDE.md')
+    );
+    expect(fileNode?.graphArtifactId).toBe(artifactId);
+  });
+
+  it('leaves graphArtifactId undefined when no artifacts are provided', () => {
+    const payload = basePayload();
+    const { nodes } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
+    const fileNode = nodes.find(
+      (n) => n.id === graphFileNodeId('claude', 'project', '/ws/src/CLAUDE.md')
+    );
+    expect(fileNode?.graphArtifactId).toBeUndefined();
+  });
 });

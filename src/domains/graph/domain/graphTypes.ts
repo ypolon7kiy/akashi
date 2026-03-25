@@ -41,6 +41,8 @@ export interface GraphNode3D {
   graphSliceKey?: string;
   /** Source category id for category-tier nodes (context, rule, skill, hook, config, mcp, command). */
   graphCategoryId?: string;
+  /** Artifact id linking this file node to its logical artifact (compound or single-file). */
+  graphArtifactId?: string;
 }
 
 export type GraphEdgeType3D = 'references' | 'similar' | 'related' | 'contains';
