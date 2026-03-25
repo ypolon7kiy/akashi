@@ -19,7 +19,7 @@ export interface SourceTreeContextMenuProps {
   readonly beginRename: (node: TreeNode) => void;
   readonly runDelete: (path: string, isDirectory: boolean) => void;
   readonly selectedIds: ReadonlySet<string>;
-  readonly runBatchDelete: (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => void;
+  readonly runBatchDelete: (items: readonly { path: string; isDirectory: boolean }[]) => void;
   readonly roots: readonly TreeNode[];
 }
 
@@ -39,7 +39,17 @@ function clampMenuPosition(
 }
 
 export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.Element | null {
-  const { menuRef, contextMenu, onClose, beginCreateFile, beginRename, runDelete, selectedIds, runBatchDelete, roots } = props;
+  const {
+    menuRef,
+    contextMenu,
+    onClose,
+    beginCreateFile,
+    beginRename,
+    runDelete,
+    selectedIds,
+    runBatchDelete,
+    roots,
+  } = props;
   const [pos, setPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useLayoutEffect(() => {
@@ -228,7 +238,7 @@ export function SourceTreeContextMenu(props: SourceTreeContextMenuProps): JSX.El
           onClose();
           // When the right-clicked node is part of a multi-selection, delete all selected items.
           if (selectedIds.has(node.id) && selectedIds.size > 1) {
-            const items: Array<{ path: string; isDirectory: boolean }> = [];
+            const items: { path: string; isDirectory: boolean }[] = [];
             for (const sid of selectedIds) {
               const sNode = findNodeById(roots, sid);
               if (!sNode) {

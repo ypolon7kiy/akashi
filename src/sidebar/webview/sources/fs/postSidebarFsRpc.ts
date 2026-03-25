@@ -64,7 +64,7 @@ export async function postSidebarFsDelete(
 
 export async function postSidebarFsBatchDelete(
   vscode: VscodeApi,
-  items: ReadonlyArray<{ path: string; isDirectory: boolean }>
+  items: readonly { path: string; isDirectory: boolean }[]
 ): Promise<SidebarFsRpcOutcome> {
   try {
     const r = await postRequest<SourcesResponseMessage>(

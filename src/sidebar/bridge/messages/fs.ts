@@ -37,7 +37,7 @@ export interface SourcesFsBatchDeleteRequestMessage {
   type: typeof SidebarFsMessageType.SourcesFsBatchDelete;
   requestId: string;
   payload: {
-    items: ReadonlyArray<{ path: string; isDirectory: boolean }>;
+    items: readonly { path: string; isDirectory: boolean }[];
   };
 }
 

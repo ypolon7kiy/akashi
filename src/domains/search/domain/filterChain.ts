@@ -5,7 +5,7 @@ import type { SourceDescriptor } from '../../../shared/types/sourcesSnapshotPayl
  * Each step narrows the result of the previous step in the chain.
  */
 export type SourceFilterStep = (
-  records: readonly SourceDescriptor[],
+  records: readonly SourceDescriptor[]
 ) => readonly SourceDescriptor[];
 
 /**
@@ -14,7 +14,7 @@ export type SourceFilterStep = (
  */
 export function applyFilterChain(
   records: readonly SourceDescriptor[],
-  steps: readonly SourceFilterStep[],
+  steps: readonly SourceFilterStep[]
 ): readonly SourceDescriptor[] {
   let result: readonly SourceDescriptor[] = records;
   for (const step of steps) {

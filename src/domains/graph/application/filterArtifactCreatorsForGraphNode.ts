@@ -18,7 +18,9 @@ export function filterArtifactCreatorsForGraphNode(
     return [];
   }
 
-  const localityFromGraphLocality = (loc: GraphNode3D['graphLocality']): 'workspace' | 'user' | null => {
+  const localityFromGraphLocality = (
+    loc: GraphNode3D['graphLocality']
+  ): 'workspace' | 'user' | null => {
     if (loc === 'project') {
       return 'workspace';
     }

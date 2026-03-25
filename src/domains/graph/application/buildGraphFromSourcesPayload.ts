@@ -230,9 +230,7 @@ export function buildGraphFromSourcesPayload(
     return { nodes: [], edges: [] };
   }
 
-  const recordArtifactMap = payload.artifacts
-    ? buildRecordToArtifactMap(payload.artifacts)
-    : null;
+  const recordArtifactMap = payload.artifacts ? buildRecordToArtifactMap(payload.artifacts) : null;
 
   const nodes: GraphNode3D[] = [];
   const edges: GraphEdge3D[] = [];

@@ -148,16 +148,19 @@ export async function handleSidebarFsDelete(
 
 export async function handleSidebarFsBatchDelete(
   payload: {
-    items: ReadonlyArray<{ path: string; isDirectory: boolean }>;
+    items: readonly { path: string; isDirectory: boolean }[];
   },
   workbenchFs: WorkbenchSidebarFsSettings
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   // Validate and stat all items up front.
-  const resolved: Array<{ uri: vscode.Uri; isDirectory: boolean; base: string }> = [];
+  const resolved: { uri: vscode.Uri; isDirectory: boolean; base: string }[] = [];
   for (const item of payload.items) {
     const p = path.normalize(item.path);
     if (!isPathAllowedForWorkspaceOrHome(p)) {
-      return { ok: false, error: `'${path.basename(p)}' cannot be modified from the Akashi sidebar.` };
+      return {
+        ok: false,
+        error: `'${path.basename(p)}' cannot be modified from the Akashi sidebar.`,
+      };
     }
     const uri = vscode.Uri.file(p);
     let isDirectory = item.isDirectory;
@@ -176,7 +179,9 @@ export async function handleSidebarFsBatchDelete(
     const count = resolved.length;
     const names = resolved.map((r) => r.base);
     const nameList =
-      names.length <= 5 ? names.join(', ') : `${names.slice(0, 5).join(', ')} and ${names.length - 5} more`;
+      names.length <= 5
+        ? names.join(', ')
+        : `${names.slice(0, 5).join(', ')} and ${names.length - 5} more`;
     const msg = enableTrash
       ? `Are you sure you want to delete the following ${count} items?`
       : `Are you sure you want to permanently delete the following ${count} items?`;

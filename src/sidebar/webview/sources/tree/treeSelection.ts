@@ -65,10 +65,10 @@ export function selectToggle(prev: TreeSelectionState, id: string): TreeSelectio
 export function selectRange(
   prev: TreeSelectionState,
   targetId: string,
-  visibleIds: readonly string[],
+  visibleIds: readonly string[]
 ): TreeSelectionState {
   const anchor = prev.anchorId;
-  if (!anchor || visibleIds.indexOf(anchor) === -1) {
+  if (!anchor || !visibleIds.includes(anchor)) {
     return selectSingle(targetId);
   }
   const range = computeRange(visibleIds, anchor, targetId);
@@ -87,10 +87,10 @@ export function selectMoveFocus(id: string): TreeSelectionState {
 export function selectExtendFocus(
   prev: TreeSelectionState,
   newFocusId: string,
-  visibleIds: readonly string[],
+  visibleIds: readonly string[]
 ): TreeSelectionState {
   const anchor = prev.anchorId;
-  if (!anchor || visibleIds.indexOf(anchor) === -1) {
+  if (!anchor || !visibleIds.includes(anchor)) {
     return selectSingle(newFocusId);
   }
   const range = computeRange(visibleIds, anchor, newFocusId);

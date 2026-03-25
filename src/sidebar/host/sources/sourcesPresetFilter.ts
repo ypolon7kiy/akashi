@@ -5,5 +5,5 @@ export function filterRecordsByPresets(
   records: IndexedSourceEntry[],
   active: ReadonlySet<SourcePresetId>
 ): IndexedSourceEntry[] {
-  return records.filter((r) => active.has(r.preset as SourcePresetId));
+  return records.filter((r) => active.has(r.preset));
 }

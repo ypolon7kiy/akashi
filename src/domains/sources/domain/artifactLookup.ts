@@ -13,7 +13,7 @@ interface ArtifactLike {
 
 /** Maps each member record id to its owning artifact id. */
 export function buildRecordToArtifactMap(
-  artifacts: readonly ArtifactLike[],
+  artifacts: readonly ArtifactLike[]
 ): ReadonlyMap<string, string> {
   const map = new Map<string, string>();
   for (const a of artifacts) {
@@ -28,7 +28,7 @@ export function buildRecordToArtifactMap(
 export function getArtifactMembers(
   artifactId: string,
   artifacts: readonly IndexedArtifact[],
-  entries: readonly IndexedSourceEntry[],
+  entries: readonly IndexedSourceEntry[]
 ): readonly IndexedSourceEntry[] {
   const artifact = artifacts.find((a) => a.id === artifactId);
   if (!artifact) return [];

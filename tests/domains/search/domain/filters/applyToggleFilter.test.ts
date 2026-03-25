@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { applyToggleFilter } from '@src/domains/search/domain/filters/applyToggleFilter';
 import type { SourceDescriptor } from '@src/shared/types/sourcesSnapshotPayload';
 
-function makeRecord(overrides: Partial<SourceDescriptor> & { id: string; path: string }): SourceDescriptor {
+function makeRecord(
+  overrides: Partial<SourceDescriptor> & { id: string; path: string }
+): SourceDescriptor {
   return {
     preset: 'claude',
     category: 'context',
@@ -14,9 +16,27 @@ function makeRecord(overrides: Partial<SourceDescriptor> & { id: string; path: s
 }
 
 const RECORDS: readonly SourceDescriptor[] = [
-  makeRecord({ id: 'r1', path: '/ws/a.md', category: 'context', preset: 'claude', locality: 'workspace' }),
-  makeRecord({ id: 'r2', path: '/ws/b.md', category: 'rule', preset: 'cursor', locality: 'workspace' }),
-  makeRecord({ id: 'r3', path: '/home/c.json', category: 'config', preset: 'claude', locality: 'user' }),
+  makeRecord({
+    id: 'r1',
+    path: '/ws/a.md',
+    category: 'context',
+    preset: 'claude',
+    locality: 'workspace',
+  }),
+  makeRecord({
+    id: 'r2',
+    path: '/ws/b.md',
+    category: 'rule',
+    preset: 'cursor',
+    locality: 'workspace',
+  }),
+  makeRecord({
+    id: 'r3',
+    path: '/home/c.json',
+    category: 'config',
+    preset: 'claude',
+    locality: 'user',
+  }),
 ];
 
 describe('applyToggleFilter', () => {

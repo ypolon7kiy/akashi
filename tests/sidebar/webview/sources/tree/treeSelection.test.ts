@@ -13,7 +13,11 @@ import {
 
 const ids = ['a', 'b', 'c', 'd', 'e'];
 
-function sel(selectedIds: string[], anchorId: string | null, focusedId: string | null): TreeSelectionState {
+function sel(
+  selectedIds: string[],
+  anchorId: string | null,
+  focusedId: string | null
+): TreeSelectionState {
   return { selectedIds: new Set(selectedIds), anchorId, focusedId };
 }
 

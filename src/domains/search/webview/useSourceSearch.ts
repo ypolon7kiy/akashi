@@ -25,17 +25,17 @@ export interface UseSourceSearchResult {
 
 export function useSourceSearch(
   records: readonly SourceDescriptor[],
-  initialState?: SerializedSourceSearchQuery | null,
+  initialState?: SerializedSourceSearchQuery | null
 ): UseSourceSearchResult {
   const [text, setText] = useState(() => initialState?.text ?? '');
-  const [categories, setCategories] = useState<ReadonlySet<string> | null>(
-    () => (initialState?.categories ? new Set(initialState.categories) : null),
+  const [categories, setCategories] = useState<ReadonlySet<string> | null>(() =>
+    initialState?.categories ? new Set(initialState.categories) : null
   );
-  const [presets, setPresets] = useState<ReadonlySet<string> | null>(
-    () => (initialState?.presets ? new Set(initialState.presets) : null),
+  const [presets, setPresets] = useState<ReadonlySet<string> | null>(() =>
+    initialState?.presets ? new Set(initialState.presets) : null
   );
-  const [localities, setLocalities] = useState<ReadonlySet<string> | null>(
-    () => (initialState?.localities ? new Set(initialState.localities) : null),
+  const [localities, setLocalities] = useState<ReadonlySet<string> | null>(() =>
+    initialState?.localities ? new Set(initialState.localities) : null
   );
 
   const availableCategories = useMemo(() => {
@@ -58,7 +58,7 @@ export function useSourceSearch(
 
   const query: SourceSearchQuery = useMemo(
     () => ({ text, categories, presets, localities }),
-    [text, categories, presets, localities],
+    [text, categories, presets, localities]
   );
 
   const result = useMemo(() => searchSourceRecords(records, query), [records, query]);
@@ -68,17 +68,17 @@ export function useSourceSearch(
 
   const toggleCategory = useCallback(
     (id: string) => setCategories((prev) => toggleEnabledId(prev, availableCategories, id)),
-    [availableCategories],
+    [availableCategories]
   );
 
   const togglePreset = useCallback(
     (id: string) => setPresets((prev) => toggleEnabledId(prev, availablePresets, id)),
-    [availablePresets],
+    [availablePresets]
   );
 
   const toggleLocality = useCallback(
     (id: string) => setLocalities((prev) => toggleEnabledId(prev, availableLocalities, id)),
-    [availableLocalities],
+    [availableLocalities]
   );
 
   const resetAll = useCallback(() => {

@@ -36,7 +36,7 @@ export type ArtifactCreatorId = `${SourcePresetId}/${string}/${SourceLocality}`;
 export function buildArtifactCreatorId(
   presetId: SourcePresetId,
   category: SourceCategory,
-  locality: SourceLocality,
+  locality: SourceLocality
 ): ArtifactCreatorId {
   return `${presetId}/${category}/${locality}`;
 }

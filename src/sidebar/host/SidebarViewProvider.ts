@@ -133,13 +133,13 @@ export function createSidebarViewProvider(
       };
 
       const saveFilterState = (query: SerializedSourceSearchQuery): void => {
-        context.globalState.update(SIDEBAR_FILTER_STATE_KEY, query).then(
-          undefined,
-          (err) =>
+        context.globalState
+          .update(SIDEBAR_FILTER_STATE_KEY, query)
+          .then(undefined, (err) =>
             appendLine(
               `[Akashi] Sidebar: failed to save filter state: ${err instanceof Error ? err.message : String(err)}`
-            ),
-        );
+            )
+          );
       };
 
       const messageCtx = {
@@ -157,7 +157,7 @@ export function createSidebarViewProvider(
       // Push saved filter state to webview so it can hydrate on mount.
       const savedFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
         SIDEBAR_FILTER_STATE_KEY,
-        null,
+        null
       );
       void webviewView.webview.postMessage({
         type: SidebarCoreMessageType.SourcesFilterState,

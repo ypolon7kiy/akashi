@@ -7,7 +7,9 @@ import {
 import { searchSourceRecords } from '@src/domains/search/domain/searchRecords';
 import type { SourceDescriptor } from '@src/shared/types/sourcesSnapshotPayload';
 
-function makeRecord(overrides: Partial<SourceDescriptor> & { id: string; path: string }): SourceDescriptor {
+function makeRecord(
+  overrides: Partial<SourceDescriptor> & { id: string; path: string }
+): SourceDescriptor {
   return {
     preset: 'claude',
     category: 'context',
@@ -19,11 +21,41 @@ function makeRecord(overrides: Partial<SourceDescriptor> & { id: string; path: s
 }
 
 const RECORDS: readonly SourceDescriptor[] = [
-  makeRecord({ id: 'r1', path: '/ws/CLAUDE.md', preset: 'claude', category: 'context', locality: 'workspace' }),
-  makeRecord({ id: 'r2', path: '/ws/.cursor/rules/style.md', preset: 'cursor', category: 'rule', locality: 'workspace' }),
-  makeRecord({ id: 'r3', path: '/home/.claude/settings.json', preset: 'claude', category: 'config', locality: 'user' }),
-  makeRecord({ id: 'r4', path: '/ws/.claude/skills/lint/SKILL.md', preset: 'claude', category: 'skill', locality: 'workspace' }),
-  makeRecord({ id: 'r5', path: '/ws/.codex/config.toml', preset: 'codex', category: 'config', locality: 'workspace' }),
+  makeRecord({
+    id: 'r1',
+    path: '/ws/CLAUDE.md',
+    preset: 'claude',
+    category: 'context',
+    locality: 'workspace',
+  }),
+  makeRecord({
+    id: 'r2',
+    path: '/ws/.cursor/rules/style.md',
+    preset: 'cursor',
+    category: 'rule',
+    locality: 'workspace',
+  }),
+  makeRecord({
+    id: 'r3',
+    path: '/home/.claude/settings.json',
+    preset: 'claude',
+    category: 'config',
+    locality: 'user',
+  }),
+  makeRecord({
+    id: 'r4',
+    path: '/ws/.claude/skills/lint/SKILL.md',
+    preset: 'claude',
+    category: 'skill',
+    locality: 'workspace',
+  }),
+  makeRecord({
+    id: 'r5',
+    path: '/ws/.codex/config.toml',
+    preset: 'codex',
+    category: 'config',
+    locality: 'workspace',
+  }),
 ];
 
 describe('isEmptySearchQuery', () => {
@@ -36,7 +68,9 @@ describe('isEmptySearchQuery', () => {
   });
 
   it('returns false when a facet set is non-null', () => {
-    expect(isEmptySearchQuery({ ...EMPTY_SEARCH_QUERY, categories: new Set(['rule']) })).toBe(false);
+    expect(isEmptySearchQuery({ ...EMPTY_SEARCH_QUERY, categories: new Set(['rule']) })).toBe(
+      false
+    );
   });
 });
 

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { applyFilterChain, type SourceFilterStep } from '@src/domains/search/domain/filterChain';
 import type { SourceDescriptor } from '@src/shared/types/sourcesSnapshotPayload';
 
-function makeRecord(overrides: Partial<SourceDescriptor> & { id: string; path: string }): SourceDescriptor {
+function makeRecord(
+  overrides: Partial<SourceDescriptor> & { id: string; path: string }
+): SourceDescriptor {
   return {
     preset: 'claude',
     category: 'context',
@@ -35,8 +37,7 @@ describe('applyFilterChain', () => {
   it('chains two steps sequentially — second narrows first', () => {
     const keepContextOrRule: SourceFilterStep = (records) =>
       records.filter((r) => r.category === 'context' || r.category === 'rule');
-    const keepOnlyA: SourceFilterStep = (records) =>
-      records.filter((r) => r.path.includes('a.md'));
+    const keepOnlyA: SourceFilterStep = (records) => records.filter((r) => r.path.includes('a.md'));
 
     const result = applyFilterChain(RECORDS, [keepContextOrRule, keepOnlyA]);
     expect(result).toHaveLength(1);

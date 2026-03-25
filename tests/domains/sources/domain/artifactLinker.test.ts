@@ -9,7 +9,7 @@ function entry(
   path: string,
   preset: SourcePresetId,
   locality: SourceLocality,
-  category: SourceCategory,
+  category: SourceCategory
 ): IndexedSourceEntry {
   return {
     id: sourceRecordId(preset, locality, path),
@@ -142,7 +142,12 @@ describe('linkArtifacts', () => {
 
   describe('folder-file (Antigravity skills)', () => {
     it('creates a folder-file artifact for SKILL.md', () => {
-      const skill = entry('/ws/.agent/skills/my-skill/SKILL.md', 'antigravity', 'workspace', 'skill');
+      const skill = entry(
+        '/ws/.agent/skills/my-skill/SKILL.md',
+        'antigravity',
+        'workspace',
+        'skill'
+      );
       const artifacts = linkArtifacts([skill]);
 
       expect(artifacts).toHaveLength(1);
@@ -152,7 +157,12 @@ describe('linkArtifacts', () => {
     });
 
     it('does not match non-SKILL.md files in .agent/skills', () => {
-      const other = entry('/ws/.agent/skills/my-skill/README.md', 'antigravity', 'workspace', 'skill');
+      const other = entry(
+        '/ws/.agent/skills/my-skill/README.md',
+        'antigravity',
+        'workspace',
+        'skill'
+      );
       const artifacts = linkArtifacts([other]);
 
       expect(artifacts).toHaveLength(1);

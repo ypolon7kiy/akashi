@@ -12,9 +12,7 @@ export interface ArtifactSiblingIndex {
  * A node appears in the index only when at least one sibling sits in
  * a different `graphCategoryId` (i.e. cross-branch in the hierarchy).
  */
-export function buildArtifactSiblingIndex(
-  nodes: readonly GraphNode3D[],
-): ArtifactSiblingIndex {
+export function buildArtifactSiblingIndex(nodes: readonly GraphNode3D[]): ArtifactSiblingIndex {
   // Group note-type nodes by graphArtifactId.
   const byArtifact = new Map<string, GraphNode3D[]>();
   for (const n of nodes) {

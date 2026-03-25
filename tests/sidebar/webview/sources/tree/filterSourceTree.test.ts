@@ -38,16 +38,14 @@ describe('filterSourceTree', () => {
     const tree = [file('/a.ts'), file('/b.ts'), file('/c.ts')];
     const result = filterSourceTree(tree, new Set(['/a.ts', '/c.ts']));
     expect(result).toHaveLength(2);
-    expect(result.map((n) => (n as Extract<TreeNode, { type: 'file' }>).path)).toEqual(['/a.ts', '/c.ts']);
+    expect(result.map((n) => (n as Extract<TreeNode, { type: 'file' }>).path)).toEqual([
+      '/a.ts',
+      '/c.ts',
+    ]);
   });
 
   it('keeps folders that have at least one matching descendant', () => {
-    const tree = [
-      folder('src', [
-        file('/src/match.ts'),
-        file('/src/miss.ts'),
-      ]),
-    ];
+    const tree = [folder('src', [file('/src/match.ts'), file('/src/miss.ts')])];
     const result = filterSourceTree(tree, new Set(['/src/match.ts']));
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('folder');
@@ -67,13 +65,7 @@ describe('filterSourceTree', () => {
   });
 
   it('handles deeply nested trees', () => {
-    const tree = [
-      folder('a', [
-        folder('b', [
-          folder('c', [file('/a/b/c/deep.ts')]),
-        ]),
-      ]),
-    ];
+    const tree = [folder('a', [folder('b', [folder('c', [file('/a/b/c/deep.ts')])])])];
     const result = filterSourceTree(tree, new Set(['/a/b/c/deep.ts']));
     expect(result).toHaveLength(1);
     const level1 = (result[0] as Extract<TreeNode, { type: 'folder' }>).children;
@@ -87,9 +79,12 @@ describe('filterSourceTree', () => {
 
   it('does not mutate the original tree', () => {
     const original = [folder('src', [file('/src/a.ts'), file('/src/b.ts')])];
-    const originalChildCount = (original[0] as Extract<TreeNode, { type: 'folder' }>).children.length;
+    const originalChildCount = (original[0] as Extract<TreeNode, { type: 'folder' }>).children
+      .length;
     filterSourceTree(original, new Set(['/src/a.ts']));
-    expect((original[0] as Extract<TreeNode, { type: 'folder' }>).children.length).toBe(originalChildCount);
+    expect((original[0] as Extract<TreeNode, { type: 'folder' }>).children.length).toBe(
+      originalChildCount
+    );
   });
 
   it('returns empty array for empty input', () => {

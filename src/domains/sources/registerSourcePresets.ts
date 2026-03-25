@@ -66,8 +66,9 @@ export const HOME_PATH_TASKS: readonly HomePathTask[] = SOURCE_PRESET_DEFINITION
 // Artifact creation registry
 // ---------------------------------------------------------------------------
 
-export const ARTIFACT_CREATORS: readonly ArtifactCreator[] =
-  SOURCE_PRESET_DEFINITIONS.flatMap((p) => p.artifactCreators);
+export const ARTIFACT_CREATORS: readonly ArtifactCreator[] = SOURCE_PRESET_DEFINITIONS.flatMap(
+  (p) => p.artifactCreators
+);
 
 /**
  * Returns artifact creators for the given preset and locality.

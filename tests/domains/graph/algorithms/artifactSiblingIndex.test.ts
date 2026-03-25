@@ -23,9 +23,7 @@ describe('buildArtifactSiblingIndex', () => {
   });
 
   it('returns empty index for single-member artifact', () => {
-    const nodes = [
-      n({ id: 'a', type: 'note', graphArtifactId: 'art:1', graphCategoryId: 'hook' }),
-    ];
+    const nodes = [n({ id: 'a', type: 'note', graphArtifactId: 'art:1', graphCategoryId: 'hook' })];
     const idx = buildArtifactSiblingIndex(nodes);
     expect(idx.crossCategorySiblings.size).toBe(0);
   });

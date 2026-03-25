@@ -7,7 +7,7 @@ import type { TreeNode } from './sourceTree';
  */
 export function filterSourceTree(
   roots: readonly TreeNode[],
-  matchedPaths: ReadonlySet<string>,
+  matchedPaths: ReadonlySet<string>
 ): TreeNode[] {
   const result: TreeNode[] = [];
   for (const node of roots) {

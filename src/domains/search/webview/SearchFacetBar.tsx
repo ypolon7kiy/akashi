@@ -34,11 +34,7 @@ function FacetRow(props: {
     return null;
   }
   return (
-    <div
-      className="akashi-search-bar__facets"
-      role="group"
-      aria-label={props.ariaLabel}
-    >
+    <div className="akashi-search-bar__facets" role="group" aria-label={props.ariaLabel}>
       {props.ids.map((id) => {
         const on = props.enabledSet === null || props.enabledSet.has(id);
         return (

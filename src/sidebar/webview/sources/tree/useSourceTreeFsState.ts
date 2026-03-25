@@ -43,7 +43,7 @@ export interface UseSourceTreeFsStateResult {
     confirmDragAndDrop?: boolean
   ) => Promise<void>;
   readonly queueDelete: (path: string, isDirectory: boolean) => void;
-  readonly queueBatchDelete: (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => void;
+  readonly queueBatchDelete: (items: readonly { path: string; isDirectory: boolean }[]) => void;
   readonly beginRename: (node: TreeNode) => void;
   readonly commitRename: () => void;
   readonly cancelRename: () => void;
@@ -132,7 +132,7 @@ export function useSourceTreeFsState(args: UseSourceTreeFsStateArgs): UseSourceT
   );
 
   const runBatchDelete = useCallback(
-    async (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => {
+    async (items: readonly { path: string; isDirectory: boolean }[]) => {
       const vscode = getVscodeApi();
       if (!vscode) {
         return;
@@ -152,7 +152,7 @@ export function useSourceTreeFsState(args: UseSourceTreeFsStateArgs): UseSourceT
   );
 
   const queueBatchDelete = useCallback(
-    (items: ReadonlyArray<{ path: string; isDirectory: boolean }>) => {
+    (items: readonly { path: string; isDirectory: boolean }[]) => {
       void runBatchDelete(items);
     },
     [runBatchDelete]

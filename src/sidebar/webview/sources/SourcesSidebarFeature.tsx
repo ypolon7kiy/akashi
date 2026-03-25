@@ -118,12 +118,12 @@ function SourcesSidebarFeatureInner(props: {
 
   const fullTree = useMemo(
     () => buildSourceTree(records, workspaceFolders),
-    [records, workspaceFolders],
+    [records, workspaceFolders]
   );
 
   const filteredTree = useMemo(
     () => (search.isActive ? filterSourceTree(fullTree, search.result.matchedPaths) : undefined),
-    [search.isActive, fullTree, search.result.matchedPaths],
+    [search.isActive, fullTree, search.result.matchedPaths]
   );
 
   return (

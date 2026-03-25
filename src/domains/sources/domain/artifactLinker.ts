@@ -29,10 +29,7 @@ const COMPOUND_HOOK_PATTERNS: readonly CompoundHookPattern[] = [
  *
  * Example: `/ws/.claude/hooks/lint.sh` → `/ws/.claude/settings.json`
  */
-function deriveCompanionConfigPath(
-  hookScriptPath: string,
-  preset: string,
-): string | null {
+function deriveCompanionConfigPath(hookScriptPath: string, preset: string): string | null {
   const norm = hookScriptPath.replace(/\\/g, '/');
   for (const pattern of COMPOUND_HOOK_PATTERNS) {
     if (pattern.preset !== preset) continue;
@@ -42,9 +39,7 @@ function deriveCompanionConfigPath(
     // e.g. for `/.claude/hooks/`, preset root is `<prefix>/.claude/`
     const presetRoot = norm.slice(0, idx + pattern.hookDirSegment.lastIndexOf('/hooks/') + 1);
     // strip one trailing segment name by going up from `/hooks/` to the preset dir
-    const presetDir = presetRoot.endsWith('/')
-      ? presetRoot.slice(0, -1)
-      : presetRoot;
+    const presetDir = presetRoot.endsWith('/') ? presetRoot.slice(0, -1) : presetRoot;
     // The config sits directly inside the preset directory
     // e.g. `/ws/.claude` + `/` + `settings.json`
     return `${presetDir}/${pattern.configFileName}`;
@@ -72,7 +67,9 @@ function isHookScriptEntry(entry: IndexedSourceEntry): boolean {
     if (entry.preset !== pattern.preset) continue;
     if (norm.includes(pattern.hookDirSegment)) {
       // Ensure it's an actual script file, not hooks.json sitting inside .cursor/hooks/
-      const afterHooksDir = norm.slice(norm.lastIndexOf(pattern.hookDirSegment) + pattern.hookDirSegment.length);
+      const afterHooksDir = norm.slice(
+        norm.lastIndexOf(pattern.hookDirSegment) + pattern.hookDirSegment.length
+      );
       // Must have a filename (not empty, not just the config)
       if (afterHooksDir.length > 0) return true;
     }
@@ -132,7 +129,7 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
     // Look up the companion config entry by path — any entry at that path from the same preset
     const configEntries = byPath.get(configPath.replace(/\\/g, '/'));
     const configEntry = configEntries?.find(
-      (e) => e.preset === entry.preset && e.locality === entry.locality,
+      (e) => e.preset === entry.preset && e.locality === entry.locality
     );
     if (!configEntry) continue;
 

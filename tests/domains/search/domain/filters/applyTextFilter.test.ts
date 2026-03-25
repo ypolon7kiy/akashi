@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { applyTextFilter } from '@src/domains/search/domain/filters/applyTextFilter';
 import type { SourceDescriptor } from '@src/shared/types/sourcesSnapshotPayload';
 
-function makeRecord(overrides: Partial<SourceDescriptor> & { id: string; path: string }): SourceDescriptor {
+function makeRecord(
+  overrides: Partial<SourceDescriptor> & { id: string; path: string }
+): SourceDescriptor {
   return {
     preset: 'claude',
     category: 'context',

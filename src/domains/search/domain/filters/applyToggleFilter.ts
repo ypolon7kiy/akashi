@@ -7,7 +7,7 @@ import type { SourceFilterStep } from '../filterChain';
 export function applyToggleFilter(
   categories: ReadonlySet<string> | null,
   presets: ReadonlySet<string> | null,
-  localities: ReadonlySet<string> | null,
+  localities: ReadonlySet<string> | null
 ): SourceFilterStep {
   return (records) => {
     if (categories === null && presets === null && localities === null) {

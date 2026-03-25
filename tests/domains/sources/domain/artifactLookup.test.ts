@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildRecordToArtifactMap, getArtifactMembers } from '@src/domains/sources/domain/artifactLookup';
+import {
+  buildRecordToArtifactMap,
+  getArtifactMembers,
+} from '@src/domains/sources/domain/artifactLookup';
 import { linkArtifacts } from '@src/domains/sources/domain/artifactLinker';
 import { sourceRecordId } from '@src/shared/sourceRecordId';
 import type { IndexedSourceEntry, SourceCategory } from '@src/domains/sources/domain/model';
@@ -10,7 +13,7 @@ function entry(
   path: string,
   preset: SourcePresetId,
   locality: SourceLocality,
-  category: SourceCategory,
+  category: SourceCategory
 ): IndexedSourceEntry {
   return {
     id: sourceRecordId(preset, locality, path),

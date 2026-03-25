@@ -69,7 +69,7 @@ export function parseInboundSourcesFsDelete(message: unknown): InboundFsDeletePa
 }
 
 export interface InboundFsBatchDeletePayload {
-  readonly items: ReadonlyArray<{ path: string; isDirectory: boolean }>;
+  readonly items: readonly { path: string; isDirectory: boolean }[];
 }
 
 export function parseInboundSourcesFsBatchDelete(
@@ -90,7 +90,7 @@ export function parseInboundSourcesFsBatchDelete(
   if (!Array.isArray(p.items) || p.items.length === 0) {
     return null;
   }
-  const items: Array<{ path: string; isDirectory: boolean }> = [];
+  const items: { path: string; isDirectory: boolean }[] = [];
   for (const item of p.items) {
     if (!item || typeof item !== 'object') {
       return null;

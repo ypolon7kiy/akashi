@@ -337,7 +337,7 @@ export function Graph2DApp(): JSX.Element {
 function buildEmptyHint(
   snapshot: SourcesSnapshotPayload | null,
   model: { nodes: GraphNode3D[]; edges: GraphEdge3D[] },
-  isFilterActive: boolean,
+  isFilterActive: boolean
 ): string | null {
   if (model.nodes.length > 0) {
     return null;

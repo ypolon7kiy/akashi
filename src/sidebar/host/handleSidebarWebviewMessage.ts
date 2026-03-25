@@ -86,7 +86,7 @@ export async function handleSidebarWebviewMessage(
   if (typedMessage?.type === SidebarMessageType.SourcesSaveFilterState) {
     const p = typedMessage.payload;
     if (p !== null && typeof p === 'object' && !Array.isArray(p)) {
-      ctx.saveFilterState?.(p as SerializedSourceSearchQuery);
+      ctx.saveFilterState?.(p);
     }
     return;
   }
@@ -201,10 +201,7 @@ export async function handleSidebarWebviewMessage(
         });
         return;
       }
-      const result = await handleSidebarFsBatchDelete(
-        { items: parsed.items },
-        workbenchFsSettings
-      );
+      const result = await handleSidebarFsBatchDelete({ items: parsed.items }, workbenchFsSettings);
       await actions.completeSidebarFsMutation(webview, requestId, result);
       return;
     }

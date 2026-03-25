@@ -8,6 +8,13 @@ import { isSourcesSnapshotPayload } from '@src/sidebar/bridge/sourceDescriptor';
 import { SidebarMessageType } from '@src/sidebar/bridge/messages';
 import type * as InMemoryFs from '../../helpers/inMemoryVscodeFs';
 
+interface MockResponse {
+  type: string;
+  requestId: string;
+  ok: boolean;
+  payload?: unknown;
+}
+
 const hoisted = vi.hoisted(() => {
   /* Vitest hoisted() runs before ESM bindings init; CommonJS require is required here. */
   /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports */
@@ -119,7 +126,7 @@ describe('handleSidebarWebviewMessage (integration)', () => {
     const { service } = makeService();
     await service.indexWorkspace({ includeHomeConfig: false });
 
-    const webview = { postMessage: vi.fn((_msg: any) => Promise.resolve()) };
+    const webview = { postMessage: vi.fn((_msg: unknown) => Promise.resolve()) };
     const notify = vi.fn();
     const actions = createSidebarSourcesHostActions({
       sourcesService: service,
@@ -151,8 +158,8 @@ describe('handleSidebarWebviewMessage (integration)', () => {
       }
     );
 
-    const responseCalls = webview.postMessage.mock.calls
-      .map((c) => c[0])
+    const responseCalls = (webview.postMessage.mock.calls as unknown[][])
+      .map((c) => c[0] as MockResponse)
       .filter((m) => m.type === SidebarMessageType.SourcesResponse && m.requestId === 'snap-1');
     expect(responseCalls.length).toBe(1);
     const msg = responseCalls[0];
@@ -162,7 +169,7 @@ describe('handleSidebarWebviewMessage (integration)', () => {
 
   it('SourcesIndexWorkspaceRequest runs index and responds with snapshot payload', async () => {
     const { service, scanner } = makeService();
-    const webview = { postMessage: vi.fn((_msg: any) => Promise.resolve()) };
+    const webview = { postMessage: vi.fn((_msg: unknown) => Promise.resolve()) };
     const actions = createSidebarSourcesHostActions({
       sourcesService: service,
       getActiveSourcePresets: () => new Set(['cursor']),
@@ -193,8 +200,8 @@ describe('handleSidebarWebviewMessage (integration)', () => {
     );
 
     expect(scanner.scanWorkspace).toHaveBeenCalled();
-    const responseCalls = webview.postMessage.mock.calls
-      .map((c) => c[0])
+    const responseCalls = (webview.postMessage.mock.calls as unknown[][])
+      .map((c) => c[0] as MockResponse)
       .filter((m) => m.type === SidebarMessageType.SourcesResponse && m.requestId === 'idx-1');
     expect(responseCalls.length).toBe(1);
     expect(responseCalls[0].ok).toBe(true);
@@ -203,7 +210,7 @@ describe('handleSidebarWebviewMessage (integration)', () => {
 
   it('SourcesFsCreateFile creates file and ends with SourcesResponse ok', async () => {
     const { service } = makeService();
-    const webview = { postMessage: vi.fn((_msg: any) => Promise.resolve()) };
+    const webview = { postMessage: vi.fn((_msg: unknown) => Promise.resolve()) };
     const actions = createSidebarSourcesHostActions({
       sourcesService: service,
       getActiveSourcePresets: () => new Set(['cursor']),
@@ -235,8 +242,8 @@ describe('handleSidebarWebviewMessage (integration)', () => {
     );
 
     expect(hoisted.api.has('/ws/from-webview.md')).toBe(true);
-    const final = webview.postMessage.mock.calls
-      .map((c) => c[0])
+    const final = (webview.postMessage.mock.calls as unknown[][])
+      .map((c) => c[0] as MockResponse)
       .filter((m) => m.type === SidebarMessageType.SourcesResponse && m.requestId === 'fs-1');
     expect(final.length).toBeGreaterThanOrEqual(1);
     expect(final[final.length - 1].ok).toBe(true);

@@ -178,24 +178,21 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
     [displayRoots, expandedIds]
   );
 
-  const onRowContextMenu = useCallback(
-    (e: MouseEvent, node: TreeNode) => {
-      if (!fsOperablePath(node)) {
-        return;
+  const onRowContextMenu = useCallback((e: MouseEvent, node: TreeNode) => {
+    if (!fsOperablePath(node)) {
+      return;
+    }
+    treeRef.current?.focus();
+    // If the right-clicked node is already selected, keep the multi-selection.
+    // Otherwise, select only the right-clicked node (VS Code behavior).
+    setSelection((prev) => {
+      if (prev.selectedIds.has(node.id)) {
+        return { ...prev, focusedId: node.id };
       }
-      treeRef.current?.focus();
-      // If the right-clicked node is already selected, keep the multi-selection.
-      // Otherwise, select only the right-clicked node (VS Code behavior).
-      setSelection((prev) => {
-        if (prev.selectedIds.has(node.id)) {
-          return { ...prev, focusedId: node.id };
-        }
-        return selectSingle(node.id);
-      });
-      setContextMenu({ x: e.clientX, y: e.clientY, node });
-    },
-    []
-  );
+      return selectSingle(node.id);
+    });
+    setContextMenu({ x: e.clientX, y: e.clientY, node });
+  }, []);
 
   const focusTree = useCallback(() => {
     treeRef.current?.focus();
@@ -380,7 +377,7 @@ export function SourceTreeView(props: SourceTreeViewProps): JSX.Element {
         }
         case 'Delete': {
           e.preventDefault();
-          const deleteItems: Array<{ path: string; isDirectory: boolean }> = [];
+          const deleteItems: { path: string; isDirectory: boolean }[] = [];
           for (const sid of selectedIds) {
             const sNode = findNodeById(roots, sid);
             if (!sNode) {

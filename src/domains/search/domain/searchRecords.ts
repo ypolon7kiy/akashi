@@ -14,7 +14,7 @@ import { applyTextFilter } from './filters/applyTextFilter';
  */
 export function searchSourceRecords(
   records: readonly SourceDescriptor[],
-  query: SourceSearchQuery,
+  query: SourceSearchQuery
 ): SourceSearchResult {
   const total = records.length;
 
@@ -25,7 +25,12 @@ export function searchSourceRecords(
       allIds.add(r.id);
       allPaths.add(r.path);
     }
-    return { matchedRecordIds: allIds, matchedPaths: allPaths, totalRecords: total, matchCount: total };
+    return {
+      matchedRecordIds: allIds,
+      matchedPaths: allPaths,
+      totalRecords: total,
+      matchCount: total,
+    };
   }
 
   const filtered = applyFilterChain(records, [
