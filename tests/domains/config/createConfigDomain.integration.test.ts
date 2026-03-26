@@ -15,6 +15,12 @@ vi.mock('vscode', () => ({
       hoisted.configListener = cb;
       return { dispose: vi.fn() };
     },
+    createFileSystemWatcher: () => ({
+      onDidCreate: vi.fn(),
+      onDidChange: vi.fn(),
+      onDidDelete: vi.fn(),
+      dispose: vi.fn(),
+    }),
   },
 }));
 

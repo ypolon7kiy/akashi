@@ -11,6 +11,7 @@ export interface CollectHomeSourcePathsOptions {
   readonly cursorUserRoot: string;
   readonly geminiUserRoot: string;
   readonly codexUserRoot: string;
+  readonly skipDirNames: ReadonlySet<string>;
 }
 
 export interface HomeDiscoveredPath {
@@ -20,8 +21,6 @@ export interface HomeDiscoveredPath {
 }
 
 export { WORKSPACE_GLOB_SCAN_ROWS };
-
-const SKIP_DIR_NAMES = new Set(['node_modules', '.git', 'dist']);
 
 export function selectWorkspaceGlobRows(
   activePresets: ReadonlySet<SourcePresetId>
@@ -38,7 +37,10 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function collectFilesRecursiveUnderDir(rootDir: string): Promise<string[]> {
+async function collectFilesRecursiveUnderDir(
+  rootDir: string,
+  skipDirNames: ReadonlySet<string>
+): Promise<string[]> {
   const out: string[] = [];
   const stack: string[] = [rootDir];
   while (stack.length > 0) {
@@ -52,7 +54,7 @@ async function collectFilesRecursiveUnderDir(rootDir: string): Promise<string[]>
     for (const e of entries) {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) {
-        if (SKIP_DIR_NAMES.has(e.name)) {
+        if (skipDirNames.has(e.name)) {
           continue;
         }
         stack.push(full);
@@ -75,8 +77,11 @@ async function collectShallowFilesWithSuffix(dir: string, suffix: string): Promi
   }
 }
 
-async function collectSkillMdRecursiveUnderDir(rootDir: string): Promise<string[]> {
-  const all = await collectFilesRecursiveUnderDir(rootDir);
+async function collectSkillMdRecursiveUnderDir(
+  rootDir: string,
+  skipDirNames: ReadonlySet<string>
+): Promise<string[]> {
+  const all = await collectFilesRecursiveUnderDir(rootDir, skipDirNames);
   return all.filter((p) => path.basename(p).toLowerCase() === 'skill.md');
 }
 
@@ -100,6 +105,8 @@ export async function collectHomeSourcePaths(
     }
   };
 
+  const { skipDirNames } = options;
+
   const ctx = {
     homeDir,
     activePresets,
@@ -112,8 +119,10 @@ export async function collectHomeSourcePaths(
     add,
     fileExists,
     collectShallowFilesWithSuffix,
-    collectFilesRecursiveUnderDir,
-    collectSkillMdRecursiveUnderDir,
+    collectFilesRecursiveUnderDir: (rootDir: string) =>
+      collectFilesRecursiveUnderDir(rootDir, skipDirNames),
+    collectSkillMdRecursiveUnderDir: (rootDir: string) =>
+      collectSkillMdRecursiveUnderDir(rootDir, skipDirNames),
   };
 
   await Promise.all(HOME_PATH_TASKS.map((task) => task(ctx)));

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildSourceFacetTags } from '@src/domains/sources/domain/sourceTags';
 import { SourceCategoryId } from '@src/domains/sources/domain/sourceTags';
 import { sourceRecordId } from '@src/shared/sourceRecordId';
+import type { ExcludePatternsGetter } from '@src/shared/config/excludePatterns';
 
 const findFilesMock = vi.hoisted(() =>
   vi.fn<(glob: string, exclude?: string) => Promise<{ fsPath: string }[]>>()
@@ -39,6 +40,12 @@ function mockToolUserRoots(homeDir: string) {
   };
 }
 
+const mockGetExcludePatterns: ExcludePatternsGetter = () =>
+  Promise.resolve({
+    findFilesExcludeGlob: '**/{.git,dist,node_modules}/**',
+    homeScanSkipDirNames: new Set(['.git', 'dist', 'node_modules']),
+  });
+
 describe('VscodeWorkspaceSourceScanner', () => {
   const wsRulePath = '/ws/.cursor/rules/x.mdc';
 
@@ -60,7 +67,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
   });
 
   it('returns empty and does not call findFiles when activePresets is empty', async () => {
-    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots);
+    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots, mockGetExcludePatterns);
     const out = await scanner.scanWorkspace({
       activePresets: new Set(),
       includeHomeConfig: false,
@@ -74,7 +81,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
     const expectedRows = sourceDiscoveryPlan.selectWorkspaceGlobRows(activePresets);
     expect(expectedRows.length).toBeGreaterThan(0);
 
-    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots);
+    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots, mockGetExcludePatterns);
     const out = await scanner.scanWorkspace({
       activePresets,
       includeHomeConfig: false,
@@ -101,7 +108,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
     const patternCount = sourceDiscoveryPlan.selectWorkspaceGlobRows(activePresets).length;
     findFilesMock.mockImplementation((g) => findFilesForCursorRulePath(g));
 
-    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots);
+    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots, mockGetExcludePatterns);
     const out = await scanner.scanWorkspace({
       activePresets,
       includeHomeConfig: false,
@@ -116,7 +123,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
   it('emits one row per preset when the same path matches multiple active presets', async () => {
     const sharedPath = '/ws/shared.md';
     findFilesMock.mockImplementation(() => Promise.resolve([{ fsPath: sharedPath }]));
-    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots);
+    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots, mockGetExcludePatterns);
     const out = await scanner.scanWorkspace({
       activePresets: new Set(['cursor', 'claude']),
       includeHomeConfig: false,
@@ -131,7 +138,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
     const collectSpy = vi.spyOn(sourceDiscoveryPlan, 'collectHomeSourcePaths');
     const activePresets = new Set<'cursor'>(['cursor']);
 
-    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots);
+    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots, mockGetExcludePatterns);
     await scanner.scanWorkspace({ activePresets, includeHomeConfig: false });
 
     expect(collectSpy).not.toHaveBeenCalled();
@@ -144,7 +151,7 @@ describe('VscodeWorkspaceSourceScanner', () => {
       .mockResolvedValue([{ path: mcpPath, presetId: 'cursor', category: SourceCategoryId.Mcp }]);
 
     const activePresets = new Set<'cursor'>(['cursor']);
-    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots);
+    const scanner = new VscodeWorkspaceSourceScanner(mockToolUserRoots, mockGetExcludePatterns);
     const out = await scanner.scanWorkspace({ activePresets, includeHomeConfig: true });
 
     expect(collectSpy).toHaveBeenCalled();

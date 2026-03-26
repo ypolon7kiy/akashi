@@ -1,4 +1,5 @@
 import type * as vscode from 'vscode';
+import type { ExcludePatternsGetter } from '../../../shared/config/excludePatterns';
 import type {
   ActiveSourcePresetsGetter,
   ToolUserRootsResolver,
@@ -12,10 +13,11 @@ import { VscodeWorkspaceSourceScanner } from './VscodeWorkspaceSourceScanner';
 export function createSourcesService(
   context: vscode.ExtensionContext,
   getActiveSourcePresets: ActiveSourcePresetsGetter,
-  resolveToolUserRoots: ToolUserRootsResolver
+  resolveToolUserRoots: ToolUserRootsResolver,
+  getExcludePatterns: ExcludePatternsGetter
 ): SourcesService {
   return new SourcesService(
-    new VscodeWorkspaceSourceScanner(resolveToolUserRoots),
+    new VscodeWorkspaceSourceScanner(resolveToolUserRoots, getExcludePatterns),
     new NodeSourceFileStats(),
     new VscodeSourcesSnapshotStore(context),
     new VscodeSourcesLogger(),

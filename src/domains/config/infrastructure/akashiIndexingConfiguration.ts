@@ -5,6 +5,7 @@ export function akashiSourcesIndexingSettingsAffected(e: vscode.ConfigurationCha
   return (
     e.affectsConfiguration('akashi.presets') ||
     e.affectsConfiguration('akashi.includeHomeConfig') ||
-    e.affectsConfiguration('akashi.homePathOverrides')
+    e.affectsConfiguration('akashi.homePathOverrides') ||
+    e.affectsConfiguration('akashi.exclude')
   );
 }

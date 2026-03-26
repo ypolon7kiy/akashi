@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { GeneralConfigProvider } from '../../shared/config/generalConfigProvider';
+import type { ExcludePatternsGetter } from '../../shared/config/excludePatterns';
 import type {
   ActiveSourcePresetsGetter,
   IncludeHomeConfigGetter,
@@ -10,6 +11,7 @@ import { akashiSourcesIndexingSettingsAffected } from './infrastructure/akashiIn
 import { readIncludeHomeConfig } from './infrastructure/vscodeAkashiIncludeHome';
 import { readActiveSourcePresets } from './infrastructure/vscodeAkashiPresets';
 import { createGeneralConfigProvider } from './infrastructure/vscodeGeneralConfigProvider';
+import { resolveExcludePatterns } from './infrastructure/resolveExcludePatterns';
 import { readToolUserRoots } from './infrastructure/vscodeToolUserRoots';
 import { createWorkbenchSidebarFsSettings } from './infrastructure/vscodeWorkbenchSidebarFsSettings';
 
@@ -17,6 +19,7 @@ export interface ConfigDomain {
   generalConfig: GeneralConfigProvider;
   getActiveSourcePresets: ActiveSourcePresetsGetter;
   getIncludeHomeConfig: IncludeHomeConfigGetter;
+  getExcludePatterns: ExcludePatternsGetter;
   resolveToolUserRoots: ToolUserRootsResolver;
   workbenchFsSettings: WorkbenchSidebarFsSettings;
   /** Subscribe to changes of settings that affect source indexing. Returns a disposable. */
@@ -35,21 +38,33 @@ export function createConfigDomain(context: vscode.ExtensionContext): ConfigDoma
 
   const indexingCallbacks = new Set<() => Promise<void>>();
 
+  const triggerReindex = (): void => {
+    for (const cb of indexingCallbacks) {
+      void cb();
+    }
+  };
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!akashiSourcesIndexingSettingsAffected(e)) {
         return;
       }
-      for (const cb of indexingCallbacks) {
-        void cb();
-      }
+      triggerReindex();
     })
   );
+
+  // Re-index when .gitignore files change (they drive the default exclude list).
+  const gitignoreWatcher = vscode.workspace.createFileSystemWatcher('**/.gitignore');
+  gitignoreWatcher.onDidCreate(triggerReindex);
+  gitignoreWatcher.onDidChange(triggerReindex);
+  gitignoreWatcher.onDidDelete(triggerReindex);
+  context.subscriptions.push(gitignoreWatcher);
 
   return {
     generalConfig,
     getActiveSourcePresets: readActiveSourcePresets,
     getIncludeHomeConfig: readIncludeHomeConfig,
+    getExcludePatterns: resolveExcludePatterns,
     resolveToolUserRoots: readToolUserRoots,
     workbenchFsSettings,
     onIndexingSettingsChanged(cb) {

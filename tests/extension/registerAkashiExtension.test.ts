@@ -15,6 +15,11 @@ const hoisted = vi.hoisted(() => {
       isConfirmDragAndDropEnabled: (): boolean => false,
       getDeleteFlowSettings: () => ({ enableTrash: false, confirmDelete: false }),
     },
+    getExcludePatterns: () =>
+      Promise.resolve({
+        findFilesExcludeGlob: '**/.git/**',
+        homeScanSkipDirNames: new Set(['.git']),
+      }),
     onIndexingSettingsChanged: () => ({ dispose: vi.fn() }),
   }));
   const createSourcesService = vi.fn(() => ({

@@ -1,13 +1,43 @@
 {
   "name": "akashi",
-  "displayName": "Akashi",
-  "description": "Akashi extension.",
-  "version": "0.0.1",
-  "publisher": "yp",
+  "displayName": "Akashi \u2014 System Instructions IDE",
+  "description": "Browse, validate, and visualize the system instructions and guidelines your AI coding agents rely on. Supports Claude, Cursor, Codex, and Gemini presets.",
+  "version": "0.1.0",
+  "publisher": "akashi",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ypolon7kiy/akashi"
+  },
+  "homepage": "https://github.com/ypolon7kiy/akashi#readme",
+  "bugs": {
+    "url": "https://github.com/ypolon7kiy/akashi/issues"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "system-instructions",
+    "guidelines",
+    "claude",
+    "cursor",
+    "codex",
+    "gemini",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "rules",
+    "prompts"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Machine Learning",
+    "Visualization",
     "Other"
   ],
   "activationEvents": [
@@ -105,6 +135,16 @@
           "order": 20,
           "default": true,
           "description": "Include user-home tool configs in the index."
+        },
+        "akashi.exclude": {
+          "type": "array",
+          "order": 25,
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "uniqueItems": true,
+          "description": "Additional directory or file patterns to exclude from source indexing. Combined with patterns from .gitignore. Examples: 'build', 'vendor', '.cache'."
         },
         "akashi.homePathOverrides": {
           "type": "object",
@@ -212,7 +252,8 @@
     "test:e2e": "node tests/e2e/run.mjs",
     "test:quick": "vitest run",
     "test:watch": "vitest",
-    "package": "vsce package"
+    "package": "vsce package --no-dependencies",
+    "vsce:publish": "vsce publish --no-dependencies"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
@@ -234,6 +275,7 @@
     "@types/vscode": "^1.85.0",
     "@vitest/coverage-v8": "^3.2.4",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
@@ -243,7 +285,6 @@
     "prettier": "^3.4.2",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.15.0",
-    "vitest": "^3.0.5",
-    "vsce": "^2.15.0"
+    "vitest": "^3.0.5"
   }
 }

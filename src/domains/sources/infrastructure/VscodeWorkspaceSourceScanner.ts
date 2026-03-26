@@ -8,6 +8,7 @@ import type {
 } from '../application/ports';
 import type { SourceCategory } from '../domain/model';
 import type { SourceLocality } from '../domain/artifactKind';
+import type { ExcludePatternsGetter } from '../../../shared/config/excludePatterns';
 import type { ToolUserRootsResolver } from '../../../shared/config/workspaceConfigTypes';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
 import { SOURCE_RECORD_ID_FIELD_SEP, sourceRecordId } from '../../../shared/sourceRecordId';
@@ -15,7 +16,10 @@ import { buildSourceFacetTags } from '../domain/sourceTags';
 import { collectHomeSourcePaths, selectWorkspaceGlobRows } from './sourceDiscoveryPlan';
 
 export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort {
-  public constructor(private readonly resolveToolUserRoots: ToolUserRootsResolver) {}
+  public constructor(
+    private readonly resolveToolUserRoots: ToolUserRootsResolver,
+    private readonly getExcludePatterns: ExcludePatternsGetter
+  ) {}
 
   public async scanWorkspace(options: SourceScanOptions): Promise<DiscoveredSource[]> {
     const activePresets = options.activePresets;
@@ -23,9 +27,12 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
       appendLine('[Akashi][SourcesScanner] scanWorkspace skipped (no active presets)');
       return [];
     }
+    const excludePatterns = await this.getExcludePatterns();
     const [workspaceSources, homeSources] = await Promise.all([
-      this.scanWorkspaceSources(activePresets),
-      options.includeHomeConfig ? this.scanHomeSources(activePresets) : Promise.resolve([]),
+      this.scanWorkspaceSources(activePresets, excludePatterns.findFilesExcludeGlob),
+      options.includeHomeConfig
+        ? this.scanHomeSources(activePresets, excludePatterns.homeScanSkipDirNames)
+        : Promise.resolve([]),
     ]);
     const deduped = dedupeByRecordId([...workspaceSources, ...homeSources]);
     appendLine(
@@ -35,13 +42,13 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
   }
 
   private async scanWorkspaceSources(
-    activePresets: ReadonlySet<SourcePresetId>
+    activePresets: ReadonlySet<SourcePresetId>,
+    excludeGlob: string
   ): Promise<DiscoveredSource[]> {
     const rows = selectWorkspaceGlobRows(activePresets);
     if (rows.length === 0) {
       return [];
     }
-    const exclude = '**/{node_modules,dist,.git}/**';
     // One row per (path, preset). First matching glob row wins category if several globs hit the same file.
     const byPathPreset = new Map<
       string,
@@ -50,7 +57,7 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
 
     await Promise.all(
       rows.map(async (row) => {
-        const uris = await vscode.workspace.findFiles(row.glob, exclude);
+        const uris = await vscode.workspace.findFiles(row.glob, excludeGlob);
         for (const uri of uris) {
           const fsPath = uri.fsPath;
           const key = `${row.presetId}${SOURCE_RECORD_ID_FIELD_SEP}${fsPath}`;
@@ -69,7 +76,8 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
   }
 
   private async scanHomeSources(
-    activePresets: ReadonlySet<SourcePresetId>
+    activePresets: ReadonlySet<SourcePresetId>,
+    skipDirNames: ReadonlySet<string>
   ): Promise<DiscoveredSource[]> {
     const home = os.homedir();
     const roots = this.resolveToolUserRoots(home);
@@ -78,6 +86,7 @@ export class VscodeWorkspaceSourceScanner implements WorkspaceSourceScannerPort 
       cursorUserRoot: roots.cursorUserRoot,
       geminiUserRoot: roots.geminiUserRoot,
       codexUserRoot: roots.codexUserRoot,
+      skipDirNames,
     });
     return discovered.map((d) => this.toDiscoveredSource(d.path, 'user', d.presetId, d.category));
   }
