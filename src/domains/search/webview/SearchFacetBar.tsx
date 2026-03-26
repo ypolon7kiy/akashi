@@ -17,6 +17,7 @@ export interface SearchFacetBarProps {
   readonly labelForCategory?: (id: string) => string;
   readonly labelForPreset?: (id: string) => string;
   readonly labelForLocality?: (id: string) => string;
+  readonly categoryItemClassName?: (id: string) => string;
 }
 
 function defaultLabel(id: string): string {
@@ -29,6 +30,7 @@ function FacetRow(props: {
   onToggle: (id: string) => void;
   label: (id: string) => string;
   ariaLabel: string;
+  itemClassName?: (id: string) => string;
 }): JSX.Element | null {
   if (props.ids.length === 0) {
     return null;
@@ -37,14 +39,15 @@ function FacetRow(props: {
     <div className="akashi-search-bar__facets" role="group" aria-label={props.ariaLabel}>
       {props.ids.map((id) => {
         const on = props.enabledSet === null || props.enabledSet.has(id);
+        const extra = props.itemClassName?.(id) ?? '';
         return (
           <button
             key={id}
             type="button"
             className={
-              on
+              (on
                 ? 'akashi-search-bar__toggle akashi-search-bar__toggle--on'
-                : 'akashi-search-bar__toggle'
+                : 'akashi-search-bar__toggle') + (extra ? ` ${extra}` : '')
             }
             aria-pressed={on}
             title={id}
@@ -74,6 +77,7 @@ export function SearchFacetBar(props: SearchFacetBarProps): JSX.Element {
     labelForCategory = defaultLabel,
     labelForPreset = defaultLabel,
     labelForLocality = defaultLabel,
+    categoryItemClassName,
   } = props;
 
   return (
@@ -141,6 +145,7 @@ export function SearchFacetBar(props: SearchFacetBarProps): JSX.Element {
         onToggle={onToggleCategory}
         label={labelForCategory}
         ariaLabel="Filter by category"
+        itemClassName={categoryItemClassName}
       />
     </div>
   );

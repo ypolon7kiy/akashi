@@ -127,14 +127,25 @@
   outline-offset: 1px;
 }
 
+/* ── Category accent colors (settings → theme defaults) ── */
+
+.akashi-search-bar__toggle--cat-context { --_cat: var(--akashi-source-cat-context, var(--akashi-default-cat-context-rule)); }
+.akashi-search-bar__toggle--cat-rule    { --_cat: var(--akashi-source-cat-rule, var(--akashi-default-cat-context-rule)); }
+.akashi-search-bar__toggle--cat-skill   { --_cat: var(--akashi-source-cat-skill, var(--akashi-default-cat-skill)); }
+.akashi-search-bar__toggle--cat-hook    { --_cat: var(--akashi-source-cat-hook, var(--akashi-default-cat-hook)); }
+.akashi-search-bar__toggle--cat-config  { --_cat: var(--akashi-source-cat-config, var(--akashi-default-cat-config)); }
+.akashi-search-bar__toggle--cat-mcp     { --_cat: var(--akashi-source-cat-mcp, var(--akashi-default-cat-mcp)); }
+.akashi-search-bar__toggle--cat-command { --_cat: var(--akashi-source-cat-command, var(--akashi-default-cat-command)); }
+.akashi-search-bar__toggle--cat-unknown { --_cat: var(--akashi-source-cat-unknown, var(--akashi-default-cat-unknown)); }
+
 .akashi-search-bar__toggle--on {
-  background: var(--vscode-button-background);
+  background: var(--_cat, var(--vscode-button-background));
   color: var(--vscode-button-foreground);
-  border-color: var(--vscode-button-border, transparent);
+  border-color: var(--_cat, var(--vscode-button-border, transparent));
 }
 
 .akashi-search-bar__toggle--on:hover {
-  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+  background: color-mix(in srgb, var(--_cat, var(--vscode-button-hoverBackground, var(--vscode-button-background))) 80%, white);
   color: var(--vscode-button-foreground);
 }
 

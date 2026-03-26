@@ -8,6 +8,7 @@ import { useSourcesSidebarState } from './useSourcesSidebarState';
 import { useSourceSearch } from '../../../domains/search/webview/useSourceSearch';
 import { SearchFacetBar } from '../../../domains/search/webview/SearchFacetBar';
 import { labelGraphSourceCategory } from '../../../domains/graph/domain/graphSourceCategoryLabels';
+import { sidebarCategoryMetaModifier } from './tree/categorySidebarLabel';
 import {
   serializeSearchQuery,
   type SerializedSourceSearchQuery,
@@ -83,6 +84,9 @@ export function SourcesSidebarFeature(): JSX.Element {
   );
 }
 
+const categoryItemClassName = (id: string): string =>
+  `akashi-search-bar__toggle--cat-${sidebarCategoryMetaModifier(id)}`;
+
 function SourcesSidebarFeatureInner(props: {
   isIndexing: boolean;
   records: readonly SourceDescriptor[];
@@ -147,6 +151,7 @@ function SourcesSidebarFeatureInner(props: {
           presetIds={search.availablePresets}
           localityIds={search.availableLocalities}
           labelForCategory={labelGraphSourceCategory}
+          categoryItemClassName={categoryItemClassName}
         />
       ) : null}
       <section className="akashi-tree-panel" aria-label="Indexed sources">
