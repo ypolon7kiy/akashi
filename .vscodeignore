@@ -2,10 +2,24 @@ node_modules/**
 dist/webview/**/*.map
 src/**
 webview-src/**
+tests/**
+docs/**
+.claude/**
+.cursor/**
+.github/**
+.vscode/**
+.vscode-test/**
 esbuild.config.mjs
 tsconfig.json
+vitest.config.ts
+eslint.config.mjs
 .gitignore
-.vscode/**
+.prettierrc
+.prettierignore
+AGENTS.md
+package-lock.json
+media/icon-source.svg
 **/*.test.ts
 **/*.spec.ts
+*.vsix
 
