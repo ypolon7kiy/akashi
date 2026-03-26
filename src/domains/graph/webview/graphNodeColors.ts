@@ -3,6 +3,13 @@
 import { GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS } from '../domain/sourceCategoryPalette';
 import type { GraphNode3D } from '../domain/graphTypes';
 
+/** Node types whose fill colour is derived from the source-category palette. */
+const CATEGORY_COLORABLE_TYPES: ReadonlySet<string> = new Set([
+  'category',
+  'note',
+  'folder',
+]);
+
 export const NODE_COLORS = {
   NOTE: '#3B82F6',
   CONCEPT: '#F59E0B',
@@ -36,17 +43,20 @@ export function getNodeColor(
   node?: GraphNode3D,
   categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>
 ): string {
-  if (nodeType === 'category' && node?.graphCategoryId) {
+  if (CATEGORY_COLORABLE_TYPES.has(nodeType) && node?.graphCategoryId) {
     const id = node.graphCategoryId;
     const fromCfg = categoryPalette?.[id];
     if (fromCfg) {
       return fromCfg.fill;
     }
-    return (
+    const fallback =
       GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS[
         id as keyof typeof GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS
-      ]?.fill ?? NODE_COLORS.DEFAULT
-    );
+      ]?.fill;
+    if (fallback) {
+      return fallback;
+    }
+    // Unknown graphCategoryId — fall through to fixed type switch
   }
   if (nodeType === 'locality') {
     return node?.graphLocality === 'global'
@@ -78,17 +88,20 @@ export function getHoverColor(
   node?: GraphNode3D,
   categoryPalette?: Readonly<Record<string, { fill: string; hover: string }>>
 ): string {
-  if (nodeType === 'category' && node?.graphCategoryId) {
+  if (CATEGORY_COLORABLE_TYPES.has(nodeType) && node?.graphCategoryId) {
     const id = node.graphCategoryId;
     const fromCfg = categoryPalette?.[id];
     if (fromCfg) {
       return fromCfg.hover;
     }
-    return (
+    const fallback =
       GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS[
         id as keyof typeof GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS
-      ]?.hover ?? NODE_COLORS.DEFAULT_HOVER
-    );
+      ]?.hover;
+    if (fallback) {
+      return fallback;
+    }
+    // Unknown graphCategoryId — fall through to fixed type switch
   }
   if (nodeType === 'locality') {
     return node?.graphLocality === 'global'
