@@ -18,9 +18,7 @@ function IndentGuides({ depth }: { depth: number }): JSX.Element {
     <span key="base" className="akashi-tree__indent-base" aria-hidden />,
   ];
   for (let i = 0; i < depth; i++) {
-    guides.push(
-      <span key={i} className="akashi-tree__indent-guide" aria-hidden />,
-    );
+    guides.push(<span key={i} className="akashi-tree__indent-guide" aria-hidden />);
   }
   return <>{guides}</>;
 }
@@ -169,9 +167,7 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
         <ul className="akashi-tree__list" role="group">
           {ix.creatingFileParentId === node.id && node.dirPath ? (
             <li className="akashi-tree__item" role="none">
-              <div
-                className="akashi-tree__row akashi-tree__row--new-file"
-              >
+              <div className="akashi-tree__row akashi-tree__row--new-file">
                 <IndentGuides depth={depth + 1} />
                 <span className="akashi-tree__chevron-spacer" aria-hidden />
                 <input

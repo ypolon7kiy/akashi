@@ -27,23 +27,17 @@ function makeNode(overrides: Partial<GraphNode3D> = {}): GraphNode3D {
 describe('getNodeColor', () => {
   it('returns category fill for a note node with graphCategoryId', () => {
     const node = makeNode({ type: 'note', graphCategoryId: 'skill' });
-    expect(getNodeColor('note', node)).toBe(
-      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.skill.fill
-    );
+    expect(getNodeColor('note', node)).toBe(GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.skill.fill);
   });
 
   it('returns category fill for a folder node with graphCategoryId', () => {
     const node = makeNode({ type: 'folder', graphCategoryId: 'hook' });
-    expect(getNodeColor('folder', node)).toBe(
-      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.hook.fill
-    );
+    expect(getNodeColor('folder', node)).toBe(GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.hook.fill);
   });
 
   it('returns category fill for a category hub node', () => {
     const node = makeNode({ type: 'category', graphCategoryId: 'mcp' });
-    expect(getNodeColor('category', node)).toBe(
-      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.mcp.fill
-    );
+    expect(getNodeColor('category', node)).toBe(GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.mcp.fill);
   });
 
   it('prefers user-supplied categoryPalette over fallback', () => {
@@ -83,16 +77,12 @@ describe('getNodeColor', () => {
 describe('getHoverColor', () => {
   it('returns category hover for a note node with graphCategoryId', () => {
     const node = makeNode({ type: 'note', graphCategoryId: 'skill' });
-    expect(getHoverColor('note', node)).toBe(
-      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.skill.hover
-    );
+    expect(getHoverColor('note', node)).toBe(GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.skill.hover);
   });
 
   it('returns category hover for a folder node with graphCategoryId', () => {
     const node = makeNode({ type: 'folder', graphCategoryId: 'hook' });
-    expect(getHoverColor('folder', node)).toBe(
-      GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.hook.hover
-    );
+    expect(getHoverColor('folder', node)).toBe(GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS.hook.hover);
   });
 
   it('prefers user-supplied categoryPalette hover', () => {

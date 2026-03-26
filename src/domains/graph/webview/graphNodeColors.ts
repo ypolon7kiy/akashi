@@ -4,11 +4,7 @@ import { GRAPH_SOURCE_CATEGORY_HOVER_FALLBACKS } from '../domain/sourceCategoryP
 import type { GraphNode3D } from '../domain/graphTypes';
 
 /** Node types whose fill colour is derived from the source-category palette. */
-const CATEGORY_COLORABLE_TYPES: ReadonlySet<string> = new Set([
-  'category',
-  'note',
-  'folder',
-]);
+const CATEGORY_COLORABLE_TYPES: ReadonlySet<string> = new Set(['category', 'note', 'folder']);
 
 export const NODE_COLORS = {
   NOTE: '#3B82F6',

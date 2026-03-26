@@ -30,7 +30,10 @@ export function buildResolvedExcludePatterns(patterns: readonly string[]): Resol
   return { findFilesExcludeGlob, homeScanSkipDirNames: dirNames };
 }
 
-function buildFindFilesGlob(dirNames: ReadonlySet<string>, globPatterns: readonly string[]): string {
+function buildFindFilesGlob(
+  dirNames: ReadonlySet<string>,
+  globPatterns: readonly string[]
+): string {
   const parts: string[] = [];
 
   // Directory-name patterns: **/{a,b,c}/**

@@ -6,5 +6,7 @@ export function readUserExcludePatterns(): readonly string[] {
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+  return raw.filter(
+    (entry): entry is string => typeof entry === 'string' && entry.trim().length > 0
+  );
 }
