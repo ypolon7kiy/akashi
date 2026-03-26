@@ -1,0 +1,81 @@
+@import '../../webview-shared/vscode-tokens.css';
+@import '../../webview-shared/webview-controls.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: var(--akashi-space-4);
+  color: var(--akashi-text);
+  background: var(--akashi-surface-0);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  font-weight: var(--vscode-font-weight, normal);
+  line-height: 1.4;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.akashi-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-4);
+}
+
+.akashi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--akashi-space-2);
+}
+
+.akashi-overline {
+  margin: 0;
+  color: var(--akashi-text-muted);
+  font-size: var(--vscode-font-size);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.akashi-title {
+  margin: var(--akashi-space-1) 0 0;
+  font-size: var(--vscode-font-size);
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.akashi-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-2);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+}
+
+.akashi-checkbox input {
+  margin: 0;
+  accent-color: var(--vscode-button-background);
+}
+
+.akashi-help {
+  margin: 0;
+  color: var(--akashi-text-muted);
+  font-size: var(--vscode-font-size);
+}
+

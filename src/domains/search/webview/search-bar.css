@@ -1,0 +1,160 @@
+.akashi-search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-1);
+  padding: var(--akashi-space-2);
+}
+
+/* ── Input row ────────────────────────────────── */
+
+.akashi-search-bar__input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-1);
+  background: var(--akashi-surface-2);
+  border: 1px solid var(--akashi-border);
+  border-radius: var(--akashi-radius-md);
+  padding: 0 var(--akashi-space-2);
+  height: 26px;
+}
+
+.akashi-search-bar__input-row:focus-within {
+  outline: 1px solid var(--akashi-focus);
+  outline-offset: -1px;
+}
+
+.akashi-search-bar__icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--akashi-text-muted);
+}
+
+.akashi-search-bar__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--akashi-text);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  padding: 0;
+  height: 100%;
+}
+
+.akashi-search-bar__input::placeholder {
+  color: var(--akashi-text-muted);
+}
+
+.akashi-search-bar__clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--akashi-text-muted);
+  font-size: 14px;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: var(--akashi-radius-sm);
+}
+
+.akashi-search-bar__clear:hover {
+  color: var(--akashi-text);
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.akashi-search-bar__clear:focus-visible {
+  outline: 1px solid var(--akashi-focus);
+  outline-offset: 1px;
+}
+
+.akashi-search-bar__count {
+  flex-shrink: 0;
+  font-family: var(--vscode-font-family);
+  font-size: calc(var(--vscode-font-size) * 0.85);
+  color: var(--akashi-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Facet toggle row ─────────────────────────── */
+
+.akashi-search-bar__facets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--akashi-space-2);
+}
+
+/* ── Combined facet row (presets | localities) ── */
+
+.akashi-search-bar__facet-combo {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-2);
+}
+
+.akashi-search-bar__facet-sep {
+  width: 1px;
+  align-self: stretch;
+  min-height: calc(var(--vscode-font-size) + 6px);
+  background: var(--akashi-border);
+  flex-shrink: 0;
+  margin: 0 var(--akashi-space-1);
+}
+
+.akashi-search-bar__toggle {
+  font-family: var(--vscode-font-family);
+  font-size: calc(var(--vscode-font-size) * 0.8);
+  padding: 2px 8px;
+  border: 1px solid var(--akashi-border);
+  border-radius: var(--akashi-radius-sm);
+  background: transparent;
+  color: var(--akashi-text-muted);
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+  line-height: 1.4;
+}
+
+.akashi-search-bar__toggle:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
+}
+
+.akashi-search-bar__toggle:focus-visible {
+  outline: 1px solid var(--akashi-focus);
+  outline-offset: 1px;
+}
+
+/* ── Category accent colors (settings → theme defaults) ── */
+
+.akashi-search-bar__toggle--cat-context { --_cat: var(--akashi-source-cat-context, var(--akashi-default-cat-context-rule)); }
+.akashi-search-bar__toggle--cat-rule    { --_cat: var(--akashi-source-cat-rule, var(--akashi-default-cat-context-rule)); }
+.akashi-search-bar__toggle--cat-skill   { --_cat: var(--akashi-source-cat-skill, var(--akashi-default-cat-skill)); }
+.akashi-search-bar__toggle--cat-hook    { --_cat: var(--akashi-source-cat-hook, var(--akashi-default-cat-hook)); }
+.akashi-search-bar__toggle--cat-config  { --_cat: var(--akashi-source-cat-config, var(--akashi-default-cat-config)); }
+.akashi-search-bar__toggle--cat-mcp     { --_cat: var(--akashi-source-cat-mcp, var(--akashi-default-cat-mcp)); }
+.akashi-search-bar__toggle--cat-command { --_cat: var(--akashi-source-cat-command, var(--akashi-default-cat-command)); }
+.akashi-search-bar__toggle--cat-unknown { --_cat: var(--akashi-source-cat-unknown, var(--akashi-default-cat-unknown)); }
+
+.akashi-search-bar__toggle--on {
+  background: var(--_cat, var(--vscode-button-background));
+  color: var(--vscode-button-foreground);
+  border-color: var(--_cat, var(--vscode-button-border, transparent));
+}
+
+.akashi-search-bar__toggle--on:hover {
+  background: color-mix(in srgb, var(--_cat, var(--vscode-button-hoverBackground, var(--vscode-button-background))) 80%, white);
+  color: var(--vscode-button-foreground);
+}
+
+/* ── High contrast ────────────────────────────── */
+
+body.vscode-high-contrast .akashi-search-bar__toggle {
+  border-width: 2px;
+}
+
+body.vscode-high-contrast .akashi-search-bar__facet-sep {
+  width: 2px;
+}

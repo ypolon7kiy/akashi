@@ -1,0 +1,35 @@
+---
+description: UI/UX standards for Akashi webviews (sidebar + panels)
+globs:
+  - "**/webview/**/*.{ts,tsx,css}"
+  - "src/webview-shared/*.css"
+alwaysApply: false
+---
+
+# Akashi Webview UI/UX Rule
+
+Match the **VS Code workbench**: all webviews (activity-bar sidebar, editor panels, etc.) should use **`var(--vscode-*)`** theme variables so installed themes control colors and type—no separate “Akashi skin.” Shared tokens live in [`src/webview-shared/vscode-tokens.css`](src/webview-shared/vscode-tokens.css); reuse [`webview-controls.css`](src/webview-shared/webview-controls.css) for buttons/progress.
+
+- **Typography**: base UI on `var(--vscode-font-size)` and `var(--vscode-font-family)`. Use `var(--vscode-descriptionForeground)` (and font-weight) for secondary text; avoid ad-hoc `11px` / `12px` scales unless expressed as `calc()` from `--vscode-font-size` with a short comment rationale.
+- **Emphasis**: prefer weight (`font-weight: 600`) over oversized display type. Prominent numbers may use `calc(var(--vscode-font-size) * 1.25)` or `var(--vscode-editor-font-size)`—pick one pattern per panel and stay consistent.
+- **Surfaces**: flat backgrounds from `--vscode-sideBar-*` / `--vscode-editorWidget-*`; no gradients or heavy shadows. Border radius ~**2–4px** where corners are needed.
+- **Lists / trees**: use **`--vscode-list-hoverBackground`**, **`--vscode-list-activeSelectionBackground`** / **`Foreground`**, and **`--vscode-list-focusBackground`** (with fallbacks) for interactive rows; align row height with `var(--vscode-font-size)` plus padding.
+- **Section blocks** (e.g. “Indexed sources”): use **`--vscode-sideBarSectionHeader-background`**, **`foreground`**, and **`border`** with fallbacks—Explorer-style headers, not isolated “cards.”
+- **Buttons**: map to **`--vscode-button-*`** and **`--vscode-button-secondary*`** where available; keep states flat like workbench buttons.
+- **Icons**: use **Codicons** (`codicon codicon-…`) for disclosure chevrons and other workbench-aligned glyphs when the font is loaded in the webview HTML.
+- Keep **`--akashi-*`** only as thin aliases to `--vscode-*` when it improves readability; avoid hardcoded hex when a VS Code variable exists.
+- Keep spacing on an 8px rhythm (`4/8/12/16/20` where needed for density).
+- Use consistent component states: idle, loading, success, error. Status labels must be explicit and short.
+- Button hierarchy: one primary action per section, secondary actions visually quieter.
+- During async work, disable conflicting controls and show clear progress text.
+- Preserve accessibility: visible `:focus-visible`, semantic labels, high-contrast support, and reduced-motion fallback.
+- Prefer CSS in dedicated files; avoid inline styles/scripts in webview HTML except unavoidable dynamic values.
+- Keep sidebars uncluttered; prefer commands for actions that don’t belong in the panel.
+- Verify dark, light, and high-contrast themes before finalizing UI changes.
+
+## Do / Don’t
+
+- Do: use `var(--vscode-...)` tokens and semantic class names.
+- Do: group related controls with section headers and dividers that match the sidebar.
+- Don’t: introduce a separate accent palette beyond what the theme already provides.
+- Don’t: hide critical state in color only; pair color with text.

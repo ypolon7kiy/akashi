@@ -1,0 +1,497 @@
+@import '../../../webview-shared/vscode-tokens.css';
+@import '../../../webview-shared/webview-controls.css';
+
+html,
+body {
+  margin: 0;
+  /* VS Code webview: % height often collapses; vh matches the panel viewport. */
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+#root {
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.akashi-graph-app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.akashi-graph-scene {
+  flex: 1 1 0;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Stack canvas + floating controls (ioodine-style overlay). */
+.akashi-graph-scene-stack {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.akashi-graph-scene-stack .akashi-graph-canvas-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Shown until host sends ViewSettings (avoids flash of default 3D state in VS Code). */
+.akashi-graph-scene-stack__loading {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.akashi-graph-scene-stack__loading-text {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+}
+
+.akashi-graph-scene-stack__loading-hint {
+  color: var(--vscode-descriptionForeground);
+  font-size: calc(var(--vscode-font-size) * 0.92);
+}
+
+/* R3F mounts a wrapper + canvas; ensure they participate in flex height. */
+.akashi-graph-canvas-wrap > div {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+}
+
+.akashi-graph-canvas-wrap canvas {
+  display: block;
+}
+
+.akashi-graph-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.akashi-graph-toolbar--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.akashi-graph-toolbar__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+
+/*
+ * 3-column grid per row: All | None — vertical rule — chips.
+ * Same column widths for preset row and category row so actions and separators align.
+ */
+.akashi-graph-toolbar__visibility-grid {
+  display: grid;
+  grid-template-columns: max-content 1px minmax(0, 1fr);
+  column-gap: 0;
+  row-gap: 10px;
+  align-items: stretch;
+  padding: 8px 10px;
+  border-radius: 2px;
+  background: var(
+    --vscode-sideBarSectionHeader-background,
+    var(--vscode-sideBar-background, var(--vscode-editor-background))
+  );
+  color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-widget-border, transparent));
+  font-size: calc(var(--vscode-font-size) * 0.92);
+  min-width: 0;
+}
+
+.akashi-graph-toolbar__visibility-grid__actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  align-self: center;
+  gap: 6px;
+  padding-right: 12px;
+}
+
+.akashi-graph-toolbar__visibility-grid__sep {
+  width: 1px;
+  justify-self: center;
+  background: var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  align-self: stretch;
+  min-height: calc(var(--vscode-font-size) + 10px);
+}
+
+.akashi-graph-toolbar__visibility-grid__toggles {
+  min-width: 0;
+  padding-left: 12px;
+  align-self: center;
+}
+
+.akashi-graph-toolbar__mini-action {
+  font: inherit;
+  font-size: calc(var(--vscode-font-size) * 0.88);
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, var(--vscode-widget-border, transparent));
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.akashi-graph-toolbar__mini-action:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
+}
+
+.akashi-graph-toolbar__mini-action:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-graph-toolbar__mini-action:disabled {
+  cursor: default;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.65;
+}
+
+/* Floating panel over WebGL (pointer-events: none on shell; panel restores interaction). */
+.akashi-graph-view-controls-float {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  max-width: min(384px, calc(100% - 16px));
+  pointer-events: none;
+  font-size: calc(var(--vscode-font-size) * 0.92);
+}
+
+.akashi-graph-view-controls-panel,
+.akashi-graph-view-controls__peek {
+  pointer-events: auto;
+}
+
+/* Flat editor-widget surface (workbench-aligned; no glass blur / heavy shadow). */
+.akashi-graph-view-controls-panel {
+  border-radius: 4px;
+  border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+  max-height: min(72vh, 520px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.akashi-graph-view-controls__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.28));
+  background: color-mix(
+    in srgb,
+    var(--vscode-sideBarSectionHeader-background, var(--vscode-editorWidget-background)) 80%,
+    transparent
+  );
+}
+
+.akashi-graph-view-controls__title {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  font-size: calc(var(--vscode-font-size) * 0.95);
+}
+
+.akashi-graph-view-controls__hide {
+  font: inherit;
+  font-size: calc(var(--vscode-font-size) * 0.88);
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, var(--vscode-widget-border, transparent));
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.akashi-graph-view-controls__hide:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
+}
+
+.akashi-graph-view-controls__hide:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+/* Collapsed trigger uses shared .akashi-button styles; keep flat (no shadow). */
+.akashi-graph-view-controls__peek {
+  box-shadow: none;
+}
+
+.akashi-graph-view-controls__peek--icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.akashi-graph-view-controls__body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.akashi-graph-view-controls__footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.28));
+  background: color-mix(
+    in srgb,
+    var(--vscode-sideBarSectionHeader-background, var(--vscode-editorWidget-background)) 55%,
+    transparent
+  );
+}
+
+.akashi-graph-view-controls__group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.akashi-graph-view-controls__group-title {
+  font-weight: 600;
+  font-size: calc(var(--vscode-font-size) * 0.9);
+  color: var(--vscode-foreground);
+  margin: 0;
+  padding: 0;
+}
+
+.akashi-graph-view-controls__group-hint {
+  margin: -4px 0 0;
+  font-size: calc(var(--vscode-font-size) * 0.85);
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.35;
+}
+
+.akashi-graph-view-controls__slider-hint {
+  margin: 0;
+  font-size: calc(var(--vscode-font-size) * 0.82);
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.3;
+}
+
+.akashi-graph-view-controls__peek-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.akashi-graph-view-controls__peek-inner .codicon {
+  font-size: 14px;
+}
+
+.akashi-graph-view-controls__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.akashi-graph-view-controls__slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.akashi-graph-view-controls__label {
+  color: var(--vscode-foreground);
+}
+
+.akashi-graph-view-controls__label--block {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.akashi-graph-view-controls__value {
+  color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.akashi-graph-view-controls__range {
+  width: 100%;
+  max-width: 100%;
+  accent-color: var(--vscode-button-background, var(--vscode-focusBorder));
+}
+
+.akashi-graph-view-controls__angle-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.akashi-graph-view-controls__angle-btn {
+  font: inherit;
+  font-size: calc(var(--vscode-font-size) * 0.85);
+  padding: 4px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.45)));
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.12));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.akashi-graph-view-controls__angle-btn:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.akashi-graph-view-controls__angle-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-graph-view-controls__angle-btn--active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-border, transparent);
+}
+
+
+/*
+ * Preset/category chips: horizontal scroll on narrow panels (avoids 55vw cap that hid toggles).
+ */
+.akashi-graph-visibility-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  max-height: 120px;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.akashi-graph-visibility-toggles--preset .akashi-graph-visibility-toggle {
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family));
+  font-size: calc(var(--vscode-font-size) * 0.85);
+}
+
+.akashi-graph-visibility-toggle {
+  font-family: var(--vscode-font-family);
+  font-size: calc(var(--vscode-font-size) * 0.85);
+  padding: 4px 10px;
+  border-radius: 2px;
+  border: 1px solid var(--vscode-button-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.45)));
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.12));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.akashi-graph-visibility-toggle:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
+}
+
+.akashi-graph-visibility-toggle:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-graph-visibility-toggle--on {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-border, transparent);
+}
+
+.akashi-graph-visibility-toggle--on:hover {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+  color: var(--vscode-button-foreground);
+}
+
+.akashi-graph-canvas-wrap {
+  position: relative;
+}
+
+.akashi-graph-empty-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  text-align: center;
+  font-size: calc(var(--vscode-font-size) * 0.95);
+  color: var(--vscode-descriptionForeground);
+  background: var(--vscode-editor-background);
+  pointer-events: none;
+  line-height: 1.45;
+}
+
+.akashi-graph-context-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  margin: 0;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.akashi-graph-context-item:hover {
+  background: var(--vscode-list-hoverBackground);
+  color: var(--vscode-list-hoverForeground, inherit);
+}
+
+body.vscode-high-contrast .akashi-graph-toolbar__mini-action,
+body.vscode-high-contrast .akashi-graph-visibility-toggle {
+  border-width: 2px;
+}

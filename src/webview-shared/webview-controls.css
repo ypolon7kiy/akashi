@@ -1,0 +1,109 @@
+/**
+ * Shared buttons and progress styling — maps to VS Code button / progress theme keys.
+ * Import after vscode-tokens.css.
+ */
+
+.akashi-button {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--vscode-font-size) + 12px);
+  border-radius: var(--akashi-radius-md);
+  border: 1px solid var(--akashi-border);
+  padding: var(--akashi-space-2) var(--akashi-space-4);
+  font: inherit;
+  font-weight: 400;
+  cursor: pointer;
+  transition:
+    background-color 100ms ease,
+    border-color 100ms ease;
+}
+
+.akashi-button:focus-visible {
+  outline: 1px solid var(--akashi-focus);
+  outline-offset: 1px;
+}
+
+.akashi-button--primary {
+  background: var(--akashi-accent);
+  color: var(--akashi-accent-text);
+  border-color: var(--akashi-accent);
+}
+
+.akashi-button--primary:hover:enabled {
+  background: var(--akashi-accent-hover);
+  border-color: var(--akashi-accent-hover);
+}
+
+.akashi-button--secondary {
+  background: var(--vscode-button-secondaryBackground, var(--akashi-surface-2));
+  color: var(--vscode-button-secondaryForeground, var(--akashi-text));
+  border-color: var(--vscode-button-border, var(--akashi-border));
+}
+
+.akashi-button--secondary:hover:enabled {
+  background: var(--vscode-button-secondaryHoverBackground, var(--akashi-surface-2));
+}
+
+.akashi-button:disabled {
+  cursor: default;
+  /* Avoid opacity: buttons looked like they “vanished” on some themes when indexing. */
+  opacity: 1;
+}
+
+.akashi-button--primary:disabled {
+  background: color-mix(in srgb, var(--akashi-accent) 72%, var(--akashi-surface-2));
+  color: var(--akashi-accent-text);
+  border-color: color-mix(in srgb, var(--akashi-accent) 72%, var(--akashi-surface-2));
+}
+
+.akashi-button--secondary:disabled {
+  color: var(--akashi-text-muted);
+  border-color: var(--akashi-border);
+}
+
+.akashi-progress {
+  width: 100%;
+  height: 2px;
+  border-radius: var(--akashi-radius-md);
+  background: color-mix(
+    in srgb,
+    var(--vscode-progressBar-background, var(--akashi-accent)) 22%,
+    var(--akashi-surface-2)
+  );
+  overflow: hidden;
+  position: relative;
+}
+
+.akashi-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  background: var(--vscode-progressBar-background, var(--akashi-accent));
+  animation: akashi-progress-slide 1s ease-in-out infinite;
+}
+
+@keyframes akashi-progress-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+body.vscode-high-contrast .akashi-button,
+body.vscode-high-contrast .akashi-progress {
+  border-width: 2px;
+}
+
+body.vscode-reduce-motion .akashi-button {
+  transition: none;
+}
+
+body.vscode-reduce-motion .akashi-progress::before {
+  animation: none;
+  transform: translateX(0);
+}

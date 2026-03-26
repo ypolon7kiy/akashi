@@ -1,0 +1,310 @@
+{
+  "name": "akashi",
+  "displayName": "Akashi — AI Prompt & Rules Visualizer",
+  "description": "Manage AI agent rules, prompts, and instructions across Claude, Cursor, Codex, and Gemini — all in one view. Visualize how guidelines connect, find conflicts, and keep your team's AI behavior consistent.",
+  "version": "0.1.5",
+  "publisher": "akashi",
+  "preview": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ypolon7kiy/akashi"
+  },
+  "homepage": "https://github.com/ypolon7kiy/akashi#readme",
+  "bugs": {
+    "url": "https://github.com/ypolon7kiy/akashi/issues"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "agents",
+    "ai-rules",
+    "system-prompt",
+    "prompt-engineering",
+    "claude",
+    "cursor",
+    "codex",
+    "gemini",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    "rules",
+    "prompts",
+    "mcp",
+    "agentic",
+    "vibe-coding"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "AI",
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:akashi.graph.showPanel",
+    "onCommand:akashi.sources.refresh",
+    "onCommand:akashi.sources.newArtifact",
+    "onCommand:akashi.composition.showComposedView",
+    "onView:akashi.sidebar",
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "akashi",
+          "title": "Akashi",
+          "icon": "media/akashi-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "akashi": [
+        {
+          "type": "webview",
+          "id": "akashi.sidebar",
+          "name": "Akashi"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "akashi.sources.refresh",
+        "title": "Refresh source index",
+        "category": "Akashi",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "akashi.graph.showPanel",
+        "title": "Show graph",
+        "category": "Akashi",
+        "icon": "$(graph-line)"
+      },
+      {
+        "command": "akashi.sources.newArtifact",
+        "title": "New source artifact…",
+        "category": "Akashi",
+        "icon": "$(add)"
+      },
+      {
+        "command": "akashi.composition.showComposedView",
+        "title": "Show composed view…",
+        "category": "Akashi",
+        "icon": "$(book)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "akashi.graph.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-2"
+        },
+        {
+          "command": "akashi.sources.refresh",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-1"
+        },
+        {
+          "command": "akashi.sources.newArtifact",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@0"
+        },
+        {
+          "command": "akashi.composition.showComposedView",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Akashi",
+      "properties": {
+        "akashi.presets": {
+          "type": "array",
+          "order": 10,
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "cursor",
+              "antigravity",
+              "codex"
+            ]
+          },
+          "default": [
+            "claude",
+            "cursor",
+            "antigravity",
+            "codex"
+          ],
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Which tool families appear in the Source Index. At least one preset must be selected."
+        },
+        "akashi.includeHomeConfig": {
+          "type": "boolean",
+          "order": 20,
+          "default": true,
+          "description": "Include user-home tool configs in the index."
+        },
+        "akashi.exclude": {
+          "type": "array",
+          "order": 25,
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "uniqueItems": true,
+          "description": "Additional directory or file patterns to exclude from source indexing. Combined with patterns from .gitignore. Examples: 'build', 'vendor', '.cache'."
+        },
+        "akashi.homePathOverrides": {
+          "type": "object",
+          "order": 30,
+          "title": "Home path overrides",
+          "description": "Optional user config directory per tool. Use absolute paths or ~/…. Empty values use environment variables (where supported) or defaults under the user home directory (e.g. ~/.claude, ~/.cursor).",
+          "additionalProperties": false,
+          "properties": {
+            "claude": {
+              "type": "string",
+              "default": ""
+            },
+            "codex": {
+              "type": "string",
+              "default": ""
+            },
+            "cursor": {
+              "type": "string",
+              "default": ""
+            },
+            "gemini": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          "default": {
+            "claude": "",
+            "codex": "",
+            "cursor": "",
+            "gemini": ""
+          }
+        },
+        "akashi.sidebar.fileColors": {
+          "type": "object",
+          "order": 70,
+          "title": "File colors",
+          "description": "Colors for source categories in the sidebar. Applied when the sidebar loads; reload the window (Developer: Reload Window) after changing values.",
+          "markdownDescription": "Colors for source categories in the sidebar. Applied when the sidebar loads; reload the window (**Developer: Reload Window**) after changing values.",
+          "additionalProperties": false,
+          "properties": {
+            "context": {
+              "type": "string",
+              "format": "color",
+              "default": "#d18616"
+            },
+            "rule": {
+              "type": "string",
+              "format": "color",
+              "default": "#d18616"
+            },
+            "skill": {
+              "type": "string",
+              "format": "color",
+              "default": "#b180d7"
+            },
+            "hook": {
+              "type": "string",
+              "format": "color",
+              "default": "#f14c4c"
+            },
+            "config": {
+              "type": "string",
+              "format": "color",
+              "default": "#cca700"
+            },
+            "mcp": {
+              "type": "string",
+              "format": "color",
+              "default": "#3794ff"
+            },
+            "command": {
+              "type": "string",
+              "format": "color",
+              "default": "#0ea5e9"
+            },
+            "unknown": {
+              "type": "string",
+              "format": "color",
+              "default": "#cccccc"
+            }
+          },
+          "default": {
+            "context": "#d18616",
+            "rule": "#d18616",
+            "skill": "#b180d7",
+            "hook": "#f14c4c",
+            "config": "#cca700",
+            "mcp": "#3794ff",
+            "command": "#0ea5e9",
+            "unknown": "#cccccc"
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" \"*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" \"*.mjs\"",
+    "fix": "npm run lint:fix && npm run format",
+    "test": "vitest run --coverage",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "test:quick": "vitest run",
+    "test:watch": "vitest",
+    "package": "vsce package --no-dependencies",
+    "vsce:publish": "vsce publish --no-dependencies"
+  },
+  "dependencies": {
+    "@vscode/codicons": "^0.0.45",
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-zoom": "^3.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/d3-drag": "^3.0.7",
+    "@types/d3-force": "^3.0.10",
+    "@types/d3-selection": "^3.0.11",
+    "@types/d3-zoom": "^3.0.8",
+    "@types/node": "^22.10.1",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "^1.85.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^15.0.0",
+    "mocha": "^10.8.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^3.0.5"
+  }
+}
