@@ -272,7 +272,8 @@
     "test:quick": "vitest run",
     "test:watch": "vitest",
     "package": "vsce package --no-dependencies",
-    "vsce:publish": "vsce publish --no-dependencies"
+    "vsce:publish": "vsce publish --no-dependencies",
+    "ovsx:publish": "ovsx publish --no-dependencies"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
@@ -295,6 +296,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
+    "ovsx": "^0.10.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",

@@ -36,3 +36,5 @@ jobs:
       - run: npm run build
       - name: Publish to VS Code Marketplace
         run: npx vsce publish --no-dependencies -p ${{ secrets.VSCE_PAT }}
+      - name: Publish to Open VSX (Cursor Marketplace)
+        run: npx ovsx publish --no-dependencies -p ${{ secrets.OVSX_PAT }}

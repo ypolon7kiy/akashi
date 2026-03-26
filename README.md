@@ -3,6 +3,7 @@
 [![Version](https://img.shields.io/visual-studio-marketplace/v/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%3E%3D1.85.0-blue)](https://code.visualstudio.com/)
+[![Open VSX](https://img.shields.io/open-vsx/v/akashi/akashi)](https://open-vsx.org/extension/akashi/akashi)
 
 **Manage AI agent rules, prompts, and instructions across Claude, Cursor, Codex, and Gemini -- all in one view.**
 
@@ -77,7 +78,7 @@ File system watchers detect changes to guideline files in real time. The source 
 
 ## Getting Started
 
-1. **Install** Akashi from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
+1. **Install** Akashi from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=akashi.akashi) or [Open VSX](https://open-vsx.org/extension/akashi/akashi) (Cursor)
 2. **Open** a workspace that contains AI agent guidelines (e.g., a repo with `CLAUDE.md` or `.cursor/rules/`)
 3. **Click** the Akashi icon in the Activity Bar -- your source index loads automatically
 4. **Explore** -- open the graph view with `Akashi: Show graph` or create new artifacts with `Akashi: New source artifact...`
@@ -119,7 +120,8 @@ Akashi is under active development. Coming next:
 
 ## Requirements
 
-- VS Code 1.85.0 or later (also works in Cursor)
+- VS Code 1.85.0 or later
+- Cursor (install from the built-in Extensions panel or [Open VSX](https://open-vsx.org/extension/akashi/akashi))
 
 ## License
 
