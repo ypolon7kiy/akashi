@@ -15,6 +15,7 @@ function rootsForHome(homeDir: string) {
     cursorUserRoot: path.join(homeDir, '.cursor'),
     geminiUserRoot: path.join(homeDir, '.gemini'),
     codexUserRoot: path.join(homeDir, '.codex'),
+    skipDirNames: new Set<string>(),
   };
 }
 
