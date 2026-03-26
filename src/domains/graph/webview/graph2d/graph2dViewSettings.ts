@@ -7,8 +7,6 @@ export interface Graph2DWebviewPersistedState {
   controlsCollapsed: boolean;
   /** Target link distance in simulation space. */
   linkDistance: number;
-  /** Link strength multiplier (0–1 scale in UI). */
-  linkStrength: number;
   /** Repulsion strength (positive UI value; negated for many-body force). */
   chargeStrength: number;
   /** How strongly nodes pull toward center (0–1 UI scale). */
@@ -17,17 +15,11 @@ export interface Graph2DWebviewPersistedState {
   presetClusterStrength: number;
   /** Extra vertical pull toward depth bands (keeps preset → locality → rows readable). */
   layerBandStrength: number;
-  /** Extra padding around each node for collision (px in world space before zoom). */
-  collidePadding: number;
 }
 
 export const GRAPH2D_LINK_DISTANCE_MIN = 20;
 export const GRAPH2D_LINK_DISTANCE_MAX = 160;
 export const GRAPH2D_LINK_DISTANCE_STEP = 2;
-
-export const GRAPH2D_LINK_STRENGTH_MIN = 0.05;
-export const GRAPH2D_LINK_STRENGTH_MAX = 1;
-export const GRAPH2D_LINK_STRENGTH_STEP = 0.05;
 
 export const GRAPH2D_CHARGE_MIN = 20;
 export const GRAPH2D_CHARGE_MAX = 600;
@@ -45,20 +37,19 @@ export const GRAPH2D_LAYER_BAND_MIN = 0;
 export const GRAPH2D_LAYER_BAND_MAX = 0.3;
 export const GRAPH2D_LAYER_BAND_STEP = 0.01;
 
-export const GRAPH2D_COLLIDE_MIN = 0;
-export const GRAPH2D_COLLIDE_MAX = 24;
-export const GRAPH2D_COLLIDE_STEP = 1;
+/** Fixed link strength (not exposed as a UI control). */
+export const GRAPH2D_FIXED_LINK_STRENGTH = 0.4;
+/** Fixed collision padding in simulation-space px (not exposed as a UI control). */
+export const GRAPH2D_FIXED_COLLIDE_PADDING = 4;
 
 export function defaultGraph2DWebviewPersistedState(): Graph2DWebviewPersistedState {
   return {
     controlsCollapsed: true,
-    linkDistance: 72,
-    linkStrength: 0.55,
-    chargeStrength: 220,
-    centerStrength: 0.03,
-    presetClusterStrength: 0.22,
-    layerBandStrength: 0.1,
-    collidePadding: 6,
+    linkDistance: 60,
+    chargeStrength: 120,
+    centerStrength: 0.05,
+    presetClusterStrength: 0.15,
+    layerBandStrength: 0.08,
   };
 }
 
@@ -82,13 +73,6 @@ export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewP
         : d.linkDistance,
       GRAPH2D_LINK_DISTANCE_MIN,
       GRAPH2D_LINK_DISTANCE_MAX
-    ),
-    linkStrength: clamp(
-      typeof o.linkStrength === 'number' && Number.isFinite(o.linkStrength)
-        ? o.linkStrength
-        : d.linkStrength,
-      GRAPH2D_LINK_STRENGTH_MIN,
-      GRAPH2D_LINK_STRENGTH_MAX
     ),
     chargeStrength: clamp(
       typeof o.chargeStrength === 'number' && Number.isFinite(o.chargeStrength)
@@ -117,13 +101,6 @@ export function parseGraph2DWebviewPersistedState(raw: unknown): Graph2DWebviewP
         : d.layerBandStrength,
       GRAPH2D_LAYER_BAND_MIN,
       GRAPH2D_LAYER_BAND_MAX
-    ),
-    collidePadding: clamp(
-      typeof o.collidePadding === 'number' && Number.isFinite(o.collidePadding)
-        ? o.collidePadding
-        : d.collidePadding,
-      GRAPH2D_COLLIDE_MIN,
-      GRAPH2D_COLLIDE_MAX
     ),
   };
 }

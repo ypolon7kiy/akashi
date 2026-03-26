@@ -25,7 +25,7 @@ export {
 
 export {
   type SourcesFilterChangedMessage,
-  type SourcesFilterStateMessage,
+  type SourcesGetFilterStateRequestMessage,
   type SourcesGetSnapshotRequestMessage,
   type SourcesIndexingStateMessage,
   type SourcesIndexWorkspaceRequestMessage,

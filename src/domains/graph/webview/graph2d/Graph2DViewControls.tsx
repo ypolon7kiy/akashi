@@ -7,15 +7,9 @@ import {
   GRAPH2D_CHARGE_MAX,
   GRAPH2D_CHARGE_MIN,
   GRAPH2D_CHARGE_STEP,
-  GRAPH2D_COLLIDE_MAX,
-  GRAPH2D_COLLIDE_MIN,
-  GRAPH2D_COLLIDE_STEP,
   GRAPH2D_LINK_DISTANCE_MAX,
   GRAPH2D_LINK_DISTANCE_MIN,
   GRAPH2D_LINK_DISTANCE_STEP,
-  GRAPH2D_LINK_STRENGTH_MAX,
-  GRAPH2D_LINK_STRENGTH_MIN,
-  GRAPH2D_LINK_STRENGTH_STEP,
   GRAPH2D_LAYER_BAND_MAX,
   GRAPH2D_LAYER_BAND_MIN,
   GRAPH2D_LAYER_BAND_STEP,
@@ -30,8 +24,6 @@ export function Graph2DViewControls(props: {
   onResetForces: () => void;
   linkDistance: number;
   onLinkDistanceChange: (v: number) => void;
-  linkStrength: number;
-  onLinkStrengthChange: (v: number) => void;
   chargeStrength: number;
   onChargeStrengthChange: (v: number) => void;
   centerStrength: number;
@@ -40,8 +32,6 @@ export function Graph2DViewControls(props: {
   onPresetClusterStrengthChange: (v: number) => void;
   layerBandStrength: number;
   onLayerBandStrengthChange: (v: number) => void;
-  collidePadding: number;
-  onCollidePaddingChange: (v: number) => void;
 }): JSX.Element {
   return (
     <div
@@ -81,7 +71,7 @@ export function Graph2DViewControls(props: {
             <div className="akashi-graph-view-controls__group">
               <p className="akashi-graph-view-controls__group-title">Links</p>
               <p className="akashi-graph-view-controls__group-hint">
-                How strongly edges pull and how long they prefer to be.
+                How long edges prefer to be.
               </p>
               <Graph2DSliderRow
                 id="graph2d-force-link-distance"
@@ -93,17 +83,6 @@ export function Graph2DViewControls(props: {
                 step={GRAPH2D_LINK_DISTANCE_STEP}
                 format={(v) => Math.round(v).toString()}
                 onChange={props.onLinkDistanceChange}
-              />
-              <Graph2DSliderRow
-                id="graph2d-force-link-strength"
-                label="Link strength"
-                hint="Higher values tighten edges toward the target distance."
-                value={props.linkStrength}
-                min={GRAPH2D_LINK_STRENGTH_MIN}
-                max={GRAPH2D_LINK_STRENGTH_MAX}
-                step={GRAPH2D_LINK_STRENGTH_STEP}
-                format={(v) => v.toFixed(2)}
-                onChange={props.onLinkStrengthChange}
               />
             </div>
 
@@ -164,24 +143,6 @@ export function Graph2DViewControls(props: {
                 onChange={props.onLayerBandStrengthChange}
               />
             </div>
-
-            <div className="akashi-graph-view-controls__group">
-              <p className="akashi-graph-view-controls__group-title">Collision</p>
-              <p className="akashi-graph-view-controls__group-hint">
-                Minimum gap between node circles to reduce overlap.
-              </p>
-              <Graph2DSliderRow
-                id="graph2d-force-collide"
-                label="Node padding"
-                hint="Extra space added around each node for hit-testing and layout."
-                value={props.collidePadding}
-                min={GRAPH2D_COLLIDE_MIN}
-                max={GRAPH2D_COLLIDE_MAX}
-                step={GRAPH2D_COLLIDE_STEP}
-                format={(v) => Math.round(v).toString()}
-                onChange={props.onCollidePaddingChange}
-              />
-            </div>
           </div>
           <div className="akashi-graph-view-controls__footer">
             <button
@@ -239,21 +200,17 @@ function Graph2DSliderRow(props: {
 export function graph2DSettingsToPersisted(s: {
   controlsCollapsed: boolean;
   linkDistance: number;
-  linkStrength: number;
   chargeStrength: number;
   centerStrength: number;
   presetClusterStrength: number;
   layerBandStrength: number;
-  collidePadding: number;
 }): Graph2DWebviewPersistedState {
   return {
     controlsCollapsed: s.controlsCollapsed,
     linkDistance: s.linkDistance,
-    linkStrength: s.linkStrength,
     chargeStrength: s.chargeStrength,
     centerStrength: s.centerStrength,
     presetClusterStrength: s.presetClusterStrength,
     layerBandStrength: s.layerBandStrength,
-    collidePadding: s.collidePadding,
   };
 }

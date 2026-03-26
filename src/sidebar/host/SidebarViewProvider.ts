@@ -3,7 +3,6 @@ import type { ConfigDomain } from '../../domains/config';
 import type { SerializedSourceSearchQuery } from '../../domains/search/domain/model';
 import type { SourcesService } from '../../domains/sources/application/SourcesService';
 import { appendLine } from '../../log';
-import { SidebarCoreMessageType } from '../bridge/messages/core';
 import { handleSidebarWebviewMessage } from './handleSidebarWebviewMessage';
 import { createSidebarSourcesHostActions } from './sidebarSourcesHostActions';
 import { codiconsDistRoot, getSidebarWebviewHtml } from './sidebarWebviewHtml';
@@ -142,26 +141,23 @@ export function createSidebarViewProvider(
           );
       };
 
+      const getSavedFilterState = (): SerializedSourceSearchQuery | null =>
+        context.globalState.get<SerializedSourceSearchQuery | null>(
+          SIDEBAR_FILTER_STATE_KEY,
+          null
+        );
+
       const messageCtx = {
         sourcesService,
         configDomain,
         actions,
         notifyFilterChanged,
         saveFilterState,
+        getSavedFilterState,
       };
 
       webviewView.webview.onDidReceiveMessage((message: unknown) => {
         void handleSidebarWebviewMessage(webviewView.webview, message, messageCtx);
-      });
-
-      // Push saved filter state to webview so it can hydrate on mount.
-      const savedFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
-        SIDEBAR_FILTER_STATE_KEY,
-        null
-      );
-      void webviewView.webview.postMessage({
-        type: SidebarCoreMessageType.SourcesFilterState,
-        payload: savedFilter,
       });
     },
   };

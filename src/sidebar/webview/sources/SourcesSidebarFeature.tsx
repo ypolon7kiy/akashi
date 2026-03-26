@@ -17,12 +17,12 @@ import type {
   SourceDescriptor,
   WorkspaceFolderInfo,
 } from '../../../shared/types/sourcesSnapshotPayload';
-import { SidebarCoreMessageType } from '../../bridge/messages/core';
-import { getVscodeApi } from '../../../webview-shared/api';
+import { SidebarCoreMessageType, type SourcesResponseMessage } from '../../bridge/messages/core';
+import { getVscodeApi, postRequest } from '../../../webview-shared/api';
 
 /**
- * Waits for the host to push saved filter state (SourcesFilterState message),
- * or falls back after a short timeout.
+ * Requests saved filter state from the host via RPC, avoiding the race
+ * condition of the host pushing before the webview listener is ready.
  */
 function useHydratedFilterState(): {
   initialFilter: SerializedSourceSearchQuery | null;
@@ -32,29 +32,27 @@ function useHydratedFilterState(): {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    let settled = false;
-    const onMessage = (event: MessageEvent<unknown>): void => {
-      const data = event.data as { type?: string; payload?: unknown } | undefined;
-      if (!settled && data?.type === SidebarCoreMessageType.SourcesFilterState) {
-        settled = true;
-        setInitialFilter(data.payload as SerializedSourceSearchQuery | null);
+    const vscode = getVscodeApi();
+    if (!vscode) {
+      setHydrated(true);
+      return;
+    }
+    postRequest<SourcesResponseMessage>(
+      vscode,
+      { type: SidebarCoreMessageType.SourcesGetFilterStateRequest },
+      SidebarCoreMessageType.SourcesResponse
+    )
+      .then((response) => {
+        if (response.ok && response.payload != null) {
+          setInitialFilter(response.payload as SerializedSourceSearchQuery);
+        }
+      })
+      .catch(() => {
+        // Graceful degradation: proceed without saved state.
+      })
+      .finally(() => {
         setHydrated(true);
-      }
-    };
-    window.addEventListener('message', onMessage);
-
-    // If no message arrives within 200ms, proceed without saved state.
-    const timeout = window.setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        setHydrated(true);
-      }
-    }, 200);
-
-    return () => {
-      window.removeEventListener('message', onMessage);
-      window.clearTimeout(timeout);
-    };
+      });
   }, []);
 
   return { initialFilter, hydrated };

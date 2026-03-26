@@ -21,8 +21,8 @@ export const SidebarCoreMessageType = {
   SourcesFilterChanged: 'sources/filterChanged',
   /** Webview → host: persist current filter state to globalState. */
   SourcesSaveFilterState: 'sources/saveFilterState',
-  /** Host → webview: restore saved filter state on mount. */
-  SourcesFilterState: 'sources/filterState',
+  /** Webview → host (RPC): request saved filter state from globalState. */
+  SourcesGetFilterStateRequest: 'sources/getFilterState',
 } as const;
 
 /** Triggers a full workspace index; indexing options come from workspace settings (`akashi.presets`, `akashi.includeHomeConfig`, `akashi.homePathOverrides`). */
@@ -89,15 +89,16 @@ export interface SourcesSaveFilterStateMessage {
   payload: SerializedSourceSearchQuery;
 }
 
-/** Host → sidebar webview: restore saved filter state. */
-export interface SourcesFilterStateMessage {
-  type: typeof SidebarCoreMessageType.SourcesFilterState;
-  payload: SerializedSourceSearchQuery | null;
+/** Webview → host (RPC): request saved filter state from globalState. */
+export interface SourcesGetFilterStateRequestMessage {
+  type: typeof SidebarCoreMessageType.SourcesGetFilterStateRequest;
+  requestId: string;
 }
 
 export type SidebarCoreRequestMessage =
   | SourcesIndexWorkspaceRequestMessage
   | SourcesGetSnapshotRequestMessage
+  | SourcesGetFilterStateRequestMessage
   | SourcesOpenPathMessage
   | SourcesRevealInExplorerMessage
   | SourcesRevealFileInOsMessage

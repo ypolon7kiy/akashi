@@ -17,16 +17,13 @@ describe('parseGraph2DWebviewPersistedState', () => {
     const s = parseGraph2DWebviewPersistedState({
       controlsCollapsed: false,
       linkDistance: 80,
-      linkStrength: 0.7,
       chargeStrength: 300,
       centerStrength: 0.1,
       presetClusterStrength: 0.3,
       layerBandStrength: 0.2,
-      collidePadding: 10,
     });
     expect(s.controlsCollapsed).toBe(false);
     expect(s.linkDistance).toBe(80);
-    expect(s.linkStrength).toBe(0.7);
     expect(s.chargeStrength).toBe(300);
   });
 
@@ -42,6 +39,19 @@ describe('parseGraph2DWebviewPersistedState', () => {
     expect(s.chargeStrength).toBe(20);
     // Other fields get defaults
     expect(s.controlsCollapsed).toBe(d.controlsCollapsed);
+  });
+
+  it('silently ignores removed linkStrength and collidePadding from old persisted state', () => {
+    const s = parseGraph2DWebviewPersistedState({
+      linkDistance: 72,
+      linkStrength: 0.55,
+      collidePadding: 6,
+      chargeStrength: 200,
+    });
+    expect(s.linkDistance).toBe(72);
+    expect(s.chargeStrength).toBe(200);
+    expect('linkStrength' in s).toBe(false);
+    expect('collidePadding' in s).toBe(false);
   });
 
   it('ignores legacy enabledPresets/enabledCategories fields without error', () => {

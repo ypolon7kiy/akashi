@@ -5,6 +5,8 @@ import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
 import { Graph2DMessageType, type Graph2DFileColorsPayload } from './messages';
 import {
   defaultGraph2DWebviewPersistedState,
+  GRAPH2D_FIXED_COLLIDE_PADDING,
+  GRAPH2D_FIXED_LINK_STRENGTH,
   parseGraph2DWebviewPersistedState,
 } from './graph2dViewSettings';
 import { Graph2DViewControls, graph2DSettingsToPersisted } from './Graph2DViewControls';
@@ -25,9 +27,6 @@ export function Graph2DApp(): JSX.Element {
   const [linkDistance, setLinkDistance] = useState(
     defaultGraph2DWebviewPersistedState().linkDistance
   );
-  const [linkStrength, setLinkStrength] = useState(
-    defaultGraph2DWebviewPersistedState().linkStrength
-  );
   const [chargeStrength, setChargeStrength] = useState(
     defaultGraph2DWebviewPersistedState().chargeStrength
   );
@@ -39,9 +38,6 @@ export function Graph2DApp(): JSX.Element {
   );
   const [layerBandStrength, setLayerBandStrength] = useState(
     defaultGraph2DWebviewPersistedState().layerBandStrength
-  );
-  const [collidePadding, setCollidePadding] = useState(
-    defaultGraph2DWebviewPersistedState().collidePadding
   );
 
   /** Sidebar filter result: matched file paths. null = no filter active → show all. */
@@ -94,12 +90,10 @@ export function Graph2DApp(): JSX.Element {
         skipNextViewSettingsPersistRef.current = true;
         setControlsCollapsed(s.controlsCollapsed);
         setLinkDistance(s.linkDistance);
-        setLinkStrength(s.linkStrength);
         setChargeStrength(s.chargeStrength);
         setCenterStrength(s.centerStrength);
         setPresetClusterStrength(s.presetClusterStrength);
         setLayerBandStrength(s.layerBandStrength);
-        setCollidePadding(s.collidePadding);
         setViewSettingsHydrated(true);
         return;
       }
@@ -137,12 +131,10 @@ export function Graph2DApp(): JSX.Element {
         payload: graph2DSettingsToPersisted({
           controlsCollapsed,
           linkDistance,
-          linkStrength,
           chargeStrength,
           centerStrength,
           presetClusterStrength,
           layerBandStrength,
-          collidePadding,
         }),
       });
     }, 300);
@@ -151,12 +143,10 @@ export function Graph2DApp(): JSX.Element {
     viewSettingsHydrated,
     controlsCollapsed,
     linkDistance,
-    linkStrength,
     chargeStrength,
     centerStrength,
     presetClusterStrength,
     layerBandStrength,
-    collidePadding,
   ]);
 
   const model = useMemo(
@@ -171,33 +161,23 @@ export function Graph2DApp(): JSX.Element {
   const simProps: ForceGraphSimProps = useMemo(
     () => ({
       linkDistance,
-      linkStrength,
+      linkStrength: GRAPH2D_FIXED_LINK_STRENGTH,
       chargeStrength,
       centerStrength,
       presetClusterStrength,
       layerBandStrength,
-      collidePadding,
+      collidePadding: GRAPH2D_FIXED_COLLIDE_PADDING,
     }),
-    [
-      linkDistance,
-      linkStrength,
-      chargeStrength,
-      centerStrength,
-      presetClusterStrength,
-      layerBandStrength,
-      collidePadding,
-    ]
+    [linkDistance, chargeStrength, centerStrength, presetClusterStrength, layerBandStrength]
   );
 
   const onResetForces = useCallback(() => {
     const d = defaultGraph2DWebviewPersistedState();
     setLinkDistance(d.linkDistance);
-    setLinkStrength(d.linkStrength);
     setChargeStrength(d.chargeStrength);
     setCenterStrength(d.centerStrength);
     setPresetClusterStrength(d.presetClusterStrength);
     setLayerBandStrength(d.layerBandStrength);
-    setCollidePadding(d.collidePadding);
   }, []);
 
   const emptyHint = useMemo(
@@ -225,8 +205,6 @@ export function Graph2DApp(): JSX.Element {
                 onResetForces={onResetForces}
                 linkDistance={linkDistance}
                 onLinkDistanceChange={setLinkDistance}
-                linkStrength={linkStrength}
-                onLinkStrengthChange={setLinkStrength}
                 chargeStrength={chargeStrength}
                 onChargeStrengthChange={setChargeStrength}
                 centerStrength={centerStrength}
@@ -235,8 +213,6 @@ export function Graph2DApp(): JSX.Element {
                 onPresetClusterStrengthChange={setPresetClusterStrength}
                 layerBandStrength={layerBandStrength}
                 onLayerBandStrengthChange={setLayerBandStrength}
-                collidePadding={collidePadding}
-                onCollidePaddingChange={setCollidePadding}
               />
             </>
           ) : (

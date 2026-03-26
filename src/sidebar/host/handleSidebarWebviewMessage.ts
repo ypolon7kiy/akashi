@@ -37,6 +37,7 @@ export interface HandleSidebarWebviewMessageContext {
   actions: SidebarSourcesHostActions;
   notifyFilterChanged?: (matchedPaths: readonly string[] | null) => void;
   saveFilterState?: (query: SerializedSourceSearchQuery) => void;
+  getSavedFilterState?: () => SerializedSourceSearchQuery | null;
 }
 
 export async function handleSidebarWebviewMessage(
@@ -116,6 +117,20 @@ export async function handleSidebarWebviewMessage(
         response,
         result ? `sourceCount=${payload?.sourceCount ?? 0} (filtered)` : 'sourceCount=0'
       );
+      return;
+    }
+
+    if (typedMessage.type === SidebarMessageType.SourcesGetFilterStateRequest) {
+      logSourcesCommand(typedMessage.type, requestId);
+      const saved = ctx.getSavedFilterState?.() ?? null;
+      const response: SourcesResponseMessage = {
+        type: SidebarMessageType.SourcesResponse,
+        requestId,
+        ok: true,
+        payload: saved,
+      };
+      await postSourcesResponse(webview, response);
+      logSourcesResponse(response);
       return;
     }
 
