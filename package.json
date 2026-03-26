@@ -1,8 +1,8 @@
 {
   "name": "akashi",
-  "displayName": "Akashi \u2014 System Instructions IDE",
+  "displayName": "Akashi — System Instructions IDE",
   "description": "Browse, validate, and visualize the system instructions and guidelines your AI coding agents rely on. Supports Claude, Cursor, Codex, and Gemini presets.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "akashi",
   "preview": true,
   "license": "SEE LICENSE IN LICENSE",
