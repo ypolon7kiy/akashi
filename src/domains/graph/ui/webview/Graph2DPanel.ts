@@ -19,6 +19,8 @@ const viewType = 'akashi.graph2DPanel';
 export class Graph2DPanel {
   public static currentPanel: Graph2DPanel | undefined;
 
+  private static lastMatchedPaths: readonly string[] | null = null;
+
   private snapshotEnv: GraphPanelEnvironment | null = null;
 
   private readonly categoryPalette: Graph2DFileColorsPayload;
@@ -58,6 +60,7 @@ export class Graph2DPanel {
   }
 
   public static pushFilterIfOpen(matchedPaths: readonly string[] | null): void {
+    Graph2DPanel.lastMatchedPaths = matchedPaths;
     const p = Graph2DPanel.currentPanel;
     if (p) {
       void p.panel.webview.postMessage({
@@ -88,6 +91,7 @@ export class Graph2DPanel {
           }
           this.postViewSettings();
           this.postFileColors();
+          this.postSavedFilter();
           return;
         }
         if (message?.type === Graph2DMessageType.SaveViewSettings) {
@@ -165,6 +169,15 @@ export class Graph2DPanel {
       type: Graph2DMessageType.FileColors,
       payload: this.categoryPalette,
     });
+  }
+
+  private postSavedFilter(): void {
+    if (Graph2DPanel.lastMatchedPaths !== null) {
+      void this.panel.webview.postMessage({
+        type: Graph2DMessageType.FilterQuery,
+        payload: Graph2DPanel.lastMatchedPaths,
+      });
+    }
   }
 
   private postViewSettings(): void {
