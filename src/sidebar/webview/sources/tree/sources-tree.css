@@ -135,6 +135,31 @@
   font-weight: 400;
 }
 
+/* VS Code-style vertical indent guide lines */
+.akashi-tree__indent-guide {
+  display: inline-flex;
+  flex: 0 0 var(--akashi-tree-indent-step);
+  width: var(--akashi-tree-indent-step);
+  align-self: stretch;
+  border-right: 1px solid var(
+    --vscode-tree-indentGuidesStroke,
+    color-mix(in srgb, var(--akashi-text) 12%, transparent)
+  );
+}
+
+.akashi-tree__indent-guide--active {
+  border-right-color: var(
+    --vscode-tree-activeIndentGuidesStroke,
+    var(--vscode-tree-indentGuidesStroke,
+      color-mix(in srgb, var(--akashi-text) 30%, transparent))
+  );
+}
+
+.akashi-tree__indent-base {
+  flex: 0 0 var(--akashi-tree-indent-base);
+  width: var(--akashi-tree-indent-base);
+}
+
 .akashi-tree__chevron,
 .akashi-tree__chevron-spacer {
   flex: 0 0 16px;

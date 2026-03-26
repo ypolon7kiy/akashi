@@ -13,6 +13,18 @@ function ChevronIcon({ expanded }: { expanded: boolean }): JSX.Element {
   );
 }
 
+function IndentGuides({ depth }: { depth: number }): JSX.Element {
+  const guides: JSX.Element[] = [
+    <span key="base" className="akashi-tree__indent-base" aria-hidden />,
+  ];
+  for (let i = 0; i < depth; i++) {
+    guides.push(
+      <span key={i} className="akashi-tree__indent-guide" aria-hidden />,
+    );
+  }
+  return <>{guides}</>;
+}
+
 export interface TreeInteractions {
   expandedIds: ReadonlySet<string>;
   onToggle: (id: string) => void;
@@ -46,7 +58,6 @@ interface TreeRowProps {
 
 export function TreeRows(props: TreeRowProps): JSX.Element {
   const { node, depth, ix } = props;
-  const pad = `calc(var(--akashi-tree-indent-base) + ${depth} * var(--akashi-tree-indent-step))`;
   const opPath = fsOperablePath(node);
   const canFs = opPath !== null;
   const isRenaming = ix.renamingNodeId === node.id;
@@ -73,7 +84,6 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
           aria-selected={isSelected}
           draggable={canFs && !isRenaming}
           className={`akashi-tree__row akashi-tree__row--file${isSelected ? ' akashi-tree__row--selected' : ''}${isFocused ? ' akashi-tree__row--focused' : ''}${isDropTarget ? ' akashi-tree__row--drop-target' : ''}`}
-          style={{ paddingLeft: pad }}
           title={title}
           onClick={(e) => {
             ix.focusTree();
@@ -86,6 +96,7 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
           }}
           onDragStart={(e) => ix.onDragStartRow(e, node)}
         >
+          <IndentGuides depth={depth} />
           <span className="akashi-tree__chevron-spacer" aria-hidden />
           {isRenaming ? (
             <input
@@ -122,7 +133,6 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
         aria-expanded={hasChildren ? expanded : undefined}
         draggable={canFs && !isRenaming}
         className={`akashi-tree__row akashi-tree__row--folder${isSelected ? ' akashi-tree__row--selected' : ''}${isFocused ? ' akashi-tree__row--focused' : ''}${isDropTarget ? ' akashi-tree__row--drop-target' : ''}`}
-        style={{ paddingLeft: pad }}
         onClick={(e) => {
           ix.focusTree();
           ix.onRowClick(node, e);
@@ -139,6 +149,7 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
         onDragOver={(e) => ix.onDragOverFolder(e, node)}
         onDrop={(e) => ix.onDropOnFolder(e, node)}
       >
+        <IndentGuides depth={depth} />
         <ChevronIcon expanded={expanded} />
         {isRenaming ? (
           <input
@@ -160,10 +171,8 @@ export function TreeRows(props: TreeRowProps): JSX.Element {
             <li className="akashi-tree__item" role="none">
               <div
                 className="akashi-tree__row akashi-tree__row--new-file"
-                style={{
-                  paddingLeft: `calc(var(--akashi-tree-indent-base) + ${depth + 1} * var(--akashi-tree-indent-step))`,
-                }}
               >
+                <IndentGuides depth={depth + 1} />
                 <span className="akashi-tree__chevron-spacer" aria-hidden />
                 <input
                   ref={ix.createFileInputRef}
