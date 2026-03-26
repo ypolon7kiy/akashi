@@ -27,7 +27,9 @@ export function buildSourcesSnapshotPayload(
     sourceCount: filtered.length,
     records: filtered.map(toSourceDescriptor),
     workspaceFolders,
-    artifacts: snapshot.artifacts?.map(toArtifactDescriptor),
+    artifacts: snapshot.artifacts
+      ?.filter((a) => active.has(a.presetId))
+      .map(toArtifactDescriptor),
   };
 }
 
