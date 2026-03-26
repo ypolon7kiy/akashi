@@ -123,4 +123,4 @@ Akashi is under active development. Coming next:
 
 ## License
 
-See [LICENSE](LICENSE).
+Apache 2.0 -- see [LICENSE](LICENSE).
