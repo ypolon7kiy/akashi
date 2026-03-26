@@ -1,30 +1,28 @@
 import * as path from 'node:path';
 import type { ArtifactCreator } from '../../domain/artifactCreator';
 import { FixedDocCreator } from '../../domain/creators/FixedDocCreator';
-import { FolderFileCreator } from '../../domain/creators/FolderFileCreator';
 import { SimpleFileCreator } from '../../domain/creators/SimpleFileCreator';
+import { SkillFileCreator } from '../../domain/creators/SkillFileCreator';
 import { SourceCategoryId } from '../../domain/sourceTags';
 
 export const antigravityArtifactCreators: readonly ArtifactCreator[] = [
-  new FolderFileCreator({
+  new SkillFileCreator({
     id: 'antigravity/skill/workspace',
     label: 'New Skill',
     presetId: 'antigravity',
     category: SourceCategoryId.Skill,
     locality: 'workspace',
     targetDir: (ws) => (ws ? path.join(ws, '.agent', 'skills') : ''),
-    fixedFileName: 'SKILL.md',
-    initialContent: (folderName: string) => `# ${folderName}\n\n`,
+    layout: { kind: 'folder', fixedFileName: 'SKILL.md' },
   }),
-  new FolderFileCreator({
+  new SkillFileCreator({
     id: 'antigravity/skill/user',
     label: 'New Skill (global)',
     presetId: 'antigravity',
     category: SourceCategoryId.Skill,
     locality: 'user',
     targetDir: (_ws, roots) => path.join(roots.geminiUserRoot, 'antigravity', 'skills'),
-    fixedFileName: 'SKILL.md',
-    initialContent: (folderName: string) => `# ${folderName}\n\n`,
+    layout: { kind: 'folder', fixedFileName: 'SKILL.md' },
   }),
   new SimpleFileCreator({
     id: 'antigravity/context/workspace',

@@ -2,14 +2,10 @@ import * as path from 'node:path';
 import type { ArtifactCreator } from '../../domain/artifactCreator';
 import { FixedDocCreator } from '../../domain/creators/FixedDocCreator';
 import { SimpleFileCreator } from '../../domain/creators/SimpleFileCreator';
+import { SkillFileCreator } from '../../domain/creators/SkillFileCreator';
 import { SourceCategoryId } from '../../domain/sourceTags';
 import { CursorMcpCreator } from './creators/CursorMcpCreator';
 import { CursorRegisteredHookCreator } from './creators/CursorRegisteredHookCreator';
-
-function skillContent(fileName: string): string {
-  const name = fileName.replace(/\.md$/i, '');
-  return `# ${name}\n\n`;
-}
 
 function ruleContent(fileName: string): string {
   const name = fileName.replace(/\.mdc?$/i, '');
@@ -27,25 +23,23 @@ export {
 } from './creators/CursorRegisteredHookCreator';
 
 export const cursorArtifactCreators: readonly ArtifactCreator[] = [
-  new SimpleFileCreator({
+  new SkillFileCreator({
     id: 'cursor/skill/workspace',
     label: 'New Skill',
     presetId: 'cursor',
     category: SourceCategoryId.Skill,
     locality: 'workspace',
     targetDir: (ws) => (ws ? path.join(ws, '.cursor', 'skills') : ''),
-    suggestedExtension: '.md',
-    initialContent: skillContent,
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   }),
-  new SimpleFileCreator({
+  new SkillFileCreator({
     id: 'cursor/skill/user',
     label: 'New Skill (global)',
     presetId: 'cursor',
     category: SourceCategoryId.Skill,
     locality: 'user',
     targetDir: (_ws, roots) => path.join(roots.cursorUserRoot, 'skills'),
-    suggestedExtension: '.md',
-    initialContent: skillContent,
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   }),
   new SimpleFileCreator({
     id: 'cursor/rule/workspace',

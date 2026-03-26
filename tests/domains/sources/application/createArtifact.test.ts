@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CreatorContext } from '@src/domains/sources/domain/artifactCreator';
 import type { WriteFileOp, JsonMergeOp } from '@src/domains/sources/domain/artifactOperation';
-import { SimpleFileCreator } from '@src/domains/sources/domain/creators/SimpleFileCreator';
-import { FolderFileCreator } from '@src/domains/sources/domain/creators/FolderFileCreator';
+import { SkillFileCreator } from '@src/domains/sources/domain/creators/SkillFileCreator';
 
 const ROOTS = {
   claudeUserRoot: '/home/user/.claude',
@@ -19,16 +18,15 @@ function ctx(overrides: Partial<CreatorContext> = {}): CreatorContext {
   };
 }
 
-describe('SimpleFileCreator planWithProvidedInput()', () => {
-  const creator = new SimpleFileCreator({
+describe('SkillFileCreator (flat) planWithProvidedInput()', () => {
+  const creator = new SkillFileCreator({
     id: 'test/skill/workspace',
     label: 'New Skill',
     presetId: 'claude',
     category: 'skill',
     locality: 'workspace',
     targetDir: (ws) => (ws ? `${ws}/.claude/skills` : ''),
-    suggestedExtension: '.md',
-    initialContent: '# skill\n\n',
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   });
 
   it('appends extension when missing', () => {
@@ -40,37 +38,25 @@ describe('SimpleFileCreator planWithProvidedInput()', () => {
     expect(op.absolutePath).toBe('/ws/.claude/skills/my-skill.md');
   });
 
-  it('does not double-append extension', () => {
-    const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill.md' });
-    expect(r.kind).toBe('plan');
-    if (r.kind !== 'plan') return;
-    const op = r.plan.operations[0] as WriteFileOp;
-    expect(op.absolutePath).toBe('/ws/.claude/skills/my-skill.md');
-  });
-
-  it('writes verbatim string content', () => {
+  it('content includes YAML frontmatter with name', () => {
     const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill' });
     expect(r.kind).toBe('plan');
     if (r.kind !== 'plan') return;
     const op = r.plan.operations[0] as WriteFileOp;
-    expect(op.content).toBe('# skill\n\n');
+    expect(op.content).toContain('name: my-skill');
+    expect(op.content).toContain('description:');
   });
 
-  it('calls content factory with the final file name', () => {
-    const tpl = new SimpleFileCreator({
-      id: 'test/skill/workspace',
-      label: 'New Skill',
-      presetId: 'claude',
-      category: 'skill',
-      locality: 'workspace',
-      targetDir: (ws) => `${ws}/.claude/skills`,
-      suggestedExtension: '.md',
-      initialContent: (name) => `# ${name}\n`,
+  it('content includes provided description', () => {
+    const r = creator.planWithProvidedInput(ctx(), {
+      userInput: 'cool-skill',
+      description: 'Does cool things.',
     });
-    const r = tpl.planWithProvidedInput(ctx(), { userInput: 'cool-skill' });
     expect(r.kind).toBe('plan');
     if (r.kind !== 'plan') return;
-    expect((r.plan.operations[0] as WriteFileOp).content).toBe('# cool-skill.md\n');
+    expect((r.plan.operations[0] as WriteFileOp).content).toContain(
+      'description: Does cool things.'
+    );
   });
 
   it('returns error when targetDir is empty', () => {
@@ -84,19 +70,18 @@ describe('SimpleFileCreator planWithProvidedInput()', () => {
   });
 });
 
-describe('FolderFileCreator planWithProvidedInput()', () => {
-  const creator = new FolderFileCreator({
+describe('SkillFileCreator (folder) planWithProvidedInput()', () => {
+  const creator = new SkillFileCreator({
     id: 'test/skill/workspace',
     label: 'New Skill',
     presetId: 'antigravity',
     category: 'skill',
     locality: 'workspace',
     targetDir: (ws) => (ws ? `${ws}/.agent/skills` : ''),
-    fixedFileName: 'SKILL.md',
-    initialContent: (folderName) => `# ${folderName}\n`,
+    layout: { kind: 'folder', fixedFileName: 'SKILL.md' },
   });
 
-  it('creates <dir>/<folderName>/<fixedFileName> path', () => {
+  it('creates <dir>/<name>/SKILL.md path', () => {
     const r = creator.planWithProvidedInput(ctx(), { userInput: 'my-skill' });
     expect(r.kind).toBe('plan');
     if (r.kind !== 'plan') return;
@@ -104,11 +89,13 @@ describe('FolderFileCreator planWithProvidedInput()', () => {
     expect(op.absolutePath).toBe('/ws/.agent/skills/my-skill/SKILL.md');
   });
 
-  it('passes folder name (not file name) to content factory', () => {
+  it('content includes YAML frontmatter with name', () => {
     const r = creator.planWithProvidedInput(ctx(), { userInput: 'cool' });
     expect(r.kind).toBe('plan');
     if (r.kind !== 'plan') return;
-    expect((r.plan.operations[0] as WriteFileOp).content).toBe('# cool\n');
+    const op = r.plan.operations[0] as WriteFileOp;
+    expect(op.content).toContain('name: cool');
+    expect(op.content).toContain('description:');
   });
 });
 

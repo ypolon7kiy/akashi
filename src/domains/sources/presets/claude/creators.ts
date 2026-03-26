@@ -2,14 +2,10 @@ import * as path from 'node:path';
 import type { ArtifactCreator } from '../../domain/artifactCreator';
 import { FixedDocCreator } from '../../domain/creators/FixedDocCreator';
 import { SimpleFileCreator } from '../../domain/creators/SimpleFileCreator';
+import { SkillFileCreator } from '../../domain/creators/SkillFileCreator';
 import { SourceCategoryId } from '../../domain/sourceTags';
 import { ClaudeMcpCreator } from './creators/ClaudeMcpCreator';
 import { ClaudeRegisteredHookCreator } from './creators/ClaudeRegisteredHookCreator';
-
-function skillContent(fileName: string): string {
-  const name = fileName.replace(/\.md$/i, '');
-  return `# ${name}\n\n`;
-}
 
 function ruleContent(fileName: string): string {
   const name = fileName.replace(/\.md$/i, '');
@@ -27,25 +23,23 @@ export {
 } from './creators/ClaudeRegisteredHookCreator';
 
 export const claudeArtifactCreators: readonly ArtifactCreator[] = [
-  new SimpleFileCreator({
+  new SkillFileCreator({
     id: 'claude/skill/workspace',
     label: 'New Skill',
     presetId: 'claude',
     category: SourceCategoryId.Skill,
     locality: 'workspace',
     targetDir: (ws) => (ws ? path.join(ws, '.claude', 'skills') : ''),
-    suggestedExtension: '.md',
-    initialContent: skillContent,
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   }),
-  new SimpleFileCreator({
+  new SkillFileCreator({
     id: 'claude/skill/user',
     label: 'New Skill (global)',
     presetId: 'claude',
     category: SourceCategoryId.Skill,
     locality: 'user',
     targetDir: (_ws, roots) => path.join(roots.claudeUserRoot, 'skills'),
-    suggestedExtension: '.md',
-    initialContent: skillContent,
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   }),
   new SimpleFileCreator({
     id: 'claude/rule/workspace',

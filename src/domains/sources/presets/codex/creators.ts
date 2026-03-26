@@ -1,13 +1,9 @@
 import * as path from 'node:path';
 import type { ArtifactCreator } from '../../domain/artifactCreator';
 import { SimpleFileCreator } from '../../domain/creators/SimpleFileCreator';
+import { SkillFileCreator } from '../../domain/creators/SkillFileCreator';
 import { SourceCategoryId } from '../../domain/sourceTags';
 import { CodexConfigTomlCreator } from './creators/CodexConfigTomlCreator';
-
-function skillContent(fileName: string): string {
-  const name = fileName.replace(/\.md$/i, '');
-  return `# ${name}\n\n`;
-}
 
 function ruleContent(fileName: string): string {
   const name = fileName.replace(/\.rules$/i, '');
@@ -15,25 +11,23 @@ function ruleContent(fileName: string): string {
 }
 
 export const codexArtifactCreators: readonly ArtifactCreator[] = [
-  new SimpleFileCreator({
+  new SkillFileCreator({
     id: 'codex/skill/workspace',
     label: 'New Skill',
     presetId: 'codex',
     category: SourceCategoryId.Skill,
     locality: 'workspace',
     targetDir: (ws) => (ws ? path.join(ws, '.codex', 'skills') : ''),
-    suggestedExtension: '.md',
-    initialContent: skillContent,
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   }),
-  new SimpleFileCreator({
+  new SkillFileCreator({
     id: 'codex/skill/user',
     label: 'New Skill (global)',
     presetId: 'codex',
     category: SourceCategoryId.Skill,
     locality: 'user',
     targetDir: (_ws, roots) => path.join(roots.codexUserRoot, 'skills'),
-    suggestedExtension: '.md',
-    initialContent: skillContent,
+    layout: { kind: 'flat', suggestedExtension: '.md' },
   }),
   new SimpleFileCreator({
     id: 'codex/rule/workspace',

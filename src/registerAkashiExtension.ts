@@ -25,7 +25,8 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
   const sourcesService = createSourcesService(
     context,
     config.getActiveSourcePresets,
-    config.resolveToolUserRoots
+    config.resolveToolUserRoots,
+    config.getExcludePatterns
   );
   void sourcesService.getLastSnapshot();
 
@@ -107,6 +108,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         workspaceRoot: string;
         hookLifecycleEvent?: string;
         hookMatcher?: string;
+        description?: string;
       }) => {
         const creator = findArtifactCreatorById(args?.templateId);
         if (!creator) {
@@ -120,6 +122,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
             userInput: (args.userInput ?? '').trim(),
             hookLifecycleEvent: args.hookLifecycleEvent,
             hookMatcher: args.hookMatcher,
+            description: args.description,
           }
         );
         if (planned.kind === 'cancelled') {

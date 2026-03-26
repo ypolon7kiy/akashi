@@ -19,6 +19,7 @@ export interface ArtifactCreatorArgs {
   readonly userInput: string;
   readonly hookLifecycleEvent?: string;
   readonly hookMatcher?: string;
+  readonly description?: string;
 }
 
 export type CreatorResult =
