@@ -114,11 +114,6 @@ body {
   min-width: 0;
 }
 
-.akashi-graph-toolbar__row--status {
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.22));
-  margin-bottom: 4px;
-}
 
 /*
  * 3-column grid per row: All | None — vertical rule — chips.
@@ -266,6 +261,16 @@ body {
   box-shadow: none;
 }
 
+.akashi-graph-view-controls__peek--icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
 .akashi-graph-view-controls__body {
   padding: 10px 12px 12px;
   display: flex;
@@ -394,13 +399,6 @@ body {
   border-color: var(--vscode-button-border, transparent);
 }
 
-.akashi-graph-status {
-  flex: 1;
-  color: var(--vscode-descriptionForeground);
-  font-size: calc(var(--vscode-font-size) * 0.92);
-  line-height: 1.4;
-  min-width: 0;
-}
 
 /*
  * Preset/category chips: horizontal scroll on narrow panels (avoids 55vw cap that hid toggles).
@@ -472,47 +470,6 @@ body {
   background: var(--vscode-editor-background);
   pointer-events: none;
   line-height: 1.45;
-}
-
-.akashi-graph-debug {
-  flex-shrink: 0;
-  max-height: 38vh;
-  overflow: auto;
-  border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
-  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
-  font-size: calc(var(--vscode-font-size) * 0.85);
-}
-
-.akashi-graph-debug-summary {
-  cursor: pointer;
-  padding: 8px 12px;
-  font-weight: 600;
-  color: var(--vscode-foreground);
-  list-style-position: inside;
-}
-
-.akashi-graph-debug-body {
-  padding: 0 12px 12px;
-  color: var(--vscode-descriptionForeground);
-}
-
-.akashi-graph-debug-line {
-  margin: 6px 0;
-}
-
-.akashi-graph-debug-line code {
-  font-size: 0.95em;
-}
-
-.akashi-graph-debug-list {
-  margin: 4px 0 8px 1.2rem;
-  padding: 0;
-}
-
-.akashi-graph-debug-hint {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.25));
 }
 
 .akashi-graph-context-item {

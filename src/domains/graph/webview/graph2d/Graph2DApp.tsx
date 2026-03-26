@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { buildGraphFromSourcesPayload } from '../../application/buildGraphFromSourcesPayload';
 import type { GraphEdge3D, GraphNode3D } from '../../domain/graphTypes';
-import { diagnoseInboundSnapshotMessage } from '../graphSnapshotDiagnostics';
 import { Graph2DMessageType, type Graph2DFileColorsPayload } from './messages';
 import {
   defaultGraph2DWebviewPersistedState,
@@ -18,11 +17,6 @@ import { getVscodeApi } from '../../../../webview-shared/api';
 
 export function Graph2DApp(): JSX.Element {
   const [snapshot, setSnapshot] = useState<SourcesSnapshotPayload | null>(null);
-  const [inboundCount, setInboundCount] = useState(0);
-  const [lastDiag, setLastDiag] = useState<ReturnType<
-    typeof diagnoseInboundSnapshotMessage
-  > | null>(null);
-  const [mountTime] = useState(() => new Date().toISOString());
   const [categoryPalette, setCategoryPalette] = useState<Graph2DFileColorsPayload | null>(null);
 
   const [controlsCollapsed, setControlsCollapsed] = useState(true);
@@ -112,9 +106,6 @@ export function Graph2DApp(): JSX.Element {
       if (data?.type !== Graph2DMessageType.Snapshot) {
         return;
       }
-      setInboundCount((c) => c + 1);
-      const diag = diagnoseInboundSnapshotMessage(data as { type?: string; payload?: unknown });
-      setLastDiag(diag);
       const p = data.payload;
       if (p == null) {
         setSnapshot(null);
@@ -209,22 +200,6 @@ export function Graph2DApp(): JSX.Element {
     setCollidePadding(d.collidePadding);
   }, []);
 
-  const nodeBreakdown = useMemo(() => {
-    const categories = model.nodes.filter((n) => n.type === 'category').length;
-    const notes = model.nodes.filter((n) => n.type === 'note').length;
-    const tags = model.nodes.filter((n) => n.type === 'tag').length;
-    const presets = model.nodes.filter((n) => n.type === 'preset').length;
-    const localities = model.nodes.filter((n) => n.type === 'locality').length;
-    return { categories, notes, tags, presets, localities };
-  }, [model.nodes]);
-
-  const statusText = useMemo(() => {
-    if (!snapshot) {
-      return 'No validated snapshot yet (see Debug below).';
-    }
-    return `${snapshot.sourceCount} sources · ${new Date(snapshot.generatedAt).toLocaleString()}`;
-  }, [snapshot]);
-
   const emptyHint = useMemo(
     () => buildEmptyHint(snapshot, model, sidebarMatchedPaths !== null),
     [snapshot, model, sidebarMatchedPaths]
@@ -232,11 +207,6 @@ export function Graph2DApp(): JSX.Element {
 
   return (
     <div className="akashi-graph-app akashi-graph2d-app">
-      <header className="akashi-graph-toolbar akashi-graph-toolbar--stacked">
-        <div className="akashi-graph-toolbar__row akashi-graph-toolbar__row--status">
-          <span className="akashi-graph-status">{statusText}</span>
-        </div>
-      </header>
       <div className="akashi-graph-scene">
         <div className="akashi-graph-scene-stack">
           {sceneReady ? (
@@ -279,57 +249,6 @@ export function Graph2DApp(): JSX.Element {
           )}
         </div>
       </div>
-      <details className="akashi-graph-debug akashi-graph2d-debug">
-        <summary className="akashi-graph-debug-summary">Graph2D debug</summary>
-        <div className="akashi-graph-debug-body">
-          <p className="akashi-graph-debug-line">
-            <strong>Webview mounted</strong> {mountTime}
-          </p>
-          <p className="akashi-graph-debug-line">
-            <strong>Snapshot messages received</strong> {inboundCount}
-          </p>
-          {lastDiag ? (
-            <>
-              <p className="akashi-graph-debug-line">
-                <strong>Last message type</strong> {lastDiag.messageType}
-              </p>
-              <p className="akashi-graph-debug-line">
-                <strong>Payload</strong> present={String(lastDiag.payloadPresent)} · type=
-                {String(lastDiag.payloadType)}
-              </p>
-              <p className="akashi-graph-debug-line">
-                <strong>Top-level keys</strong> {lastDiag.topLevelKeys}
-              </p>
-              <p className="akashi-graph-debug-line">
-                <strong>isSourcesSnapshotPayload</strong> {String(lastDiag.validationPassed)}
-              </p>
-              <ul className="akashi-graph-debug-list">
-                {lastDiag.detailLines.map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="akashi-graph-debug-line">
-              No <code>graph2d/snapshot</code> message received yet.
-            </p>
-          )}
-          <p className="akashi-graph-debug-line">
-            <strong>Built graph</strong> nodes={model.nodes.length} edges={model.edges.length}{' '}
-            (presets=
-            {nodeBreakdown.presets}, localities=
-            {nodeBreakdown.localities}, categories=
-            {nodeBreakdown.categories}, files={nodeBreakdown.notes}, facet-tags=
-            {nodeBreakdown.tags})
-          </p>
-          <p className="akashi-graph-debug-line akashi-graph-debug-hint">
-            <strong>Controls</strong> Pan: middle mouse drag. Zoom: wheel. Left-drag nodes to
-            reposition. Right-click a node for the menu. Double-click a file to open. Hover to focus
-            a subgraph. Presets start as separate hubs (project/global beside each); adjust "Preset
-            cluster pull" if a cluster drifts.
-          </p>
-        </div>
-      </details>
     </div>
   );
 }
@@ -351,5 +270,5 @@ function buildEmptyHint(
   if (isFilterActive) {
     return 'No sources match the current search filter.';
   }
-  return 'Graph builder returned no nodes (unexpected). See Graph2D debug below.';
+  return 'Graph builder returned no nodes (unexpected).';
 }

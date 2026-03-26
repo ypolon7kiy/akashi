@@ -4,6 +4,7 @@
   "description": "Browse, validate, and visualize the system instructions and guidelines your AI coding agents rely on. Supports Claude, Cursor, Codex, and Gemini presets.",
   "version": "0.1.0",
   "publisher": "akashi",
+  "preview": true,
   "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
@@ -30,7 +31,10 @@
     "AGENTS.md",
     "CLAUDE.md",
     "rules",
-    "prompts"
+    "prompts",
+    "mcp",
+    "prompt-engineering",
+    "GEMINI.md"
   ],
   "engines": {
     "vscode": "^1.85.0"
