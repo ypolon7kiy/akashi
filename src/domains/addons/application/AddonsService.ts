@@ -2,7 +2,8 @@
  * Addons application service: orchestrates marketplace origins, catalog fetching,
  * and install/uninstall lifecycle.
  *
- * Installed addons come directly from the SourceIndexSnapshot — no custom projection.
+ * Installed addons are tracked in per-locality akashi-meta.json files.
+ * Install status is determined by the meta file — no snapshot/catalog intersection.
  */
 
 import { join } from 'node:path';
@@ -18,18 +19,13 @@ import {
   type OriginSource,
   type PersistedCustomOrigin,
 } from '../domain/marketplaceOrigin';
-import {
-  addToLedger,
-  findInLedgerByPluginId,
-  findInLedgerByPath,
-  removeFromLedger,
-  type InstalledAddonRecord,
-} from '../domain/installationLedger';
-import { reconcile, deriveNameFromPath } from '../domain/reconcileInstallStatus';
-import type { CatalogPlugin, PluginCategory } from '../domain/catalogPlugin';
+import { addEntry, removeEntry, getEntries, type AkashiMeta, type AkashiMetaEntry } from '../domain/akashiMeta';
+import { deriveNameFromPath } from '../domain/reconcileInstallStatus';
+import type { CatalogPlugin, InstallStatus, PluginCategory } from '../domain/catalogPlugin';
 import type {
   SourceSnapshotPort,
   AddonsStorePort,
+  AkashiMetaPort,
   MarketplaceFetcherPort,
   AddonInstallerPort,
 } from './ports';
@@ -41,7 +37,8 @@ export class AddonsService {
     private readonly sourceSnapshot: SourceSnapshotPort,
     private readonly store: AddonsStorePort,
     private readonly fetcher: MarketplaceFetcherPort,
-    private readonly installer: AddonInstallerPort
+    private readonly installer: AddonInstallerPort,
+    private readonly metaStore: AkashiMetaPort
   ) {}
 
   // ── Origins Management ────────────────────────────────────────────
@@ -137,16 +134,20 @@ export class AddonsService {
 
   /**
    * Build the full addons catalog for the given preset.
-   * Installed addons = snapshot records/artifacts filtered by preset.
-   * No custom projection — the snapshot IS the source of truth.
+   * Install status comes from akashi-meta.json files (workspace + user).
+   * Stale entries (meta says installed but files gone) are auto-cleaned.
    */
-  async getCatalog(presetId: SourcePresetId): Promise<AddonsCatalog | null> {
+  async getCatalog(
+    presetId: SourcePresetId,
+    workspaceRoot: string,
+    roots: ToolUserRoots
+  ): Promise<AddonsCatalog | null> {
     const snapshot = await this.sourceSnapshot.getLastSnapshot();
     if (!snapshot) {
       return null;
     }
 
-    // Filter snapshot to the target preset — pass through directly
+    // Filter snapshot to the target preset
     const records = snapshot.records.filter((r) => r.preset === presetId);
     const artifacts = (snapshot.artifacts ?? []).filter((a) => a.presetId === presetId);
     const origins = this.getOrigins();
@@ -158,26 +159,55 @@ export class AddonsService {
       rawPlugins.push(...this.getCachedPlugins(origin.id));
     }
 
-    // Reconcile: snapshot (truth) + ledger (claims) + catalog (available)
-    const ledger = this.store.getLedger();
-    const result = reconcile({
-      targetPresetId: presetId,
-      snapshotRecords: records,
-      ledger,
-      catalogPlugins: rawPlugins,
-    });
+    // Read meta files from both localities
+    const wsMeta = this.metaStore.readMeta('workspace', workspaceRoot, roots.claudeUserRoot);
+    const userMeta = this.metaStore.readMeta('user', workspaceRoot, roots.claudeUserRoot);
 
-    // Eagerly prune stale ledger records
-    if (result.staleLedgerRecords.length > 0) {
-      await this.store.saveLedger(result.prunedLedger);
+    // Build set of installed names from both meta files
+    const wsEntries = getEntries(wsMeta, presetId);
+    const userEntries = getEntries(userMeta, presetId);
+    const installedNames = new Set([
+      ...wsEntries.map((e) => e.name),
+      ...userEntries.map((e) => e.name),
+    ]);
+
+    // Stale detection: check meta entries against snapshot
+    const snapshotNames = new Set(records.map((r) => deriveNameFromPath(r.path)));
+
+    let wsMetaUpdated = wsMeta;
+    for (const entry of wsEntries) {
+      if (!snapshotNames.has(entry.name)) {
+        wsMetaUpdated = removeEntry(wsMetaUpdated, presetId, entry.name, entry.category);
+        installedNames.delete(entry.name);
+      }
     }
+    if (wsMetaUpdated !== wsMeta) {
+      await this.metaStore.writeMeta('workspace', workspaceRoot, roots.claudeUserRoot, wsMetaUpdated);
+    }
+
+    let userMetaUpdated = userMeta;
+    for (const entry of userEntries) {
+      if (!snapshotNames.has(entry.name)) {
+        userMetaUpdated = removeEntry(userMetaUpdated, presetId, entry.name, entry.category);
+        installedNames.delete(entry.name);
+      }
+    }
+    if (userMetaUpdated !== userMeta) {
+      await this.metaStore.writeMeta('user', workspaceRoot, roots.claudeUserRoot, userMetaUpdated);
+    }
+
+    // Assign install status to catalog plugins
+    const catalogPlugins: CatalogPlugin[] = rawPlugins.map((plugin) => ({
+      ...plugin,
+      installStatus: (installedNames.has(plugin.name) ? 'installed' : 'available') as InstallStatus,
+    }));
 
     return {
       generatedAt: snapshot.generatedAt,
       presetId,
       records,
       artifacts,
-      catalogPlugins: result.plugins,
+      catalogPlugins,
       origins,
     };
   }
@@ -222,50 +252,47 @@ export class AddonsService {
       return { ok: false, error: result.error };
     }
 
-    const record: InstalledAddonRecord = {
-      id: `${plugin.id}/${locality}`,
+    // Record in akashi-meta.json
+    const meta = this.metaStore.readMeta(locality, workspaceRoot, roots.claudeUserRoot);
+    const updated = addEntry(meta, 'claude', {
       name: plugin.name,
-      originId: plugin.originId,
-      presetId: 'claude',
       category: plugin.category,
-      locality,
+      originId: plugin.originId,
       version: plugin.version,
-      installedAt: new Date().toISOString(),
-      installedFiles: result.createdPaths,
-      installedJsonEntries: [],
-    };
+      installedPaths: result.createdPaths,
+    });
+    await this.metaStore.writeMeta(locality, workspaceRoot, roots.claudeUserRoot, updated);
 
-    const ledger = this.store.getLedger();
-    await this.store.saveLedger(addToLedger(ledger, record));
     return { ok: true };
   }
 
   async deleteAddon(
+    workspaceRoot: string,
+    roots: ToolUserRoots,
     primaryPath?: string,
     pluginId?: string
   ): Promise<{ ok: boolean; error?: string }> {
-    const ledger = this.store.getLedger();
-
-    // Try to find ledger record by pluginId or by path
-    let record: InstalledAddonRecord | undefined;
-    if (pluginId) {
-      record = findInLedgerByPluginId(ledger, pluginId);
-    }
-    if (!record && primaryPath) {
-      record = findInLedgerByPath(ledger, primaryPath);
-    }
-
-    // Resolve the effective path and artifact shape from the snapshot
     const snapshot = await this.sourceSnapshot.getLastSnapshot();
-    let effectivePath = primaryPath ?? record?.installedFiles[0];
 
-    // If we still have no path, try to resolve from the snapshot by plugin name.
-    // This handles the Available tab case: pluginId provided, no ledger record,
-    // but the item exists on disk (name-match heuristic).
+    // Try to find the meta entry — it knows exactly what was installed
+    const metaMatch = this.findMetaEntry(workspaceRoot, roots, primaryPath, pluginId, snapshot);
+
+    if (metaMatch) {
+      // Meta-tracked addon: use installedPaths for precise cleanup
+      const result = await this.deleteTrackedPaths(metaMatch.entry.installedPaths, primaryPath, snapshot);
+      if (!result.ok) {
+        return result;
+      }
+      const updated = removeEntry(metaMatch.meta, 'claude', metaMatch.entry.name, metaMatch.entry.category);
+      await this.metaStore.writeMeta(metaMatch.locality, workspaceRoot, roots.claudeUserRoot, updated);
+      return { ok: true };
+    }
+
+    // Fallback: not in meta (manually created addon) — use snapshot to resolve
+    let effectivePath = primaryPath;
     if (!effectivePath && pluginId && snapshot) {
       const pluginName = pluginId.replace(/@.*$/, '');
-      const artifacts = snapshot.artifacts ?? [];
-      const match = artifacts.find(
+      const match = (snapshot.artifacts ?? []).find(
         (a) => deriveNameFromPath(a.primaryPath) === pluginName
       );
       if (match) {
@@ -273,39 +300,95 @@ export class AddonsService {
       }
     }
 
+    if (!effectivePath) {
+      return { ok: false, error: 'No addon found to delete' };
+    }
+
+    const result = await this.deleteByPath(effectivePath, snapshot);
+    return result;
+  }
+
+  /** Look up a meta entry by primaryPath or pluginId across both localities. */
+  private findMetaEntry(
+    workspaceRoot: string,
+    roots: ToolUserRoots,
+    primaryPath?: string,
+    pluginId?: string,
+    snapshot?: { records: readonly { path: string; locality: SourceLocality; category: string }[] } | null
+  ): { entry: AkashiMetaEntry; meta: AkashiMeta; locality: SourceLocality } | null {
+    const addonName = primaryPath
+      ? deriveNameFromPath(primaryPath)
+      : pluginId
+        ? pluginId.replace(/@.*$/, '')
+        : null;
+    if (!addonName) return null;
+
+    // Determine preferred locality from snapshot record
+    const snapshotRecord = primaryPath && snapshot
+      ? snapshot.records.find((r) => r.path === primaryPath)
+      : null;
+    const preferredLocality: SourceLocality = snapshotRecord?.locality ?? 'workspace';
+    const localities: readonly SourceLocality[] = [preferredLocality, preferredLocality === 'workspace' ? 'user' : 'workspace'];
+
+    for (const loc of localities) {
+      const meta = this.metaStore.readMeta(loc, workspaceRoot, roots.claudeUserRoot);
+      const entries = getEntries(meta, 'claude');
+      const entry = entries.find((e) => e.name === addonName);
+      if (entry) {
+        return { entry, meta, locality: loc };
+      }
+    }
+    return null;
+  }
+
+  /** Delete using tracked installedPaths. For folder-layout, removes the entire folder. */
+  private async deleteTrackedPaths(
+    installedPaths: readonly string[],
+    primaryPath: string | undefined,
+    snapshot: { artifacts?: readonly { primaryPath: string; shape: string }[] } | null
+  ): Promise<{ ok: boolean; error?: string }> {
+    // Check if this is a folder artifact — if so, remove the whole folder
+    const refPath = primaryPath ?? installedPaths[0];
+    if (refPath && snapshot) {
+      const artifact = (snapshot.artifacts ?? []).find((a) => a.primaryPath === refPath);
+      if (artifact?.shape === 'folder-file') {
+        const norm = refPath.replace(/\\/g, '/');
+        const folderPath = norm.slice(0, norm.lastIndexOf('/'));
+        return this.installer.removeDirectory(folderPath);
+      }
+    }
+
+    // Non-folder: delete all tracked files
+    if (installedPaths.length > 0) {
+      return this.installer.removeTrackedFiles(installedPaths);
+    }
+
+    // Fallback: delete single file
+    if (primaryPath) {
+      return this.installer.removeTrackedFiles([primaryPath]);
+    }
+
+    return { ok: false, error: 'No files to delete' };
+  }
+
+  /** Fallback deletion for addons not tracked in meta. */
+  private async deleteByPath(
+    effectivePath: string,
+    snapshot: { artifacts?: readonly { primaryPath: string; shape: string }[] } | null
+  ): Promise<{ ok: boolean; error?: string }> {
     let isFolderArtifact = false;
-    if (effectivePath && snapshot) {
+    if (snapshot) {
       const artifact = (snapshot.artifacts ?? []).find((a) => a.primaryPath === effectivePath);
       isFolderArtifact = artifact?.shape === 'folder-file';
     }
 
-    // Delete files from disk
-    let result: { ok: boolean; error?: string };
-    if (isFolderArtifact && effectivePath) {
-      // Folder-layout: delete the entire parent folder
+    if (isFolderArtifact) {
       const norm = effectivePath.replace(/\\/g, '/');
       const folderPath = norm.slice(0, norm.lastIndexOf('/'));
-      result = await this.installer.removeDirectory(folderPath);
-    } else if (record) {
-      // Ledger-tracked non-folder: delete all tracked files
-      result = await this.installer.removeTrackedFiles(record.installedFiles);
-    } else if (effectivePath) {
-      // Not in ledger, not a folder: delete the single file
-      result = await this.installer.removeTrackedFiles([effectivePath]);
-    } else {
-      return { ok: false, error: 'No addon found to delete' };
+      return this.installer.removeDirectory(folderPath);
     }
 
-    if (!result.ok) {
-      return result;
-    }
-
-    // Clean up ledger if a record existed
-    if (record) {
-      await this.store.saveLedger(removeFromLedger(ledger, record.id));
-    }
-
-    return { ok: true };
+    return this.installer.removeTrackedFiles([effectivePath]);
   }
 }
 

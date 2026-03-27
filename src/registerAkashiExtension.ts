@@ -6,6 +6,7 @@ import type { AddonsPanelEnvironment } from './domains/addons/ui/addonsPanelEnvi
 import { AddonsPanel, registerAddonsUi } from './domains/addons/ui/register';
 import { AddonsService } from './domains/addons/application/AddonsService';
 import { VscodeAddonsStore } from './domains/addons/infrastructure/VscodeAddonsStore';
+import { AkashiMetaFileStore } from './domains/addons/infrastructure/AkashiMetaFileStore';
 import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
 import { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory } from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
@@ -99,16 +100,20 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
 
   // ── Addons domain wiring ───────────────────────────────────────────
   const addonsStore = new VscodeAddonsStore(context);
+  const metaStore = new AkashiMetaFileStore();
   const addonsService = new AddonsService(
     sourcesService,
     addonsStore,
     { fetch: fetchMarketplaceJson },
-    { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory }
+    { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory },
+    metaStore
   );
 
   const addonsEnv: AddonsPanelEnvironment = {
     getAddonsCatalog: async () => {
-      const catalog = await addonsService.getCatalog('claude');
+      const roots = config.resolveToolUserRoots(os.homedir());
+      const workspaceRoot = inferWorkspaceRoot();
+      const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       if (!catalog) {
         return null;
       }
@@ -177,13 +182,13 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       }
     },
     installPlugin: async (pluginId: string, locality: 'workspace' | 'user') => {
-      const catalog = await addonsService.getCatalog('claude');
+      const roots = config.resolveToolUserRoots(os.homedir());
+      const workspaceRoot = inferWorkspaceRoot();
+      const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       const plugin = catalog?.catalogPlugins.find((p) => p.id === pluginId);
       if (!plugin) {
         return { ok: false, error: 'Plugin not found in catalog' };
       }
-      const roots = config.resolveToolUserRoots(os.homedir());
-      const workspaceRoot = inferWorkspaceRoot();
       const result = await addonsService.installPlugin(plugin, locality, workspaceRoot, roots);
       if (result.ok) {
         await vscode.commands.executeCommand('akashi.sources.refresh');
@@ -191,7 +196,9 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       return result;
     },
     deleteAddon: async (primaryPath?: string, pluginId?: string) => {
-      const result = await addonsService.deleteAddon(primaryPath, pluginId);
+      const roots = config.resolveToolUserRoots(os.homedir());
+      const workspaceRoot = inferWorkspaceRoot();
+      const result = await addonsService.deleteAddon(workspaceRoot, roots, primaryPath, pluginId);
       if (result.ok) {
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
@@ -199,7 +206,9 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     },
     moveToGlobal: async (addonId: string) => {
       // Find the installed addon's source file
-      const catalog = await addonsService.getCatalog('claude');
+      const roots = config.resolveToolUserRoots(os.homedir());
+      const workspaceRoot = inferWorkspaceRoot();
+      const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       // Look up in artifacts first, then records
       const artifact = catalog?.artifacts.find((a) => a.id === addonId);
       const record = artifact
@@ -223,7 +232,6 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         const content = await vscode.workspace.fs.readFile(sourceUri);
         const textContent = new TextDecoder().decode(content);
         // Install at global scope via the creator infrastructure
-        const roots = config.resolveToolUserRoots(os.homedir());
         const { installViaCreator: install } = await import('./domains/addons/infrastructure/CreatorBasedInstaller');
         const creatorId = `claude/skill-folder/user`;
         const installResult = await install(creatorId, addonName, '', '', roots);

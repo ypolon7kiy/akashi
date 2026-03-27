@@ -1,37 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AddonsService } from '@src/domains/addons/application/AddonsService';
-import {
-  emptyLedger,
-  addToLedger,
-  type InstalledAddonRecord,
-  type InstallationLedger,
-} from '@src/domains/addons/domain/installationLedger';
-import type { SourceSnapshotPort, AddonsStorePort, MarketplaceFetcherPort, AddonInstallerPort } from '@src/domains/addons/application/ports';
-import type { SourceIndexSnapshot } from '@src/domains/sources/domain/model';
+import type {
+  SourceSnapshotPort,
+  AddonsStorePort,
+  AkashiMetaPort,
+  MarketplaceFetcherPort,
+  AddonInstallerPort,
+} from '@src/domains/addons/application/ports';
+import type { SourceIndexSnapshot, SourceFacetTag } from '@src/domains/sources/domain/model';
 import type { IndexedArtifact } from '@src/domains/sources/domain/artifact';
+import { emptyMeta, addEntry, type AkashiMeta } from '@src/domains/addons/domain/akashiMeta';
 
 // ── Test Factories ──────────────────────────────────────────────────
-
-function ledgerRecord(
-  name: string,
-  installedFiles: readonly string[],
-  overrides: Partial<InstalledAddonRecord> = {}
-): InstalledAddonRecord {
-  const locality = overrides.locality ?? 'workspace';
-  return {
-    id: `${name}@origin-a/${locality}`,
-    name,
-    originId: 'origin-a',
-    presetId: 'claude',
-    category: 'skill',
-    locality,
-    version: '1.0.0',
-    installedAt: '2025-01-01T00:00:00.000Z',
-    installedFiles,
-    installedJsonEntries: [],
-    ...overrides,
-  };
-}
 
 function artifact(
   primaryPath: string,
@@ -48,21 +28,42 @@ function artifact(
   };
 }
 
-function snapshot(artifacts: IndexedArtifact[] = []): SourceIndexSnapshot {
+function snapshotRecord(path: string) {
+  return {
+    id: `rec-${path}`,
+    path,
+    preset: 'claude' as const,
+    category: 'skill' as const,
+    locality: 'workspace' as const,
+    tags: [] as readonly SourceFacetTag[],
+    metadata: { byteLength: 100, updatedAt: '2025-01-01T00:00:00.000Z' },
+  };
+}
+
+function snapshot(
+  artifacts: IndexedArtifact[] = [],
+  records: ReturnType<typeof snapshotRecord>[] = []
+): SourceIndexSnapshot {
   return {
     generatedAt: '2025-01-01T00:00:00.000Z',
-    sourceCount: 0,
-    records: [],
+    sourceCount: records.length,
+    records,
     artifacts,
   };
 }
 
 // ── Mock Port Factories ─────────────────────────────────────────────
 
-function createMockPorts(ledger: InstallationLedger = emptyLedger(), snap: SourceIndexSnapshot | null = null) {
-  const savedLedgers: InstallationLedger[] = [];
+const WS_ROOT = '/ws';
+const USER_ROOT = '/home/user/.claude';
+
+function createMockPorts(
+  snap: SourceIndexSnapshot | null = null,
+  wsMeta: AkashiMeta = emptyMeta()
+) {
   const removedFiles: string[][] = [];
   const removedDirs: string[] = [];
+  const writtenMetas: Array<{ locality: string; meta: AkashiMeta }> = [];
 
   const sourceSnapshot: SourceSnapshotPort = {
     getLastSnapshot: vi.fn(async () => snap),
@@ -73,11 +74,16 @@ function createMockPorts(ledger: InstallationLedger = emptyLedger(), snap: Sourc
     saveCustomOrigins: vi.fn(async () => {}),
     getOriginOverrides: () => [],
     saveOriginOverrides: vi.fn(async () => {}),
-    getLedger: () => ledger,
-    saveLedger: vi.fn(async (l: InstallationLedger) => { savedLedgers.push(l); }),
     getCachedCatalog: () => null,
     saveCachedCatalog: vi.fn(async () => {}),
     clearCachedCatalog: vi.fn(async () => {}),
+  };
+
+  const metaStore: AkashiMetaPort = {
+    readMeta: vi.fn((locality: string) => (locality === 'workspace' ? wsMeta : emptyMeta())),
+    writeMeta: vi.fn(async (locality: string, _ws: string, _ur: string, meta: AkashiMeta) => {
+      writtenMetas.push({ locality, meta });
+    }),
   };
 
   const fetcher: MarketplaceFetcherPort = {
@@ -97,7 +103,17 @@ function createMockPorts(ledger: InstallationLedger = emptyLedger(), snap: Sourc
     }),
   };
 
-  return { sourceSnapshot, store, fetcher, installer, savedLedgers, removedFiles, removedDirs };
+  return { sourceSnapshot, store, metaStore, fetcher, installer, removedFiles, removedDirs, writtenMetas };
+}
+
+function createService(ports: ReturnType<typeof createMockPorts>) {
+  return new AddonsService(
+    ports.sourceSnapshot,
+    ports.store,
+    ports.fetcher,
+    ports.installer,
+    ports.metaStore
+  );
 }
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -105,197 +121,142 @@ function createMockPorts(ledger: InstallationLedger = emptyLedger(), snap: Sourc
 describe('AddonsService.deleteAddon', () => {
   it('returns error when neither primaryPath nor pluginId is provided', async () => {
     const ports = createMockPorts();
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon(undefined, undefined);
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any);
     expect(result.ok).toBe(false);
     expect(result.error).toBe('No addon found to delete');
   });
 
-  it('deletes single file by primaryPath when no ledger record exists', async () => {
-    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
-    const ports = createMockPorts(emptyLedger(), snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+  it('deletes single file by primaryPath', async () => {
+    const snap = snapshot(
+      [artifact('/ws/.claude/commands/foo.md', 'single-file')],
+      [snapshotRecord('/ws/.claude/commands/foo.md')]
+    );
+    const ports = createMockPorts(snap);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
     expect(ports.removedDirs).toHaveLength(0);
-    expect(ports.savedLedgers).toHaveLength(0);
   });
 
-  it('deletes tracked files + cleans ledger when pluginId matches a ledger record (single-file)', async () => {
-    const rec = ledgerRecord('foo', ['/ws/.claude/commands/foo.md']);
-    const ledger = addToLedger(emptyLedger(), rec);
-    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
-    const ports = createMockPorts(ledger, snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+  it('removes entire folder for folder-file artifact', async () => {
+    const snap = snapshot(
+      [artifact('/ws/.claude/skills/my-skill/SKILL.md', 'folder-file')],
+      [snapshotRecord('/ws/.claude/skills/my-skill/SKILL.md')]
+    );
+    const ports = createMockPorts(snap);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon(undefined, 'foo@origin-a');
-    expect(result.ok).toBe(true);
-    expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
-    expect(ports.savedLedgers).toHaveLength(1);
-    expect(ports.savedLedgers[0].records).toHaveLength(0);
-  });
-
-  it('finds ledger record by path when pluginId is not provided', async () => {
-    const rec = ledgerRecord('foo', ['/ws/.claude/commands/foo.md']);
-    const ledger = addToLedger(emptyLedger(), rec);
-    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
-    const ports = createMockPorts(ledger, snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
-
-    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
-    expect(result.ok).toBe(true);
-    expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
-    expect(ports.savedLedgers).toHaveLength(1);
-    expect(ports.savedLedgers[0].records).toHaveLength(0);
-  });
-
-  it('removes entire folder for folder-file artifact WITHOUT ledger record', async () => {
-    const snap = snapshot([artifact('/ws/.claude/skills/my-skill/SKILL.md', 'folder-file')]);
-    const ports = createMockPorts(emptyLedger(), snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
-
-    const result = await service.deleteAddon('/ws/.claude/skills/my-skill/SKILL.md');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/skills/my-skill/SKILL.md');
     expect(result.ok).toBe(true);
     expect(ports.removedDirs).toEqual(['/ws/.claude/skills/my-skill']);
     expect(ports.removedFiles).toHaveLength(0);
-    expect(ports.savedLedgers).toHaveLength(0);
-  });
-
-  it('removes entire folder for folder-file artifact WITH ledger record', async () => {
-    const rec = ledgerRecord('my-skill', [
-      '/ws/.claude/skills/my-skill/SKILL.md',
-      '/ws/.claude/skills/my-skill/README.md',
-    ]);
-    const ledger = addToLedger(emptyLedger(), rec);
-    const snap = snapshot([artifact('/ws/.claude/skills/my-skill/SKILL.md', 'folder-file')]);
-    const ports = createMockPorts(ledger, snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
-
-    const result = await service.deleteAddon('/ws/.claude/skills/my-skill/SKILL.md');
-    expect(result.ok).toBe(true);
-    // Should use removeDirectory, not removeTrackedFiles
-    expect(ports.removedDirs).toEqual(['/ws/.claude/skills/my-skill']);
-    expect(ports.removedFiles).toHaveLength(0);
-    // Ledger should still be cleaned
-    expect(ports.savedLedgers).toHaveLength(1);
-    expect(ports.savedLedgers[0].records).toHaveLength(0);
   });
 
   it('propagates error when file removal fails', async () => {
-    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
-    const ports = createMockPorts(emptyLedger(), snap);
+    const snap = snapshot(
+      [artifact('/ws/.claude/commands/foo.md', 'single-file')],
+      [snapshotRecord('/ws/.claude/commands/foo.md')]
+    );
+    const ports = createMockPorts(snap);
     (ports.installer.removeTrackedFiles as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       error: 'EACCES: permission denied',
     });
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(false);
     expect(result.error).toBe('EACCES: permission denied');
-    // Ledger should NOT be modified on failure
-    expect(ports.savedLedgers).toHaveLength(0);
+    // Meta should NOT be modified on failure
+    expect(ports.writtenMetas).toHaveLength(0);
   });
 
   it('propagates error when directory removal fails', async () => {
-    const snap = snapshot([artifact('/ws/.claude/skills/my-skill/SKILL.md', 'folder-file')]);
-    const ports = createMockPorts(emptyLedger(), snap);
+    const snap = snapshot(
+      [artifact('/ws/.claude/skills/my-skill/SKILL.md', 'folder-file')],
+      [snapshotRecord('/ws/.claude/skills/my-skill/SKILL.md')]
+    );
+    const ports = createMockPorts(snap);
     (ports.installer.removeDirectory as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       error: 'EACCES: permission denied',
     });
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon('/ws/.claude/skills/my-skill/SKILL.md');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/skills/my-skill/SKILL.md');
     expect(result.ok).toBe(false);
     expect(result.error).toBe('EACCES: permission denied');
   });
 
-  it('does not clean ledger when removal fails even if record exists', async () => {
-    const rec = ledgerRecord('foo', ['/ws/.claude/commands/foo.md']);
-    const ledger = addToLedger(emptyLedger(), rec);
-    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
-    const ports = createMockPorts(ledger, snap);
-    (ports.installer.removeTrackedFiles as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      ok: false,
-      error: 'ENOENT',
-    });
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
-
-    const result = await service.deleteAddon(undefined, 'foo@origin-a');
-    expect(result.ok).toBe(false);
-    // Ledger must NOT be modified when deletion fails
-    expect(ports.savedLedgers).toHaveLength(0);
-  });
-
   it('falls back to single-file delete when snapshot has no artifacts', async () => {
     const snap = snapshot([]);
-    const ports = createMockPorts(emptyLedger(), snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+    const ports = createMockPorts(snap);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
     expect(ports.removedDirs).toHaveLength(0);
   });
 
   it('falls back to single-file delete when snapshot is null', async () => {
-    const ports = createMockPorts(emptyLedger(), null);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+    const ports = createMockPorts(null);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
   });
 
-  it('same plugin installed to both localities — deleting one preserves the other', async () => {
-    const wsRec = ledgerRecord('foo', ['/ws/.claude/commands/foo.md'], { locality: 'workspace' });
-    const userRec = ledgerRecord('foo', ['/home/user/.claude/commands/foo.md'], { locality: 'user' });
-    let ledger = addToLedger(emptyLedger(), wsRec);
-    ledger = addToLedger(ledger, userRec);
-    // Both records coexist because ids differ: foo@origin-a/workspace vs foo@origin-a/user
-    expect(ledger.records).toHaveLength(2);
+  it('resolves path from snapshot by plugin name when pluginId provided', async () => {
+    const snap = snapshot(
+      [artifact('/ws/.claude/commands/foo.md', 'single-file')],
+      [snapshotRecord('/ws/.claude/commands/foo.md')]
+    );
+    const ports = createMockPorts(snap);
+    const service = createService(ports);
 
-    const snap = snapshot([
-      artifact('/ws/.claude/commands/foo.md', 'single-file'),
-      artifact('/home/user/.claude/commands/foo.md', 'single-file'),
-    ]);
-    const ports = createMockPorts(ledger, snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
-
-    // Delete the workspace install by path
-    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
-    expect(result.ok).toBe(true);
-    expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
-    // Ledger should have only the user record left
-    expect(ports.savedLedgers).toHaveLength(1);
-    expect(ports.savedLedgers[0].records).toHaveLength(1);
-    expect(ports.savedLedgers[0].records[0].locality).toBe('user');
-  });
-
-  it('resolves path from snapshot by plugin name when Available tab sends pluginId without ledger record', async () => {
-    // Name-match case: file exists on disk, no ledger record, Available tab sends pluginId
-    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
-    const ports = createMockPorts(emptyLedger(), snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
-
-    // pluginId "foo@origin-a" → extract name "foo" → match artifact by deriveNameFromPath
-    const result = await service.deleteAddon(undefined, 'foo@origin-a');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, undefined, 'foo@origin-a');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
   });
 
-  it('resolves folder-file artifact from snapshot by plugin name when Available tab sends pluginId', async () => {
-    const snap = snapshot([artifact('/ws/.claude/skills/foo/SKILL.md', 'folder-file')]);
-    const ports = createMockPorts(emptyLedger(), snap);
-    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+  it('resolves folder-file artifact from snapshot by plugin name', async () => {
+    const snap = snapshot(
+      [artifact('/ws/.claude/skills/foo/SKILL.md', 'folder-file')],
+      [snapshotRecord('/ws/.claude/skills/foo/SKILL.md')]
+    );
+    const ports = createMockPorts(snap);
+    const service = createService(ports);
 
-    const result = await service.deleteAddon(undefined, 'foo@origin-a');
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, undefined, 'foo@origin-a');
     expect(result.ok).toBe(true);
     expect(ports.removedDirs).toEqual(['/ws/.claude/skills/foo']);
     expect(ports.removedFiles).toHaveLength(0);
+  });
+
+  it('cleans up meta file entry on successful delete', async () => {
+    const snap = snapshot(
+      [artifact('/ws/.claude/commands/foo.md', 'single-file')],
+      [snapshotRecord('/ws/.claude/commands/foo.md')]
+    );
+    const wsMeta = addEntry(emptyMeta(), 'claude', {
+      name: 'foo',
+      category: 'skill',
+      originId: 'origin-a',
+      version: '1.0.0',
+      installedPaths: ['/ws/.claude/commands/foo.md'],
+    });
+    const ports = createMockPorts(snap, wsMeta);
+    const service = createService(ports);
+
+    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
+    expect(result.ok).toBe(true);
+    expect(ports.writtenMetas).toHaveLength(1);
+    expect(ports.writtenMetas[0].locality).toBe('workspace');
   });
 });

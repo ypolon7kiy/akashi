@@ -1,6 +1,6 @@
 /**
  * Persistent storage for the addons domain using VS Code globalState.
- * Stores: custom marketplace origins, built-in origin overrides, and the installation ledger.
+ * Stores: custom marketplace origins, built-in origin overrides, and catalog cache.
  */
 
 import type * as vscode from 'vscode';
@@ -8,15 +8,10 @@ import type {
   PersistedCustomOrigin,
   PersistedOriginOverride,
 } from '../domain/marketplaceOrigin';
-import {
-  emptyLedger,
-  type InstallationLedger,
-} from '../domain/installationLedger';
 import type { CatalogPlugin } from '../domain/catalogPlugin';
 
 const CUSTOM_ORIGINS_KEY = 'akashi.addons.customOrigins.v1';
 const ORIGIN_OVERRIDES_KEY = 'akashi.addons.originOverrides.v1';
-const LEDGER_KEY = 'akashi.addons.installationLedger.v1';
 const CATALOG_CACHE_KEY = 'akashi.addons.catalogCache.v1';
 
 interface CatalogCacheEntry {
@@ -56,26 +51,6 @@ export class VscodeAddonsStore {
 
   async saveOriginOverrides(overrides: readonly PersistedOriginOverride[]): Promise<void> {
     await this.context.globalState.update(ORIGIN_OVERRIDES_KEY, overrides);
-  }
-
-  // ── Installation Ledger ───────────────────────────────────────────
-
-  getLedger(): InstallationLedger {
-    const raw = this.context.globalState.get<unknown>(LEDGER_KEY);
-    if (
-      raw !== null &&
-      raw !== undefined &&
-      typeof raw === 'object' &&
-      !Array.isArray(raw) &&
-      (raw as Record<string, unknown>).version === 1
-    ) {
-      return raw as InstallationLedger;
-    }
-    return emptyLedger();
-  }
-
-  async saveLedger(ledger: InstallationLedger): Promise<void> {
-    await this.context.globalState.update(LEDGER_KEY, ledger);
   }
 
   // ── Catalog Cache ─────────────────────────────────────────────────
