@@ -171,7 +171,7 @@ export class AddonsPanel {
   public async pushCatalog(env: AddonsPanelEnvironment): Promise<void> {
     this.snapshotEnv = env;
     const payload = await env.getAddonsCatalog();
-    const installed = payload?.installedAddons?.length ?? 0;
+    const installed = payload?.records?.length ?? 0;
     const available = payload?.catalogPlugins?.length ?? 0;
     appendLine(
       `[Akashi][Addons] postMessage catalog installed=${installed} available=${available}`

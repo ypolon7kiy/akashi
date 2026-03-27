@@ -63,7 +63,6 @@ export async function installFromMarketplace(
     const hasSkillsDir = files.some((f) => f.relativePath.startsWith('skills/'));
     const hasCommandsDir = files.some((f) => f.relativePath.startsWith('commands/'));
     const hasAgentsDir = files.some((f) => f.relativePath.startsWith('agents/'));
-    const _hasHooksDir = files.some((f) => f.relativePath.startsWith('hooks/'));
     const hasMcpJson = files.some((f) => f.relativePath === '.mcp.json');
     const hasSkillMd = files.some((f) => f.relativePath === 'SKILL.md');
 

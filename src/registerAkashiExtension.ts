@@ -2,7 +2,7 @@ import * as os from 'node:os';
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
-import type { AddonsPanelEnvironment, ProgressReporter } from './domains/addons/ui/addonsPanelEnvironment';
+import type { AddonsPanelEnvironment } from './domains/addons/ui/addonsPanelEnvironment';
 import { AddonsPanel, registerAddonsUi } from './domains/addons/ui/register';
 import { AddonsService } from './domains/addons/application/AddonsService';
 import { VscodeAddonsStore } from './domains/addons/infrastructure/VscodeAddonsStore';
@@ -10,6 +10,7 @@ import { AkashiMetaFileStore } from './domains/addons/infrastructure/AkashiMetaF
 import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
 import { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory } from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
+import { SIDEBAR_FILTER_STATE_KEY } from './sidebar/host/SidebarViewProvider';
 import type { SerializedSourceSearchQuery } from './domains/search/domain/model';
 import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
 import { createConfigDomain } from './domains/config';
@@ -110,6 +111,14 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     metaStore
   );
 
+  // Track sidebar category filter for addons panel sync.
+  // Initialized from persisted state; updated live via onFilterStateSaved.
+  const initFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
+    SIDEBAR_FILTER_STATE_KEY, null
+  );
+  let addonsCategoryFilter: ReadonlySet<string> | null =
+    initFilter?.categories ? new Set(initFilter.categories) : null;
+
   const addonsEnv: AddonsPanelEnvironment = {
     getAddonsCatalog: async () => {
       const roots = config.resolveToolUserRoots(os.homedir());
@@ -118,16 +127,8 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       if (!catalog) {
         return null;
       }
-      // Read sidebar filter state to filter by enabled categories
-      const savedFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
-        'akashi.sidebar.filterState.v1',
-        null
-      );
-      const enabledCategories: ReadonlySet<string> | null = savedFilter?.categories
-        ? new Set(savedFilter.categories)
-        : null;
       const catMatch = (category: string): boolean =>
-        enabledCategories === null || enabledCategories.has(category);
+        addonsCategoryFilter === null || addonsCategoryFilter.has(category);
 
       // Map domain types to shared DTOs, filtered by sidebar categories
       const payload: AddonsCatalogPayload = {
@@ -197,41 +198,36 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         void vscode.window.showErrorMessage(`Fetch failed: ${msg}`);
       }
     },
-    installPlugin: async (pluginId: string, locality: 'workspace' | 'user', onProgress?: ProgressReporter) => {
+    installPlugin: async (pluginId: string, locality: 'workspace' | 'user') => {
       const roots = config.resolveToolUserRoots(os.homedir());
       const workspaceRoot = inferWorkspaceRoot();
       if (locality === 'workspace' && !workspaceRoot) {
         return { ok: false, error: 'Open a folder or workspace to install project-scoped addons.' };
       }
-      onProgress?.('Resolving plugin from catalog\u2026');
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       const plugin = catalog?.catalogPlugins.find((p) => p.id === pluginId);
       if (!plugin) {
         return { ok: false, error: 'Plugin not found in catalog' };
       }
-      const result = await addonsService.installPlugin(plugin, locality, workspaceRoot, roots, onProgress);
+      const result = await addonsService.installPlugin(plugin, locality, workspaceRoot, roots);
       if (result.ok) {
-        onProgress?.('Refreshing source index\u2026');
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
       return result;
     },
-    deleteAddon: async (primaryPath?: string, pluginId?: string, onProgress?: ProgressReporter) => {
+    deleteAddon: async (primaryPath?: string, pluginId?: string) => {
       const roots = config.resolveToolUserRoots(os.homedir());
       const workspaceRoot = inferWorkspaceRoot();
-      onProgress?.('Removing addon files\u2026');
-      const result = await addonsService.deleteAddon(workspaceRoot, roots, primaryPath, pluginId, onProgress);
+      const result = await addonsService.deleteAddon(workspaceRoot, roots, primaryPath, pluginId);
       if (result.ok) {
-        onProgress?.('Refreshing source index\u2026');
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
       return result;
     },
-    moveToGlobal: async (addonId: string, onProgress?: ProgressReporter) => {
+    moveToGlobal: async (addonId: string) => {
       // Find the installed addon's source file
       const roots = config.resolveToolUserRoots(os.homedir());
       const workspaceRoot = inferWorkspaceRoot();
-      onProgress?.('Locating addon\u2026');
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       // Look up in artifacts first, then records
       const artifact = catalog?.artifacts.find((a) => a.id === addonId);
@@ -252,12 +248,10 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         : norm.slice(norm.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
       // Read the source file content
       try {
-        onProgress?.(`Reading ${addon.primaryPath}\u2026`);
         const sourceUri = vscode.Uri.file(addon.primaryPath);
         const content = await vscode.workspace.fs.readFile(sourceUri);
         const textContent = new TextDecoder().decode(content);
         // Install at global scope via the creator infrastructure
-        onProgress?.(`Creating global copy of "${addonName}"\u2026`);
         const { installViaCreator: install } = await import('./domains/addons/infrastructure/CreatorBasedInstaller');
         const creatorId = `claude/skill-folder/user`;
         const installResult = await install(creatorId, addonName, '', '', roots);
@@ -266,14 +260,12 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         }
         // If the creator-generated content is just a stub, overwrite with the original content
         if (installResult.createdPaths.length > 0 && textContent.length > 0) {
-          onProgress?.(`Writing to ${installResult.createdPaths[0]}\u2026`);
           await vscode.workspace.fs.writeFile(
             vscode.Uri.file(installResult.createdPaths[0]),
             new TextEncoder().encode(textContent)
           );
         }
         // Delete the project-local file
-        onProgress?.(`Removing project copy ${addon.primaryPath}\u2026`);
         await vscode.workspace.fs.delete(sourceUri);
         // Try to clean up empty parent dir (folder layout)
         try {
@@ -285,7 +277,6 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         } catch {
           // Parent dir cleanup is best-effort
         }
-        onProgress?.('Refreshing source index\u2026');
         await vscode.commands.executeCommand('akashi.sources.refresh');
         return { ok: true };
       } catch (err: unknown) {
@@ -365,8 +356,9 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
           void Graph2DPanel.refreshIfOpen(graphEnv);
           void AddonsPanel.refreshIfOpen(addonsEnv);
         },
-        onFilterChanged: (matchedPaths) => {
+        onFilterStateSaved: (query, matchedPaths) => {
           Graph2DPanel.pushFilterIfOpen(matchedPaths);
+          addonsCategoryFilter = query.categories ? new Set(query.categories) : null;
           void AddonsPanel.refreshIfOpen(addonsEnv);
         },
       })

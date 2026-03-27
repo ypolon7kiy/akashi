@@ -17,9 +17,7 @@ export const SidebarCoreMessageType = {
   SourcesSnapshotPush: 'sources/snapshotPush',
   /** Host → webview: title-bar refresh / long index; drives progress UI without an RPC round-trip. */
   SourcesIndexingState: 'sources/indexingState',
-  /** Webview → host: sidebar filter state changed (fire-and-forget). */
-  SourcesFilterChanged: 'sources/filterChanged',
-  /** Webview → host: persist current filter state to globalState. */
+  /** Webview → host: persist filter state and relay results to panels. */
   SourcesSaveFilterState: 'sources/saveFilterState',
   /** Webview → host (RPC): request saved filter state from globalState. */
   SourcesGetFilterStateRequest: 'sources/getFilterState',
@@ -75,18 +73,13 @@ export interface SourcesIndexingStateMessage {
 }
 
 /**
- * Sidebar webview → host: filter result (matched paths) changed.
- * `null` = no filter active (show all). Empty array = nothing matches (hide all).
+ * Sidebar webview → host: persist filter state and relay results to panels.
+ * Carries both the query (for persistence + addons) and matched paths (for graph).
+ * `matchedPaths` is `null` when no filter is active (show all).
  */
-export interface SourcesFilterChangedMessage {
-  type: typeof SidebarCoreMessageType.SourcesFilterChanged;
-  payload: readonly string[] | null;
-}
-
-/** Sidebar webview → host: persist filter state to globalState. */
 export interface SourcesSaveFilterStateMessage {
   type: typeof SidebarCoreMessageType.SourcesSaveFilterState;
-  payload: SerializedSourceSearchQuery;
+  payload: SerializedSourceSearchQuery & { matchedPaths: readonly string[] | null };
 }
 
 /** Webview → host (RPC): request saved filter state from globalState. */
@@ -102,5 +95,4 @@ export type SidebarCoreRequestMessage =
   | SourcesOpenPathMessage
   | SourcesRevealInExplorerMessage
   | SourcesRevealFileInOsMessage
-  | SourcesFilterChangedMessage
   | SourcesSaveFilterStateMessage;

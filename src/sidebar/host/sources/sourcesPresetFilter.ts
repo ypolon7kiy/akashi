@@ -2,8 +2,8 @@ import type { IndexedSourceEntry } from '../../../domains/sources/domain/model';
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
 
 export function filterRecordsByPresets(
-  records: IndexedSourceEntry[],
+  records: readonly IndexedSourceEntry[],
   active: ReadonlySet<SourcePresetId>
-): IndexedSourceEntry[] {
+): readonly IndexedSourceEntry[] {
   return records.filter((r) => active.has(r.preset));
 }

@@ -12,10 +12,8 @@ export const SIDEBAR_FILTER_STATE_KEY = 'akashi.sidebar.filterState.v1';
 export interface SidebarViewProviderOptions {
   /** Called after the sidebar (and filtered snapshot) has been updated — e.g. refresh graph panel. */
   onAfterSourcesSnapshotRefreshed?: () => void;
-  /** Called when the sidebar filter result changes — relay matched paths to graph panel. */
-  onFilterChanged?: (matchedPaths: readonly string[] | null) => void;
-  /** Called when the sidebar filter state is persisted — relay category toggles to addons panel. */
-  onFilterStateSaved?: (query: SerializedSourceSearchQuery) => void;
+  /** Called after sidebar filter state is persisted — relay to graph + addons panels. */
+  onFilterStateSaved?: (query: SerializedSourceSearchQuery, matchedPaths: readonly string[] | null) => void;
 }
 
 export function createSidebarViewProvider(
@@ -123,17 +121,7 @@ export function createSidebarViewProvider(
         configDomain.generalConfig
       );
 
-      const notifyFilterChanged = (matchedPaths: readonly string[] | null): void => {
-        try {
-          options.onFilterChanged?.(matchedPaths);
-        } catch (err) {
-          appendLine(
-            `[Akashi] Sidebar: onFilterChanged failed: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-      };
-
-      const saveFilterState = (query: SerializedSourceSearchQuery): void => {
+      const saveFilterState = (query: SerializedSourceSearchQuery, matchedPaths: readonly string[] | null): void => {
         context.globalState
           .update(SIDEBAR_FILTER_STATE_KEY, query)
           .then(undefined, (err) =>
@@ -142,7 +130,7 @@ export function createSidebarViewProvider(
             )
           );
         try {
-          options.onFilterStateSaved?.(query);
+          options.onFilterStateSaved?.(query, matchedPaths);
         } catch (err) {
           appendLine(
             `[Akashi] Sidebar: onFilterStateSaved failed: ${err instanceof Error ? err.message : String(err)}`
@@ -157,7 +145,6 @@ export function createSidebarViewProvider(
         sourcesService,
         configDomain,
         actions,
-        notifyFilterChanged,
         saveFilterState,
         getSavedFilterState,
       };
