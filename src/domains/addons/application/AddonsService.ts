@@ -218,7 +218,8 @@ export class AddonsService {
     plugin: CatalogPlugin,
     locality: SourceLocality,
     workspaceRoot: string,
-    roots: ToolUserRoots
+    roots: ToolUserRoots,
+    onProgress?: (message: string) => void
   ): Promise<{ ok: boolean; error?: string }> {
     // Resolve target directories based on locality
     const base = locality === 'user' ? roots.claudeUserRoot : join(workspaceRoot, '.claude');
@@ -236,9 +237,11 @@ export class AddonsService {
     let result: { ok: boolean; createdPaths: readonly string[]; error?: string };
 
     if (origin) {
-      result = await this.installer.installFromMarketplace(plugin, origin.source, targets);
+      onProgress?.(`Downloading "${plugin.name}" from marketplace\u2026`);
+      result = await this.installer.installFromMarketplace(plugin, origin.source, targets, onProgress);
     } else {
       // Fallback: create stub via creator if origin not found
+      onProgress?.(`Creating "${plugin.name}" via scaffold\u2026`);
       const creatorId = resolveCreatorId('claude', plugin.category, locality);
       if (!creatorId) {
         return { ok: false, error: `No creator for category '${plugin.category}' at ${locality} scope` };
@@ -253,6 +256,7 @@ export class AddonsService {
     }
 
     // Record in akashi-meta.json
+    onProgress?.('Updating akashi-meta.json\u2026');
     const meta = this.metaStore.readMeta(locality, workspaceRoot, roots.claudeUserRoot);
     const updated = addEntry(meta, 'claude', {
       name: plugin.name,
@@ -270,19 +274,25 @@ export class AddonsService {
     workspaceRoot: string,
     roots: ToolUserRoots,
     primaryPath?: string,
-    pluginId?: string
+    pluginId?: string,
+    onProgress?: (message: string) => void
   ): Promise<{ ok: boolean; error?: string }> {
     const snapshot = await this.sourceSnapshot.getLastSnapshot();
 
     // Try to find the meta entry — it knows exactly what was installed
+    onProgress?.('Locating addon in metadata\u2026');
     const metaMatch = this.findMetaEntry(workspaceRoot, roots, primaryPath, pluginId, snapshot);
 
     if (metaMatch) {
       // Meta-tracked addon: use installedPaths for precise cleanup
+      for (const p of metaMatch.entry.installedPaths) {
+        onProgress?.(`Removing ${p}\u2026`);
+      }
       const result = await this.deleteTrackedPaths(metaMatch.entry.installedPaths, primaryPath, snapshot);
       if (!result.ok) {
         return result;
       }
+      onProgress?.('Updating akashi-meta.json\u2026');
       const updated = removeEntry(metaMatch.meta, 'claude', metaMatch.entry.name, metaMatch.entry.category);
       await this.metaStore.writeMeta(metaMatch.locality, workspaceRoot, roots.claudeUserRoot, updated);
       return { ok: true };

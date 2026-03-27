@@ -111,7 +111,9 @@ export class AddonsPanel {
           const p = message.payload as { pluginId?: string; locality?: 'workspace' | 'user' } | undefined;
           if (p?.pluginId) {
             const locality = p.locality === 'user' ? 'user' : 'workspace';
-            const result = await this.snapshotEnv?.installPlugin(p.pluginId, locality);
+            appendLine(`[Akashi][Addons] Installing plugin=${p.pluginId} locality=${locality}`);
+            const result = await this.snapshotEnv?.installPlugin(p.pluginId, locality, this.reportProgress);
+            appendLine(`[Akashi][Addons] Install result plugin=${p.pluginId} ok=${result?.ok} error=${result?.error ?? 'none'}`);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'install', pluginId: p.pluginId, ...result },
@@ -123,19 +125,22 @@ export class AddonsPanel {
         if (message?.type === AddonsMessageType.DeleteAddon) {
           const p = message.payload as { primaryPath?: string; pluginId?: string } | undefined;
           if (p?.primaryPath || p?.pluginId) {
+            appendLine(`[Akashi][Addons] Delete requested path=${p?.primaryPath ?? 'none'} pluginId=${p?.pluginId ?? 'none'}`);
             const confirm = await vscode.window.showWarningMessage(
               'Delete addon? This will remove its files from disk.',
               { modal: true },
               'Delete'
             );
             if (confirm !== 'Delete') {
+              appendLine('[Akashi][Addons] Delete cancelled by user');
               void this.panel.webview.postMessage({
                 type: AddonsMessageType.OperationResult,
                 payload: { operation: 'delete', ok: true, cancelled: true },
               });
               return;
             }
-            const result = await this.snapshotEnv?.deleteAddon(p.primaryPath, p.pluginId);
+            const result = await this.snapshotEnv?.deleteAddon(p.primaryPath, p.pluginId, this.reportProgress);
+            appendLine(`[Akashi][Addons] Delete result ok=${result?.ok} error=${result?.error ?? 'none'}`);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'delete', ...result },
@@ -147,7 +152,9 @@ export class AddonsPanel {
         if (message?.type === AddonsMessageType.MoveToGlobal) {
           const p = message.payload as { addonId?: string } | undefined;
           if (p?.addonId) {
-            const result = await this.snapshotEnv?.moveToGlobal(p.addonId);
+            appendLine(`[Akashi][Addons] Moving to global addonId=${p.addonId}`);
+            const result = await this.snapshotEnv?.moveToGlobal(p.addonId, this.reportProgress);
+            appendLine(`[Akashi][Addons] Move result addonId=${p.addonId} ok=${result?.ok} error=${result?.error ?? 'none'}`);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'move', addonId: p.addonId, ...result },
@@ -174,6 +181,13 @@ export class AddonsPanel {
       payload,
     });
   }
+
+  private readonly reportProgress = (message: string): void => {
+    void this.panel.webview.postMessage({
+      type: AddonsMessageType.OperationProgress,
+      payload: { message },
+    });
+  };
 
   private async refreshAfterMutation(): Promise<void> {
     if (this.snapshotEnv) {

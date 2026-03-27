@@ -9,6 +9,7 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}",
+        "--folder-uri=${workspaceFolder}",
         "--disable-gpu",
         "--enable-logging",
         "--log-level=trace"
@@ -26,6 +27,7 @@
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}",
+        "--folder-uri=${workspaceFolder}",
         "--disable-gpu",
         "--enable-logging",
         "--log-level=trace"

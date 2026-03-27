@@ -54,7 +54,8 @@ export interface AddonInstallerPort {
   installFromMarketplace(
     plugin: CatalogPlugin,
     originSource: OriginSource,
-    targets: InstallTargets
+    targets: InstallTargets,
+    onProgress?: (message: string) => void
   ): Promise<{ ok: boolean; createdPaths: readonly string[]; error?: string }>;
 
   /** Fallback: create stub via ArtifactCreator infrastructure. */

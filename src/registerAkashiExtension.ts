@@ -2,7 +2,7 @@ import * as os from 'node:os';
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
-import type { AddonsPanelEnvironment } from './domains/addons/ui/addonsPanelEnvironment';
+import type { AddonsPanelEnvironment, ProgressReporter } from './domains/addons/ui/addonsPanelEnvironment';
 import { AddonsPanel, registerAddonsUi } from './domains/addons/ui/register';
 import { AddonsService } from './domains/addons/application/AddonsService';
 import { VscodeAddonsStore } from './domains/addons/infrastructure/VscodeAddonsStore';
@@ -23,7 +23,7 @@ import { appendLine, getLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
 import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
-import { inferWorkspaceRoot } from './sidebar/host/inferWorkspaceRoot';
+import { inferWorkspaceRoot, pickWorkspaceRoot } from './sidebar/host/inferWorkspaceRoot';
 import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 
 /**
@@ -181,33 +181,47 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         void vscode.window.showErrorMessage(`Fetch failed: ${msg}`);
       }
     },
-    installPlugin: async (pluginId: string, locality: 'workspace' | 'user') => {
+    installPlugin: async (pluginId: string, locality: 'workspace' | 'user', onProgress?: ProgressReporter) => {
       const roots = config.resolveToolUserRoots(os.homedir());
-      const workspaceRoot = inferWorkspaceRoot();
+      let workspaceRoot: string;
+      if (locality === 'workspace') {
+        const picked = await pickWorkspaceRoot();
+        if (!picked) {
+          return { ok: false, error: 'Open a folder or workspace to install project-scoped addons.' };
+        }
+        workspaceRoot = picked;
+      } else {
+        workspaceRoot = inferWorkspaceRoot();
+      }
+      onProgress?.('Resolving plugin from catalog\u2026');
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       const plugin = catalog?.catalogPlugins.find((p) => p.id === pluginId);
       if (!plugin) {
         return { ok: false, error: 'Plugin not found in catalog' };
       }
-      const result = await addonsService.installPlugin(plugin, locality, workspaceRoot, roots);
+      const result = await addonsService.installPlugin(plugin, locality, workspaceRoot, roots, onProgress);
       if (result.ok) {
+        onProgress?.('Refreshing source index\u2026');
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
       return result;
     },
-    deleteAddon: async (primaryPath?: string, pluginId?: string) => {
+    deleteAddon: async (primaryPath?: string, pluginId?: string, onProgress?: ProgressReporter) => {
       const roots = config.resolveToolUserRoots(os.homedir());
       const workspaceRoot = inferWorkspaceRoot();
-      const result = await addonsService.deleteAddon(workspaceRoot, roots, primaryPath, pluginId);
+      onProgress?.('Removing addon files\u2026');
+      const result = await addonsService.deleteAddon(workspaceRoot, roots, primaryPath, pluginId, onProgress);
       if (result.ok) {
+        onProgress?.('Refreshing source index\u2026');
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
       return result;
     },
-    moveToGlobal: async (addonId: string) => {
+    moveToGlobal: async (addonId: string, onProgress?: ProgressReporter) => {
       // Find the installed addon's source file
       const roots = config.resolveToolUserRoots(os.homedir());
       const workspaceRoot = inferWorkspaceRoot();
+      onProgress?.('Locating addon\u2026');
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       // Look up in artifacts first, then records
       const artifact = catalog?.artifacts.find((a) => a.id === addonId);
@@ -228,10 +242,12 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         : norm.slice(norm.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
       // Read the source file content
       try {
+        onProgress?.(`Reading ${addon.primaryPath}\u2026`);
         const sourceUri = vscode.Uri.file(addon.primaryPath);
         const content = await vscode.workspace.fs.readFile(sourceUri);
         const textContent = new TextDecoder().decode(content);
         // Install at global scope via the creator infrastructure
+        onProgress?.(`Creating global copy of "${addonName}"\u2026`);
         const { installViaCreator: install } = await import('./domains/addons/infrastructure/CreatorBasedInstaller');
         const creatorId = `claude/skill-folder/user`;
         const installResult = await install(creatorId, addonName, '', '', roots);
@@ -240,12 +256,14 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         }
         // If the creator-generated content is just a stub, overwrite with the original content
         if (installResult.createdPaths.length > 0 && textContent.length > 0) {
+          onProgress?.(`Writing to ${installResult.createdPaths[0]}\u2026`);
           await vscode.workspace.fs.writeFile(
             vscode.Uri.file(installResult.createdPaths[0]),
             new TextEncoder().encode(textContent)
           );
         }
         // Delete the project-local file
+        onProgress?.(`Removing project copy ${addon.primaryPath}\u2026`);
         await vscode.workspace.fs.delete(sourceUri);
         // Try to clean up empty parent dir (folder layout)
         try {
@@ -257,6 +275,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         } catch {
           // Parent dir cleanup is best-effort
         }
+        onProgress?.('Refreshing source index\u2026');
         await vscode.commands.executeCommand('akashi.sources.refresh');
         return { ok: true };
       } catch (err: unknown) {
