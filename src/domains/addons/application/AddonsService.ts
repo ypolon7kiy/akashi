@@ -8,7 +8,7 @@ import type { ToolUserRoots } from '../../../shared/toolUserRoots';
 import type { SourceLocality } from '../../sources/domain/artifactKind';
 import type { AddonsCatalog } from '../domain/addonsCatalog';
 import { projectInstalledAddons } from '../domain/addonProjector';
-import { parseMarketplaceJson } from '../domain/parseMarketplaceJson';
+import { parseMarketplace } from '../domain/marketplaceParcels';
 import {
   BUILT_IN_ORIGINS,
   buildOriginId,
@@ -136,7 +136,7 @@ export class AddonsService {
       throw new Error(result.error ?? 'Failed to fetch marketplace');
     }
 
-    const parsed = parseMarketplaceJson(result.data, origin.id);
+    const parsed = parseMarketplace(result.data, origin.id, origin.parcelType);
     await this.store.saveCachedCatalog({
       originId: origin.id,
       fetchedAt: new Date().toISOString(),

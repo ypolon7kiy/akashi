@@ -89,7 +89,12 @@ export function AddonsApp() {
 
       <main className="akashi-addons-main">
         {activeTab === 'installed' ? (
-          <InstalledList addons={filteredInstalled} onOpen={openFile} />
+          <InstalledList
+            addons={filteredInstalled}
+            onOpen={openFile}
+            onDelete={deleteAddon}
+            onMoveToGlobal={moveToGlobal}
+          />
         ) : (
           <>
             <MarketplaceBar

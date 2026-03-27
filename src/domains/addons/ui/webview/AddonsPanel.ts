@@ -123,10 +123,30 @@ export class AddonsPanel {
         if (message?.type === AddonsMessageType.UninstallPlugin) {
           const p = message.payload as { pluginId?: string } | undefined;
           if (p?.pluginId) {
+            const confirm = await vscode.window.showWarningMessage(
+              `Delete addon "${p.pluginId}"? This will remove its files from disk.`,
+              { modal: true },
+              'Delete'
+            );
+            if (confirm !== 'Delete') {
+              return;
+            }
             const result = await this.snapshotEnv?.uninstallPlugin(p.pluginId);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'uninstall', pluginId: p.pluginId, ...result },
+            });
+            await this.refreshAfterMutation();
+          }
+          return;
+        }
+        if (message?.type === AddonsMessageType.MoveToGlobal) {
+          const p = message.payload as { addonId?: string } | undefined;
+          if (p?.addonId) {
+            const result = await this.snapshotEnv?.moveToGlobal(p.addonId);
+            void this.panel.webview.postMessage({
+              type: AddonsMessageType.OperationResult,
+              payload: { operation: 'move', addonId: p.addonId, ...result },
             });
             await this.refreshAfterMutation();
           }

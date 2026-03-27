@@ -10,4 +10,5 @@ export interface AddonsPanelEnvironment {
   fetchOrigin: (originId: string) => Promise<void>;
   installPlugin: (pluginId: string, locality: 'workspace' | 'user') => Promise<{ ok: boolean; error?: string }>;
   uninstallPlugin: (pluginId: string) => Promise<{ ok: boolean; error?: string }>;
+  moveToGlobal: (addonId: string) => Promise<{ ok: boolean; error?: string }>;
 }

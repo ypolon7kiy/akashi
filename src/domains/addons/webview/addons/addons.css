@@ -222,15 +222,8 @@ body {
 .akashi-addons-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: none;
   border-radius: 4px;
   background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
   width: 100%;
 }
 
@@ -238,7 +231,23 @@ body {
   background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
 }
 
-.akashi-addons-card:focus-visible {
+.akashi-addons-card__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.akashi-addons-card__main:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
 }
@@ -298,15 +307,44 @@ body {
   text-align: left;
 }
 
-.akashi-addons-card__action {
+.akashi-addons-card__actions {
   flex-shrink: 0;
-  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
   opacity: 0;
   transition: opacity 0.1s;
 }
 
-.akashi-addons-card:hover .akashi-addons-card__action {
+.akashi-addons-card:hover .akashi-addons-card__actions {
   opacity: 1;
+}
+
+.akashi-addons-card__action-btn {
+  font: inherit;
+  padding: 4px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.akashi-addons-card__action-btn:hover {
+  color: var(--vscode-foreground);
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.15));
+}
+
+.akashi-addons-card__action-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-addons-card__action-btn--danger:hover {
+  color: var(--vscode-errorForeground, #f14c4c);
 }
 
 /* ───────── Badge ───────── */

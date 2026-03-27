@@ -24,7 +24,14 @@ function deriveAddonName(primaryPath: string, category: AddonCategory): string {
     return lastSlash >= 0 ? norm.slice(lastSlash + 1) : norm;
   }
 
-  // For skills/commands/rules: strip the .md extension, use the basename
+  // Folder-layout skill: .claude/skills/my-skill/SKILL.md → "my-skill"
+  if (norm.endsWith('/SKILL.md')) {
+    const withoutFile = norm.slice(0, norm.lastIndexOf('/'));
+    const folderSlash = withoutFile.lastIndexOf('/');
+    return folderSlash >= 0 ? withoutFile.slice(folderSlash + 1) : withoutFile;
+  }
+
+  // Flat layout: strip .md, use basename
   const lastSlash = norm.lastIndexOf('/');
   const basename = lastSlash >= 0 ? norm.slice(lastSlash + 1) : norm;
   return basename.replace(/\.md$/i, '');

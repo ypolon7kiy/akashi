@@ -172,6 +172,55 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       }
       return result;
     },
+    moveToGlobal: async (addonId: string) => {
+      // Find the installed addon's source file
+      const catalog = await addonsService.getCatalog('claude');
+      const addon = catalog?.installedAddons.find((a) => a.id === addonId);
+      if (!addon) {
+        return { ok: false, error: 'Addon not found' };
+      }
+      if (addon.locality === 'user') {
+        return { ok: false, error: 'Already at global scope' };
+      }
+      // Read the source file content
+      try {
+        const sourceUri = vscode.Uri.file(addon.primaryPath);
+        const content = await vscode.workspace.fs.readFile(sourceUri);
+        const textContent = new TextDecoder().decode(content);
+        // Install at global scope via the creator infrastructure
+        const roots = config.resolveToolUserRoots(os.homedir());
+        const { installViaCreator: install } = await import('./domains/addons/infrastructure/CreatorBasedInstaller');
+        const creatorId = `claude/skill-folder/user`;
+        const installResult = await install(creatorId, addon.name, '', '', roots);
+        if (!installResult.ok) {
+          return { ok: false, error: installResult.error };
+        }
+        // If the creator-generated content is just a stub, overwrite with the original content
+        if (installResult.createdPaths.length > 0 && textContent.length > 0) {
+          await vscode.workspace.fs.writeFile(
+            vscode.Uri.file(installResult.createdPaths[0]),
+            new TextEncoder().encode(textContent)
+          );
+        }
+        // Delete the project-local file
+        await vscode.workspace.fs.delete(sourceUri);
+        // Try to clean up empty parent dir (folder layout)
+        try {
+          const parentUri = vscode.Uri.file(addon.primaryPath.replace(/[/\\][^/\\]+$/, ''));
+          const entries = await vscode.workspace.fs.readDirectory(parentUri);
+          if (entries.length === 0) {
+            await vscode.workspace.fs.delete(parentUri);
+          }
+        } catch {
+          // Parent dir cleanup is best-effort
+        }
+        await vscode.commands.executeCommand('akashi.sources.refresh');
+        return { ok: true };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { ok: false, error: msg };
+      }
+    },
   };
 
   // Auto-detect file creation/change/deletion for preset-matched files.
@@ -258,7 +307,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     queueMicrotask(() => {
       void vscode.commands.executeCommand('workbench.view.extension.akashi');
       void vscode.commands.executeCommand('akashi.sidebar.focus');
-      Graph2DPanel.createOrShow(context, graphEnv, config.generalConfig);
+      AddonsPanel.createOrShow(context, addonsEnv);
       getLog()?.show(false);
     });
   }

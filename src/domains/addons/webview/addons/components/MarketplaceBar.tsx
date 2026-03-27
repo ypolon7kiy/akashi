@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { MarketplaceOriginDescriptor } from '../../../../../shared/types/addonsCatalogPayload';
 
 interface MarketplaceBarProps {
@@ -20,6 +20,22 @@ export function MarketplaceBar({
   const [addLabel, setAddLabel] = useState('');
   const [addKind, setAddKind] = useState<'github' | 'url' | 'file'>('github');
   const [addValue, setAddValue] = useState('');
+
+  // Optimistic toggle state — avoids snap-back during host round-trip
+  const [localToggles, setLocalToggles] = useState<Record<string, boolean>>({});
+
+  // Sync local toggles when catalog updates arrive from host
+  useEffect(() => {
+    setLocalToggles({});
+  }, [origins]);
+
+  const handleToggle = useCallback(
+    (originId: string, enabled: boolean) => {
+      setLocalToggles((prev) => ({ ...prev, [originId]: enabled }));
+      onToggle(originId, enabled);
+    },
+    [onToggle]
+  );
 
   const handleAdd = () => {
     if (addLabel.trim() && addValue.trim()) {
@@ -82,42 +98,45 @@ export function MarketplaceBar({
       )}
 
       <div className="akashi-addons-origins__list">
-        {origins.map((origin) => (
-          <div key={origin.id} className="akashi-addons-origin-item">
-            <label className="akashi-addons-origin-item__toggle">
-              <input
-                type="checkbox"
-                checked={origin.enabled}
-                onChange={(e) => onToggle(origin.id, e.target.checked)}
-              />
-              <span className="akashi-addons-origin-item__label">{origin.label}</span>
-            </label>
-            <div className="akashi-addons-origin-item__actions">
-              {origin.lastFetchedAt && (
-                <span className="akashi-addons-origin-item__fetched" title={`Last fetched: ${origin.lastFetchedAt}`}>
-                  <span className="codicon codicon-check" />
-                </span>
-              )}
-              <button
-                className="akashi-addons-origin-item__btn"
-                onClick={() => onFetch(origin.id)}
-                title="Refresh catalog"
-                disabled={!origin.enabled}
-              >
-                <span className="codicon codicon-sync" />
-              </button>
-              {!origin.builtIn && (
+        {origins.map((origin) => {
+          const isEnabled = localToggles[origin.id] ?? origin.enabled;
+          return (
+            <div key={origin.id} className="akashi-addons-origin-item">
+              <label className="akashi-addons-origin-item__toggle">
+                <input
+                  type="checkbox"
+                  checked={isEnabled}
+                  onChange={(e) => handleToggle(origin.id, e.target.checked)}
+                />
+                <span className="akashi-addons-origin-item__label">{origin.label}</span>
+              </label>
+              <div className="akashi-addons-origin-item__actions">
+                {origin.lastFetchedAt && (
+                  <span className="akashi-addons-origin-item__fetched" title={`Last fetched: ${origin.lastFetchedAt}`}>
+                    <span className="codicon codicon-check" />
+                  </span>
+                )}
                 <button
-                  className="akashi-addons-origin-item__btn akashi-addons-origin-item__btn--danger"
-                  onClick={() => onRemove(origin.id)}
-                  title="Remove marketplace"
+                  className="akashi-addons-origin-item__btn"
+                  onClick={() => onFetch(origin.id)}
+                  title="Refresh catalog"
+                  disabled={!isEnabled}
                 >
-                  <span className="codicon codicon-trash" />
+                  <span className="codicon codicon-sync" />
                 </button>
-              )}
+                {!origin.builtIn && (
+                  <button
+                    className="akashi-addons-origin-item__btn akashi-addons-origin-item__btn--danger"
+                    onClick={() => onRemove(origin.id)}
+                    title="Remove marketplace"
+                  >
+                    <span className="codicon codicon-trash" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
