@@ -170,6 +170,145 @@ describe('linkArtifacts', () => {
     });
   });
 
+  describe('folder-file (Claude/Cursor/Codex skill folders)', () => {
+    it('creates a folder-file artifact for .claude/skills SKILL.md', () => {
+      const skill = entry(
+        '/ws/.claude/skills/my-skill/SKILL.md',
+        'claude',
+        'workspace',
+        'skill'
+      );
+      const artifacts = linkArtifacts([skill]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('folder-file');
+      expect(artifacts[0].memberRecordIds).toEqual([skill.id]);
+      expect(artifacts[0].primaryPath).toBe(skill.path);
+    });
+
+    it('groups folder siblings under the same folder-file artifact', () => {
+      const skillMd = entry(
+        '/ws/.claude/skills/my-skill/SKILL.md',
+        'claude',
+        'workspace',
+        'skill'
+      );
+      const helper = entry(
+        '/ws/.claude/skills/my-skill/helpers/util.js',
+        'claude',
+        'workspace',
+        'skill'
+      );
+      const config = entry(
+        '/ws/.claude/skills/my-skill/data/config.json',
+        'claude',
+        'workspace',
+        'skill'
+      );
+      const artifacts = linkArtifacts([skillMd, helper, config]);
+
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('folder-file');
+      expect(artifacts[0].memberRecordIds).toHaveLength(3);
+      expect(artifacts[0].memberRecordIds).toContain(skillMd.id);
+      expect(artifacts[0].memberRecordIds).toContain(helper.id);
+      expect(artifacts[0].memberRecordIds).toContain(config.id);
+      expect(artifacts[0].primaryPath).toBe(skillMd.path);
+    });
+
+    it('groups multiple skill folders into separate artifacts', () => {
+      const skill1Md = entry('/ws/.claude/skills/skill-a/SKILL.md', 'claude', 'workspace', 'skill');
+      const skill1Helper = entry('/ws/.claude/skills/skill-a/lib.js', 'claude', 'workspace', 'skill');
+      const skill2Md = entry('/ws/.claude/skills/skill-b/SKILL.md', 'claude', 'workspace', 'skill');
+      const skill2Helper = entry('/ws/.claude/skills/skill-b/data.json', 'claude', 'workspace', 'skill');
+
+      const artifacts = linkArtifacts([skill1Md, skill1Helper, skill2Md, skill2Helper]);
+
+      expect(artifacts).toHaveLength(2);
+      const a1 = artifacts.find((a) => a.primaryPath.includes('skill-a'))!;
+      const a2 = artifacts.find((a) => a.primaryPath.includes('skill-b'))!;
+      expect(a1.shape).toBe('folder-file');
+      expect(a2.shape).toBe('folder-file');
+      expect(a1.memberRecordIds).toHaveLength(2);
+      expect(a2.memberRecordIds).toHaveLength(2);
+      expect(a1.memberRecordIds).toContain(skill1Helper.id);
+      expect(a2.memberRecordIds).toContain(skill2Helper.id);
+    });
+
+    it('flat skill file remains single-file alongside folder skill', () => {
+      const folder = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
+      const folderHelper = entry('/ws/.claude/skills/my-skill/lib.js', 'claude', 'workspace', 'skill');
+      const flat = entry('/ws/.claude/skills/quick-fix.md', 'claude', 'workspace', 'skill');
+      const artifacts = linkArtifacts([folder, folderHelper, flat]);
+
+      expect(artifacts).toHaveLength(2);
+      const folderArt = artifacts.find((a) => a.shape === 'folder-file')!;
+      const flatArt = artifacts.find((a) => a.shape === 'single-file')!;
+      expect(folderArt.memberRecordIds).toHaveLength(2);
+      expect(flatArt.memberRecordIds).toEqual([flat.id]);
+    });
+
+    it('does not group skill folder siblings across different presets', () => {
+      const skill = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
+      const foreign = entry('/ws/.claude/skills/my-skill/extra.js', 'cursor', 'workspace', 'skill');
+      const artifacts = linkArtifacts([skill, foreign]);
+
+      expect(artifacts).toHaveLength(2);
+      const folderArt = artifacts.find((a) => a.shape === 'folder-file')!;
+      expect(folderArt.memberRecordIds).toEqual([skill.id]);
+    });
+
+    it('does not group skill folder siblings across different localities', () => {
+      const skill = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
+      const userEntry = entry('/ws/.claude/skills/my-skill/extra.js', 'claude', 'user', 'skill');
+      const artifacts = linkArtifacts([skill, userEntry]);
+
+      expect(artifacts).toHaveLength(2);
+      const folderArt = artifacts.find((a) => a.shape === 'folder-file')!;
+      expect(folderArt.memberRecordIds).toEqual([skill.id]);
+    });
+
+    it('handles nested SKILL.md — inner claims its files before outer', () => {
+      const outerMd = entry('/ws/.claude/skills/outer/SKILL.md', 'claude', 'workspace', 'skill');
+      const innerMd = entry('/ws/.claude/skills/outer/inner/SKILL.md', 'claude', 'workspace', 'skill');
+      const innerHelper = entry('/ws/.claude/skills/outer/inner/lib.js', 'claude', 'workspace', 'skill');
+      const artifacts = linkArtifacts([outerMd, innerMd, innerHelper]);
+
+      // Inner SKILL.md should claim inner/lib.js; outer gets only itself
+      expect(artifacts).toHaveLength(2);
+      const inner = artifacts.find((a) => a.primaryPath.includes('/inner/SKILL.md'))!;
+      const outer = artifacts.find((a) => a.primaryPath === outerMd.path)!;
+      expect(inner.memberRecordIds).toHaveLength(2);
+      expect(inner.memberRecordIds).toContain(innerHelper.id);
+      expect(outer.memberRecordIds).toEqual([outerMd.id]);
+    });
+
+    it('produces deterministic folder-file IDs regardless of entry order', () => {
+      const md = entry('/ws/.claude/skills/s/SKILL.md', 'claude', 'workspace', 'skill');
+      const h = entry('/ws/.claude/skills/s/h.js', 'claude', 'workspace', 'skill');
+      const run1 = linkArtifacts([md, h]);
+      const run2 = linkArtifacts([h, md]);
+      const f1 = run1.find((a) => a.shape === 'folder-file')!;
+      const f2 = run2.find((a) => a.shape === 'folder-file')!;
+      expect(f1.id).toBe(f2.id);
+    });
+
+    it('creates folder-file artifact for .cursor/skills SKILL.md', () => {
+      const skill = entry('/ws/.cursor/skills/my-skill/SKILL.md', 'cursor', 'workspace', 'skill');
+      const helper = entry('/ws/.cursor/skills/my-skill/util.js', 'cursor', 'workspace', 'skill');
+      const artifacts = linkArtifacts([skill, helper]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('folder-file');
+      expect(artifacts[0].memberRecordIds).toHaveLength(2);
+    });
+
+    it('creates folder-file artifact for .agents/skills SKILL.md', () => {
+      const skill = entry('/ws/.agents/skills/my-skill/SKILL.md', 'codex', 'workspace', 'skill');
+      const artifacts = linkArtifacts([skill]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('folder-file');
+    });
+  });
+
   describe('artifact IDs', () => {
     it('produces deterministic IDs', () => {
       const e = entry('/ws/.claude/rules/foo.md', 'claude', 'workspace', 'rule');

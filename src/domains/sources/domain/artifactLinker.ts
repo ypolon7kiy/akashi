@@ -47,10 +47,33 @@ function deriveCompanionConfigPath(hookScriptPath: string, preset: string): stri
   return null;
 }
 
-/** Folder-file: entries whose path matches `.../<parent>/SKILL.md` under `.agent/skills/`. */
+// ---------------------------------------------------------------------------
+// Skill folder detection (folder-file artifacts)
+// ---------------------------------------------------------------------------
+
+/** Known path segments that contain skill folders across all presets. */
+const SKILL_FOLDER_DIR_SEGMENTS: readonly string[] = [
+  '/.agent/skills/',
+  '/.claude/skills/',
+  '/.cursor/skills/',
+  '/.codex/skills/',
+  '/.agents/skills/',
+];
+
+/** Folder-file: entries whose path matches `.../<parent>/SKILL.md` under a known skills directory. */
 function isFolderFileEntry(entry: IndexedSourceEntry): boolean {
   const norm = entry.path.replace(/\\/g, '/');
-  return norm.includes('/.agent/skills/') && norm.endsWith('/SKILL.md');
+  if (!norm.endsWith('/SKILL.md')) return false;
+  return SKILL_FOLDER_DIR_SEGMENTS.some((seg) => norm.includes(seg));
+}
+
+/**
+ * Compute the skill folder root from a SKILL.md path.
+ * Example: `/ws/.claude/skills/my-skill/SKILL.md` → `/ws/.claude/skills/my-skill/`
+ */
+function computeSkillFolderRoot(skillMdPath: string): string {
+  const norm = skillMdPath.replace(/\\/g, '/');
+  return norm.slice(0, norm.lastIndexOf('/') + 1);
 }
 
 /** JSON-only: entries categorized as MCP. */
@@ -95,8 +118,8 @@ function buildArtifactId(shape: ArtifactShape, memberRecordIds: readonly string[
  *
  * Linkage rules (priority order):
  * 1. File+JSON compound — hook scripts paired with their config file
- * 2. JSON-only — MCP config files
- * 3. Folder+file — Antigravity SKILL.md entries
+ * 2. Skill folder grouping — SKILL.md marker + all sibling files under the same folder
+ * 3. JSON-only — MCP config files
  * 4. Single-file — everything else
  */
 export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly IndexedArtifact[] {
@@ -147,7 +170,49 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
     claimed.add(configEntry.id);
   }
 
-  // --- Pass 2+3+4: remaining entries ---
+  // --- Pass 2: Skill folder grouping (SKILL.md + all siblings) ---
+  // Collect unclaimed SKILL.md markers, sorted deepest-first so nested
+  // skills claim their own files before an outer skill can swallow them.
+  const skillMarkers = entries
+    .filter((e) => !claimed.has(e.id) && isFolderFileEntry(e))
+    .sort((a, b) => {
+      const depthA = a.path.replace(/\\/g, '/').split('/').length;
+      const depthB = b.path.replace(/\\/g, '/').split('/').length;
+      return depthB - depthA;
+    });
+
+  for (const marker of skillMarkers) {
+    if (claimed.has(marker.id)) continue;
+    const folderRoot = computeSkillFolderRoot(marker.path);
+    const memberIds: string[] = [marker.id];
+
+    for (const sibling of entries) {
+      if (sibling.id === marker.id) continue;
+      if (claimed.has(sibling.id)) continue;
+      if (sibling.preset !== marker.preset) continue;
+      if (sibling.locality !== marker.locality) continue;
+      const sibNorm = sibling.path.replace(/\\/g, '/');
+      if (sibNorm.startsWith(folderRoot)) {
+        memberIds.push(sibling.id);
+      }
+    }
+
+    artifacts.push({
+      id: buildArtifactId('folder-file', memberIds),
+      presetId: marker.preset,
+      category: marker.category,
+      locality: marker.locality,
+      shape: 'folder-file',
+      memberRecordIds: memberIds,
+      primaryPath: marker.path,
+    });
+
+    for (const mid of memberIds) {
+      claimed.add(mid);
+    }
+  }
+
+  // --- Pass 3: remaining entries ---
   for (const entry of entries) {
     if (claimed.has(entry.id)) continue;
 
@@ -158,16 +223,6 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
         category: entry.category,
         locality: entry.locality,
         shape: 'json-only',
-        memberRecordIds: [entry.id],
-        primaryPath: entry.path,
-      });
-    } else if (isFolderFileEntry(entry)) {
-      artifacts.push({
-        id: buildArtifactId('folder-file', [entry.id]),
-        presetId: entry.preset,
-        category: entry.category,
-        locality: entry.locality,
-        shape: 'folder-file',
         memberRecordIds: [entry.id],
         primaryPath: entry.path,
       });

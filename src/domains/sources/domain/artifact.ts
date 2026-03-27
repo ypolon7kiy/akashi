@@ -14,7 +14,7 @@ import type { SourceCategory } from './model';
  * Structural shape of an artifact, derived from creator analysis.
  *
  * - `single-file` — One standalone file (most common)
- * - `folder-file` — One file nested in a named folder (Antigravity SKILL.md)
+ * - `folder-file` — Skill folder: SKILL.md marker plus any sibling files under the same folder
  * - `file-json`   — Standalone file + JSON entry in a config file (hooks)
  * - `json-only`   — Pure JSON entry, no standalone file (MCP configs)
  */
@@ -33,7 +33,7 @@ export interface IndexedArtifact {
   readonly shape: ArtifactShape;
   /**
    * Record ids of `IndexedSourceEntry` rows belonging to this artifact.
-   * Single-file/folder-file: exactly one. Compound: script + config.
+   * Single-file: exactly one. Folder-file: one (marker only) or more (marker + siblings). Compound: script + config.
    */
   readonly memberRecordIds: readonly string[];
   /** The "primary" file path — the file a user would open to work on this artifact. */
