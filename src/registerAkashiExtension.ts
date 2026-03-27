@@ -2,6 +2,14 @@ import * as os from 'node:os';
 import * as vscode from 'vscode';
 import type { GraphPanelEnvironment } from './domains/graph/ui/graphPanelEnvironment';
 import { Graph2DPanel, registerGraphUi } from './domains/graph/ui/register';
+import type { AddonsPanelEnvironment } from './domains/addons/ui/addonsPanelEnvironment';
+import { AddonsPanel, registerAddonsUi } from './domains/addons/ui/register';
+import { AddonsService } from './domains/addons/application/AddonsService';
+import { VscodeAddonsStore } from './domains/addons/infrastructure/VscodeAddonsStore';
+import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
+import { installViaCreator, removeTrackedFiles } from './domains/addons/infrastructure/CreatorBasedInstaller';
+import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
+import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
 import { createConfigDomain } from './domains/config';
 import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
@@ -89,6 +97,83 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     },
   };
 
+  // ── Addons domain wiring ───────────────────────────────────────────
+  const addonsStore = new VscodeAddonsStore(context);
+  const addonsService = new AddonsService(
+    sourcesService,
+    addonsStore,
+    { fetch: fetchMarketplaceJson },
+    { installViaCreator, removeTrackedFiles }
+  );
+
+  const addonsEnv: AddonsPanelEnvironment = {
+    getAddonsCatalog: async () => {
+      const catalog = await addonsService.getCatalog('claude');
+      if (!catalog) {
+        return null;
+      }
+      return catalog as AddonsCatalogPayload;
+    },
+    openAddonFile: async (path: string) => {
+      try {
+        const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(path));
+        await vscode.window.showTextDocument(doc);
+      } catch {
+        void vscode.window.showInformationMessage(`Could not open: ${path}`);
+      }
+    },
+    addOrigin: async (label: string, source: { kind: string; value: string }) => {
+      let originSource: OriginSource;
+      if (source.kind === 'github') {
+        const parts = source.value.split('/');
+        originSource = { kind: 'github', owner: parts[0] ?? '', repo: parts[1] ?? '' };
+      } else if (source.kind === 'url') {
+        originSource = { kind: 'url', url: source.value };
+      } else {
+        originSource = { kind: 'file', path: source.value };
+      }
+      await addonsService.addOrigin(label, originSource);
+    },
+    removeOrigin: async (originId: string) => {
+      await addonsService.removeOrigin(originId);
+    },
+    toggleOrigin: async (originId: string, enabled: boolean) => {
+      await addonsService.toggleOrigin(originId, enabled);
+    },
+    fetchOrigin: async (originId: string) => {
+      const origins = addonsService.getOrigins();
+      const origin = origins.find((o) => o.id === originId);
+      if (!origin) return;
+      try {
+        await addonsService.fetchOriginCatalog(origin);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        void vscode.window.showErrorMessage(`Fetch failed: ${msg}`);
+      }
+    },
+    installPlugin: async (pluginId: string, locality: 'workspace' | 'user') => {
+      const catalog = await addonsService.getCatalog('claude');
+      const plugin = catalog?.catalogPlugins.find((p) => p.id === pluginId);
+      if (!plugin) {
+        return { ok: false, error: 'Plugin not found in catalog' };
+      }
+      const roots = config.resolveToolUserRoots(os.homedir());
+      const workspaceRoot = inferWorkspaceRoot();
+      const result = await addonsService.installPlugin(plugin, locality, workspaceRoot, roots);
+      if (result.ok) {
+        await vscode.commands.executeCommand('akashi.sources.refresh');
+      }
+      return result;
+    },
+    uninstallPlugin: async (pluginId: string) => {
+      const result = await addonsService.uninstallPlugin(pluginId);
+      if (result.ok) {
+        await vscode.commands.executeCommand('akashi.sources.refresh');
+      }
+      return result;
+    },
+  };
+
   // Auto-detect file creation/change/deletion for preset-matched files.
   context.subscriptions.push(
     createSourceFileWatcher({
@@ -100,6 +185,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
 
   const disposables = [
     ...registerGraphUi(context, graphEnv, config.generalConfig),
+    ...registerAddonsUi(context, addonsEnv),
     vscode.commands.registerCommand(
       'akashi.sources.createArtifact',
       async (args: {
@@ -156,6 +242,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       createSidebarViewProvider(context, sourcesService, config, {
         onAfterSourcesSnapshotRefreshed: () => {
           void Graph2DPanel.refreshIfOpen(graphEnv);
+          void AddonsPanel.refreshIfOpen(addonsEnv);
         },
         onFilterChanged: (matchedPaths) => {
           Graph2DPanel.pushFilterIfOpen(matchedPaths);

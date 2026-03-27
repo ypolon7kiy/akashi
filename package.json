@@ -51,6 +51,7 @@
     "onCommand:akashi.sources.refresh",
     "onCommand:akashi.sources.newArtifact",
     "onCommand:akashi.composition.showComposedView",
+    "onCommand:akashi.addons.showPanel",
     "onView:akashi.sidebar",
     "onStartupFinished"
   ],
@@ -98,17 +99,28 @@
         "title": "Show composed view…",
         "category": "Akashi",
         "icon": "$(book)"
+      },
+      {
+        "command": "akashi.addons.showPanel",
+        "title": "Show addons",
+        "category": "Akashi",
+        "icon": "$(extensions)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "akashi.graph.showPanel",
+          "command": "akashi.addons.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-3"
+        },
+        {
+          "command": "akashi.sources.refresh",
           "when": "view == akashi.sidebar",
           "group": "navigation@-2"
         },
         {
-          "command": "akashi.sources.refresh",
+          "command": "akashi.graph.showPanel",
           "when": "view == akashi.sidebar",
           "group": "navigation@-1"
         },
@@ -195,6 +207,33 @@
             "cursor": "",
             "gemini": ""
           }
+        },
+        "akashi.addons.marketplaceSources": {
+          "type": "array",
+          "order": 60,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Display name for this marketplace"
+              },
+              "github": {
+                "type": "string",
+                "description": "GitHub owner/repo (e.g. anthropics/skills)"
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to a marketplace.json file"
+              },
+              "file": {
+                "type": "string",
+                "description": "Local path to a marketplace.json file"
+              }
+            }
+          },
+          "default": [],
+          "description": "Marketplace sources for addon discovery. Each entry specifies a GitHub repo (owner/repo), a URL, or a local file path."
         },
         "akashi.sidebar.fileColors": {
           "type": "object",
