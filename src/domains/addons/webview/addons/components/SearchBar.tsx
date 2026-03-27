@@ -1,4 +1,3 @@
-import type { AddonCategorySummaryDescriptor } from '../../../../../shared/types/addonsCatalogPayload';
 import type { CategoryFilter } from '../hooks/useAddonsState';
 
 interface SearchBarProps {
@@ -6,7 +5,7 @@ interface SearchBarProps {
   readonly onSearchChange: (text: string) => void;
   readonly categoryFilter: CategoryFilter;
   readonly onCategoryChange: (filter: CategoryFilter) => void;
-  readonly categories: readonly AddonCategorySummaryDescriptor[];
+  readonly categoryCounts: ReadonlyMap<string, number>;
   readonly totalCount: number;
 }
 
@@ -15,9 +14,11 @@ export function SearchBar({
   onSearchChange,
   categoryFilter,
   onCategoryChange,
-  categories,
+  categoryCounts,
   totalCount,
 }: SearchBarProps) {
+  const categories = [...categoryCounts.entries()].sort(([a], [b]) => a.localeCompare(b));
+
   return (
     <div className="akashi-addons-search-bar">
       <div className="akashi-addons-search-input-wrap">
@@ -46,15 +47,13 @@ export function SearchBar({
         >
           All ({totalCount})
         </button>
-        {categories.map((cat) => (
+        {categories.map(([cat, count]) => (
           <button
-            key={cat.category}
-            className={`akashi-addons-category-tab ${categoryFilter === cat.category ? 'akashi-addons-category-tab--active' : ''}`}
-            onClick={() =>
-              onCategoryChange(categoryFilter === cat.category ? null : cat.category)
-            }
+            key={cat}
+            className={`akashi-addons-category-tab ${categoryFilter === cat ? 'akashi-addons-category-tab--active' : ''}`}
+            onClick={() => onCategoryChange(categoryFilter === cat ? null : cat)}
           >
-            {cat.category} ({cat.count})
+            {cat} ({count})
           </button>
         ))}
       </div>

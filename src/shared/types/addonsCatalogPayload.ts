@@ -1,17 +1,13 @@
 /**
  * Serializable DTOs for host -> webview addons panel messaging.
- * String-only types for safe JSON round-tripping across the webview boundary.
+ * Reuses SourceDescriptor / ArtifactDescriptor from the sources snapshot
+ * — no custom projection or type derivation.
  */
 
-export interface InstalledAddonDescriptor {
-  readonly id: string;
-  readonly name: string;
-  readonly category: string;
-  readonly presetId: string;
-  readonly locality: 'workspace' | 'user';
-  readonly primaryPath: string;
-  readonly artifactId: string | null;
-}
+import type {
+  SourceDescriptor,
+  ArtifactDescriptor,
+} from './sourcesSnapshotPayload';
 
 export interface CatalogPluginDescriptor {
   readonly id: string;
@@ -34,18 +30,17 @@ export interface MarketplaceOriginDescriptor {
   readonly lastError: string | null;
 }
 
-export interface AddonCategorySummaryDescriptor {
-  readonly category: string;
-  readonly count: number;
-}
-
 export interface AddonsCatalogPayload {
   readonly generatedAt: string;
   readonly presetId: string;
-  readonly installedAddons: readonly InstalledAddonDescriptor[];
+  /** Source records from the snapshot — the single source of truth for installed addons. */
+  readonly records: readonly SourceDescriptor[];
+  /** Artifact linkage from the snapshot (folder-layout grouping, compound hooks, etc). */
+  readonly artifacts: readonly ArtifactDescriptor[];
+  /** Available plugins from marketplace catalogs. */
   readonly catalogPlugins: readonly CatalogPluginDescriptor[];
+  /** Configured marketplace origins. */
   readonly origins: readonly MarketplaceOriginDescriptor[];
-  readonly categorySummaries: readonly AddonCategorySummaryDescriptor[];
 }
 
 export function isAddonsCatalogPayload(value: unknown): value is AddonsCatalogPayload {
