@@ -632,6 +632,67 @@ body {
   color: var(--vscode-errorForeground, #f14c4c);
 }
 
+/* ───────── Available section headers ───────── */
+
+.akashi-addons-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 6px;
+  font-weight: 600;
+  font-size: calc(var(--vscode-font-size) * 1.05);
+  color: var(--vscode-foreground);
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.2));
+  margin-bottom: 8px;
+}
+
+.akashi-addons-section-header:first-child {
+  padding-top: 4px;
+}
+
+.akashi-addons-section-header__count {
+  font-weight: 400;
+  font-size: calc(var(--vscode-font-size) * 0.88);
+  color: var(--vscode-descriptionForeground);
+}
+
+/* ───────── Collapsible sources ───────── */
+
+.akashi-addons-sources-disclosure {
+  margin-bottom: 12px;
+}
+
+.akashi-addons-sources-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  font-size: calc(var(--vscode-font-size) * 0.92);
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.akashi-addons-sources-toggle:hover {
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.08));
+}
+
+.akashi-addons-sources-toggle:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.akashi-addons-sources-toggle > .codicon {
+  font-size: 14px;
+}
+
 /* ───────── Plugin grid ───────── */
 
 .akashi-addons-grid {

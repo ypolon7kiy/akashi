@@ -1,8 +1,7 @@
 import { useAddonsState } from './hooks/useAddonsState';
 import { SearchBar } from './components/SearchBar';
 import { InstalledList } from './components/InstalledList';
-import { MarketplaceBar } from './components/MarketplaceBar';
-import { PluginGrid } from './components/PluginGrid';
+import { AvailableBrowse } from './components/AvailableBrowse';
 
 export function AddonsApp() {
   const {
@@ -12,7 +11,7 @@ export function AddonsApp() {
     activeTab,
     operationMessage,
     filteredInstalled,
-    filteredAvailable,
+    availableSections,
     categoryCounts,
     installedItems,
     setCategoryFilter,
@@ -81,6 +80,7 @@ export function AddonsApp() {
               ? installedItems.length
               : catalog.catalogPlugins.length
           }
+          showCategoryTabs={activeTab === 'installed'}
         />
       </header>
 
@@ -97,20 +97,16 @@ export function AddonsApp() {
             onMoveToGlobal={moveToGlobal}
           />
         ) : (
-          <>
-            <MarketplaceBar
-              origins={catalog.origins}
-              onToggle={toggleOrigin}
-              onFetch={fetchOrigin}
-              onAdd={addOrigin}
-              onRemove={removeOrigin}
-            />
-            <PluginGrid
-              plugins={filteredAvailable}
-              onInstall={installPlugin}
-              onDelete={(pluginId) => deleteAddon(undefined, pluginId)}
-            />
-          </>
+          <AvailableBrowse
+            sections={availableSections}
+            origins={catalog.origins}
+            onInstall={installPlugin}
+            onDelete={(pluginId) => deleteAddon(undefined, pluginId)}
+            onToggleOrigin={toggleOrigin}
+            onFetchOrigin={fetchOrigin}
+            onAddOrigin={addOrigin}
+            onRemoveOrigin={removeOrigin}
+          />
         )}
       </main>
     </div>

@@ -13,6 +13,18 @@ import type {
 export type CategoryFilter = string | null;
 export type ViewTab = 'installed' | 'available';
 
+export interface AvailableSection {
+  readonly key: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly matchCategories: readonly string[];
+}
+
+export const AVAILABLE_SECTIONS: readonly AvailableSection[] = [
+  { key: 'skills', label: 'Skills', icon: 'codicon-lightbulb', matchCategories: ['skill'] },
+  { key: 'plugins', label: 'Plugins', icon: 'codicon-extensions', matchCategories: ['command', 'hook', 'mcp', 'agent', 'bundle'] },
+];
+
 export function useAddonsState() {
   const [catalog, setCatalog] = useState<AddonsCatalogPayload | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(null);
@@ -50,6 +62,8 @@ export function useAddonsState() {
   const filteredAvailable = catalog
     ? applyAvailableFilters(catalog.catalogPlugins, categoryFilter, searchText)
     : [];
+
+  const availableSections = groupBySection(filteredAvailable);
 
   // Build category counts from installed items
   const categoryCounts = new Map<string, number>();
@@ -102,6 +116,11 @@ export function useAddonsState() {
     getVscodeApi()?.postMessage({ type: AddonsMessageType.MoveToGlobal, payload: { addonId } });
   }, []);
 
+  const switchTab = useCallback((tab: ViewTab) => {
+    setActiveTab(tab);
+    setCategoryFilter(null);
+  }, []);
+
   return {
     catalog,
     categoryFilter,
@@ -110,11 +129,12 @@ export function useAddonsState() {
     operationMessage,
     filteredInstalled,
     filteredAvailable,
+    availableSections,
     categoryCounts,
     installedItems,
     setCategoryFilter,
     setSearchText,
-    setActiveTab,
+    setActiveTab: switchTab,
     openFile,
     refresh,
     addOrigin,
@@ -208,4 +228,21 @@ function applyAvailableFilters(
     );
   }
   return result;
+}
+
+function groupBySection(
+  plugins: readonly CatalogPluginDescriptor[]
+): ReadonlyMap<string, readonly CatalogPluginDescriptor[]> {
+  const grouped = new Map<string, CatalogPluginDescriptor[]>();
+  for (const section of AVAILABLE_SECTIONS) {
+    grouped.set(section.key, []);
+  }
+  for (const plugin of plugins) {
+    const section = AVAILABLE_SECTIONS.find((s) =>
+      s.matchCategories.includes(plugin.category)
+    );
+    const key = section?.key ?? 'plugins';
+    grouped.get(key)!.push(plugin);
+  }
+  return grouped;
 }
