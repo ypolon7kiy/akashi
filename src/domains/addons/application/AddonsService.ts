@@ -30,6 +30,8 @@ import type {
   AddonInstallerPort,
 } from './ports';
 
+const CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export class AddonsService {
   constructor(
     private readonly sourceSnapshot: SourceSnapshotPort,
@@ -146,7 +148,11 @@ export class AddonsService {
 
   /** Get cached catalog for an origin, or empty if not fetched yet. */
   getCachedPlugins(originId: string): readonly CatalogPlugin[] {
-    return this.store.getCachedCatalog(originId)?.plugins ?? [];
+    const cached = this.store.getCachedCatalog(originId);
+    if (!cached) return [];
+    const age = Date.now() - new Date(cached.fetchedAt).getTime();
+    if (age > CATALOG_CACHE_TTL_MS) return [];
+    return cached.plugins;
   }
 
   // ── Full Catalog Assembly ─────────────────────────────────────────
