@@ -10,6 +10,7 @@ import { AkashiMetaFileStore } from './domains/addons/infrastructure/AkashiMetaF
 import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
 import { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory } from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
+import type { SerializedSourceSearchQuery } from './domains/search/domain/model';
 import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
 import { createConfigDomain } from './domains/config';
 import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
@@ -23,7 +24,7 @@ import { appendLine, getLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
 import { createSidebarViewProvider } from './sidebar/host/SidebarViewProvider';
 import { snapshotWorkspaceFolders } from './sidebar/host/sidebarWorkspaceFolders';
-import { inferWorkspaceRoot, pickWorkspaceRoot } from './sidebar/host/inferWorkspaceRoot';
+import { inferWorkspaceRoot } from './sidebar/host/inferWorkspaceRoot';
 import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 
 /**
@@ -117,29 +118,44 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       if (!catalog) {
         return null;
       }
-      // Map domain types to shared DTOs (shapes are nearly identical)
+      // Read sidebar filter state to filter by enabled categories
+      const savedFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
+        'akashi.sidebar.filterState.v1',
+        null
+      );
+      const enabledCategories: ReadonlySet<string> | null = savedFilter?.categories
+        ? new Set(savedFilter.categories)
+        : null;
+      const catMatch = (category: string): boolean =>
+        enabledCategories === null || enabledCategories.has(category);
+
+      // Map domain types to shared DTOs, filtered by sidebar categories
       const payload: AddonsCatalogPayload = {
         generatedAt: catalog.generatedAt,
         presetId: catalog.presetId,
-        records: catalog.records.map((r) => ({
-          id: r.id,
-          path: r.path,
-          preset: r.preset,
-          category: r.category,
-          locality: r.locality,
-          tags: [...r.tags],
-          metadata: r.metadata,
-        })),
-        artifacts: catalog.artifacts.map((a) => ({
-          id: a.id,
-          presetId: a.presetId,
-          category: a.category,
-          locality: a.locality,
-          shape: a.shape,
-          memberRecordIds: [...a.memberRecordIds],
-          primaryPath: a.primaryPath,
-        })),
-        catalogPlugins: catalog.catalogPlugins,
+        records: catalog.records
+          .filter((r) => catMatch(r.category))
+          .map((r) => ({
+            id: r.id,
+            path: r.path,
+            preset: r.preset,
+            category: r.category,
+            locality: r.locality,
+            tags: [...r.tags],
+            metadata: r.metadata,
+          })),
+        artifacts: catalog.artifacts
+          .filter((a) => catMatch(a.category))
+          .map((a) => ({
+            id: a.id,
+            presetId: a.presetId,
+            category: a.category,
+            locality: a.locality,
+            shape: a.shape,
+            memberRecordIds: [...a.memberRecordIds],
+            primaryPath: a.primaryPath,
+          })),
+        catalogPlugins: catalog.catalogPlugins.filter((p) => catMatch(p.category)),
         origins: catalog.origins,
       };
       return payload;
@@ -183,15 +199,9 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     },
     installPlugin: async (pluginId: string, locality: 'workspace' | 'user', onProgress?: ProgressReporter) => {
       const roots = config.resolveToolUserRoots(os.homedir());
-      let workspaceRoot: string;
-      if (locality === 'workspace') {
-        const picked = await pickWorkspaceRoot();
-        if (!picked) {
-          return { ok: false, error: 'Open a folder or workspace to install project-scoped addons.' };
-        }
-        workspaceRoot = picked;
-      } else {
-        workspaceRoot = inferWorkspaceRoot();
+      const workspaceRoot = inferWorkspaceRoot();
+      if (locality === 'workspace' && !workspaceRoot) {
+        return { ok: false, error: 'Open a folder or workspace to install project-scoped addons.' };
       }
       onProgress?.('Resolving plugin from catalog\u2026');
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
@@ -357,6 +367,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         },
         onFilterChanged: (matchedPaths) => {
           Graph2DPanel.pushFilterIfOpen(matchedPaths);
+          void AddonsPanel.refreshIfOpen(addonsEnv);
         },
       })
     ),

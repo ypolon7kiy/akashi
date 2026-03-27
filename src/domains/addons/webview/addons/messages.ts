@@ -3,7 +3,6 @@ export const AddonsMessageType = {
   // Host -> Webview
   Catalog: 'addons/catalog',
   OperationResult: 'addons/operationResult',
-  OperationProgress: 'addons/operationProgress',
 
   // Webview -> Host
   WebviewReady: 'addons/webviewReady',

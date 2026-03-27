@@ -32,7 +32,6 @@ export function useAddonsState() {
   const [activeTab, setActiveTab] = useState<ViewTab>('installed');
   const [operationMessage, setOperationMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
-  const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const busyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startBusy = useCallback(() => {
@@ -68,15 +67,8 @@ export function useAddonsState() {
       if (msg?.type === AddonsMessageType.Catalog) {
         setCatalog(msg.payload as AddonsCatalogPayload);
       }
-      if (msg?.type === AddonsMessageType.OperationProgress) {
-        const p = msg.payload as { message?: string } | undefined;
-        if (p?.message) {
-          setProgressMessage(p.message);
-        }
-      }
       if (msg?.type === AddonsMessageType.OperationResult) {
         clearBusy();
-        setProgressMessage(null);
         const p = msg.payload as { operation?: string; ok?: boolean; error?: string; cancelled?: boolean } | undefined;
         if (p?.cancelled) {
           return;
@@ -168,7 +160,6 @@ export function useAddonsState() {
   return {
     catalog,
     isBusy,
-    progressMessage,
     categoryFilter,
     searchText,
     activeTab,

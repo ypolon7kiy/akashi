@@ -112,7 +112,7 @@ export class AddonsPanel {
           if (p?.pluginId) {
             const locality = p.locality === 'user' ? 'user' : 'workspace';
             appendLine(`[Akashi][Addons] Installing plugin=${p.pluginId} locality=${locality}`);
-            const result = await this.snapshotEnv?.installPlugin(p.pluginId, locality, this.reportProgress);
+            const result = await this.snapshotEnv?.installPlugin(p.pluginId, locality);
             appendLine(`[Akashi][Addons] Install result plugin=${p.pluginId} ok=${result?.ok} error=${result?.error ?? 'none'}`);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
@@ -139,7 +139,7 @@ export class AddonsPanel {
               });
               return;
             }
-            const result = await this.snapshotEnv?.deleteAddon(p.primaryPath, p.pluginId, this.reportProgress);
+            const result = await this.snapshotEnv?.deleteAddon(p.primaryPath, p.pluginId);
             appendLine(`[Akashi][Addons] Delete result ok=${result?.ok} error=${result?.error ?? 'none'}`);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
@@ -153,7 +153,7 @@ export class AddonsPanel {
           const p = message.payload as { addonId?: string } | undefined;
           if (p?.addonId) {
             appendLine(`[Akashi][Addons] Moving to global addonId=${p.addonId}`);
-            const result = await this.snapshotEnv?.moveToGlobal(p.addonId, this.reportProgress);
+            const result = await this.snapshotEnv?.moveToGlobal(p.addonId);
             appendLine(`[Akashi][Addons] Move result addonId=${p.addonId} ok=${result?.ok} error=${result?.error ?? 'none'}`);
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
@@ -181,13 +181,6 @@ export class AddonsPanel {
       payload,
     });
   }
-
-  private readonly reportProgress = (message: string): void => {
-    void this.panel.webview.postMessage({
-      type: AddonsMessageType.OperationProgress,
-      payload: { message },
-    });
-  };
 
   private async refreshAfterMutation(): Promise<void> {
     if (this.snapshotEnv) {
