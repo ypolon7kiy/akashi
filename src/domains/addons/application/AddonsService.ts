@@ -25,7 +25,7 @@ import {
   removeFromLedger,
   type InstalledAddonRecord,
 } from '../domain/installationLedger';
-import { reconcile } from '../domain/reconcileInstallStatus';
+import { reconcile, deriveNameFromPath } from '../domain/reconcileInstallStatus';
 import type { CatalogPlugin, PluginCategory } from '../domain/catalogPlugin';
 import type {
   SourceSnapshotPort,
@@ -255,12 +255,27 @@ export class AddonsService {
       record = findInLedgerByPath(ledger, primaryPath);
     }
 
-    // Resolve the artifact shape from the snapshot — determines HOW to delete
-    const effectivePath = primaryPath ?? record?.installedFiles[0];
+    // Resolve the effective path and artifact shape from the snapshot
+    const snapshot = await this.sourceSnapshot.getLastSnapshot();
+    let effectivePath = primaryPath ?? record?.installedFiles[0];
+
+    // If we still have no path, try to resolve from the snapshot by plugin name.
+    // This handles the Available tab case: pluginId provided, no ledger record,
+    // but the item exists on disk (name-match heuristic).
+    if (!effectivePath && pluginId && snapshot) {
+      const pluginName = pluginId.replace(/@.*$/, '');
+      const artifacts = snapshot.artifacts ?? [];
+      const match = artifacts.find(
+        (a) => deriveNameFromPath(a.primaryPath) === pluginName
+      );
+      if (match) {
+        effectivePath = match.primaryPath;
+      }
+    }
+
     let isFolderArtifact = false;
-    if (effectivePath) {
-      const snapshot = await this.sourceSnapshot.getLastSnapshot();
-      const artifact = (snapshot?.artifacts ?? []).find((a) => a.primaryPath === effectivePath);
+    if (effectivePath && snapshot) {
+      const artifact = (snapshot.artifacts ?? []).find((a) => a.primaryPath === effectivePath);
       isFolderArtifact = artifact?.shape === 'folder-file';
     }
 
@@ -274,9 +289,9 @@ export class AddonsService {
     } else if (record) {
       // Ledger-tracked non-folder: delete all tracked files
       result = await this.installer.removeTrackedFiles(record.installedFiles);
-    } else if (primaryPath) {
+    } else if (effectivePath) {
       // Not in ledger, not a folder: delete the single file
-      result = await this.installer.removeTrackedFiles([primaryPath]);
+      result = await this.installer.removeTrackedFiles([effectivePath]);
     } else {
       return { ok: false, error: 'No addon found to delete' };
     }

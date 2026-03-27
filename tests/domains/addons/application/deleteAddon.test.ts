@@ -275,4 +275,27 @@ describe('AddonsService.deleteAddon', () => {
     expect(ports.savedLedgers[0].records).toHaveLength(1);
     expect(ports.savedLedgers[0].records[0].locality).toBe('user');
   });
+
+  it('resolves path from snapshot by plugin name when Available tab sends pluginId without ledger record', async () => {
+    // Name-match case: file exists on disk, no ledger record, Available tab sends pluginId
+    const snap = snapshot([artifact('/ws/.claude/commands/foo.md', 'single-file')]);
+    const ports = createMockPorts(emptyLedger(), snap);
+    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+
+    // pluginId "foo@origin-a" → extract name "foo" → match artifact by deriveNameFromPath
+    const result = await service.deleteAddon(undefined, 'foo@origin-a');
+    expect(result.ok).toBe(true);
+    expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
+  });
+
+  it('resolves folder-file artifact from snapshot by plugin name when Available tab sends pluginId', async () => {
+    const snap = snapshot([artifact('/ws/.claude/skills/foo/SKILL.md', 'folder-file')]);
+    const ports = createMockPorts(emptyLedger(), snap);
+    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+
+    const result = await service.deleteAddon(undefined, 'foo@origin-a');
+    expect(result.ok).toBe(true);
+    expect(ports.removedDirs).toEqual(['/ws/.claude/skills/foo']);
+    expect(ports.removedFiles).toHaveLength(0);
+  });
 });
