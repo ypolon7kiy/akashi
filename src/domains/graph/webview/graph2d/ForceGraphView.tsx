@@ -40,7 +40,7 @@ type SimLink = GraphEdge3D & {
   target: string | SimNode;
 };
 
-/** Movement past this distance while middle-panning or left-dragging a node suppresses the next context menu. */
+/** Movement past this distance while panning or left-dragging a node suppresses the next context menu. */
 const CONTEXT_MENU_SUPPRESS_DRAG_PX = 5;
 
 function hashId(id: string): number {
@@ -599,6 +599,7 @@ export function ForceGraphView(props: {
   const panRef = useRef<{ sx: number; sy: number; tx0: number; ty0: number } | null>(null);
   const pointerGestureOriginRef = useRef<{ x: number; y: number } | null>(null);
   const suppressContextMenuAfterGestureRef = useRef(false);
+  const rightDownTimeRef = useRef<number>(0);
   const [pointedId, setPointedId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -1049,7 +1050,7 @@ export function ForceGraphView(props: {
       pointerGestureOriginRef.current = { x: e.clientX, y: e.clientY };
       const { wx, wy } = clientToWorld(e.clientX, e.clientY);
       const hit = pickNode(wx, wy);
-      // Left: drag nodes only. Middle: pan canvas (even over nodes). Right: no capture — context menu only.
+      // Left: drag nodes only. Middle/Right: pan canvas (even over nodes).
       if (e.button === 0 && hit) {
         draggingRef.current = {
           id: hit.id,
@@ -1064,7 +1065,8 @@ export function ForceGraphView(props: {
         return;
       }
       draggingRef.current = null;
-      if (e.button === 1) {
+      if (e.button === 1 || e.button === 2) {
+        if (e.button === 2) rightDownTimeRef.current = Date.now();
         e.preventDefault();
         panRef.current = {
           sx: e.clientX,
@@ -1131,13 +1133,24 @@ export function ForceGraphView(props: {
       draggingRef.current = null;
       simRef.current?.alphaTarget(0).restart();
     }
+    // Right-click release: show context menu if it was a quick click (< 1s) with little movement
+    if (e.button === 2 && rightDownTimeRef.current) {
+      if (Date.now() - rightDownTimeRef.current < 1000) {
+        const { wx, wy } = clientToWorld(e.clientX, e.clientY);
+        const hit = pickNode(wx, wy);
+        if (hit) {
+          setContextMenu({ x: e.clientX, y: e.clientY, node: hit });
+        }
+      }
+      rightDownTimeRef.current = 0;
+    }
     panRef.current = null;
     try {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [clientToWorld, pickNode]);
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -1150,25 +1163,12 @@ export function ForceGraphView(props: {
     [clientToWorld, pickNode, postOpenPath]
   );
 
-  const onContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      if (suppressContextMenuAfterGestureRef.current) {
-        suppressContextMenuAfterGestureRef.current = false;
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-      const { wx, wy } = clientToWorld(e.clientX, e.clientY);
-      const hit = pickNode(wx, wy);
-      if (!hit) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      setContextMenu({ x: e.clientX, y: e.clientY, node: hit });
-    },
-    [clientToWorld, pickNode]
-  );
+  const onContextMenu = useCallback((e: React.MouseEvent) => {
+    // Always suppress browser default — right-click is used for panning.
+    // Custom context menu is shown from onPointerUp instead.
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   return (
     <div className="akashi-graph2d-canvas-wrap" ref={wrapRef}>
