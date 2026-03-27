@@ -62,3 +62,10 @@ export function findInLedger(
 ): InstalledAddonRecord | undefined {
   return ledger.records.find((r) => r.id === addonId);
 }
+
+export function findInLedgerByPath(
+  ledger: InstallationLedger,
+  path: string
+): InstalledAddonRecord | undefined {
+  return ledger.records.find((r) => r.installedFiles.includes(path));
+}

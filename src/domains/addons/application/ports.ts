@@ -35,8 +35,24 @@ export interface AddonsStorePort {
   clearCachedCatalog(originId: string): Promise<void>;
 }
 
-/** Install/uninstall via existing ArtifactCreator infrastructure. */
+/** Target directories for plugin component installation. */
+export interface InstallTargets {
+  readonly skills: string;
+  readonly commands: string;
+  readonly hooks: string;
+  readonly root: string;
+}
+
+/** Install/uninstall executor. */
 export interface AddonInstallerPort {
+  /** Download actual content from marketplace and install components to correct locations. */
+  installFromMarketplace(
+    plugin: CatalogPlugin,
+    originSource: OriginSource,
+    targets: InstallTargets
+  ): Promise<{ ok: boolean; createdPaths: readonly string[]; error?: string }>;
+
+  /** Fallback: create stub via ArtifactCreator infrastructure. */
   installViaCreator(
     creatorId: string,
     pluginName: string,
@@ -46,4 +62,7 @@ export interface AddonInstallerPort {
   ): Promise<{ ok: boolean; createdPaths: readonly string[]; error?: string }>;
 
   removeTrackedFiles(paths: readonly string[]): Promise<{ ok: boolean; error?: string }>;
+
+  /** Recursively remove a directory and all its contents. */
+  removeDirectory(dirPath: string): Promise<{ ok: boolean; error?: string }>;
 }

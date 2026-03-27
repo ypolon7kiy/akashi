@@ -7,7 +7,7 @@ import { AddonsPanel, registerAddonsUi } from './domains/addons/ui/register';
 import { AddonsService } from './domains/addons/application/AddonsService';
 import { VscodeAddonsStore } from './domains/addons/infrastructure/VscodeAddonsStore';
 import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
-import { installViaCreator, removeTrackedFiles } from './domains/addons/infrastructure/CreatorBasedInstaller';
+import { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory } from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
 import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
 import { createConfigDomain } from './domains/config';
@@ -103,7 +103,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     sourcesService,
     addonsStore,
     { fetch: fetchMarketplaceJson },
-    { installViaCreator, removeTrackedFiles }
+    { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory }
   );
 
   const addonsEnv: AddonsPanelEnvironment = {
@@ -112,7 +112,32 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       if (!catalog) {
         return null;
       }
-      return catalog as AddonsCatalogPayload;
+      // Map domain types to shared DTOs (shapes are nearly identical)
+      const payload: AddonsCatalogPayload = {
+        generatedAt: catalog.generatedAt,
+        presetId: catalog.presetId,
+        records: catalog.records.map((r) => ({
+          id: r.id,
+          path: r.path,
+          preset: r.preset,
+          category: r.category,
+          locality: r.locality,
+          tags: [...r.tags],
+          metadata: r.metadata,
+        })),
+        artifacts: catalog.artifacts.map((a) => ({
+          id: a.id,
+          presetId: a.presetId,
+          category: a.category,
+          locality: a.locality,
+          shape: a.shape,
+          memberRecordIds: [...a.memberRecordIds],
+          primaryPath: a.primaryPath,
+        })),
+        catalogPlugins: catalog.catalogPlugins,
+        origins: catalog.origins,
+      };
+      return payload;
     },
     openAddonFile: async (path: string) => {
       try {
@@ -165,8 +190,8 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       }
       return result;
     },
-    uninstallPlugin: async (pluginId: string) => {
-      const result = await addonsService.uninstallPlugin(pluginId);
+    deleteAddon: async (primaryPath?: string, pluginId?: string) => {
+      const result = await addonsService.deleteAddon(primaryPath, pluginId);
       if (result.ok) {
         await vscode.commands.executeCommand('akashi.sources.refresh');
       }
@@ -175,13 +200,23 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     moveToGlobal: async (addonId: string) => {
       // Find the installed addon's source file
       const catalog = await addonsService.getCatalog('claude');
-      const addon = catalog?.installedAddons.find((a) => a.id === addonId);
-      if (!addon) {
+      // Look up in artifacts first, then records
+      const artifact = catalog?.artifacts.find((a) => a.id === addonId);
+      const record = artifact
+        ? { path: artifact.primaryPath, locality: artifact.locality }
+        : catalog?.records.find((r) => r.id === addonId);
+      if (!record) {
         return { ok: false, error: 'Addon not found' };
       }
+      const addon = { primaryPath: 'path' in record ? record.path : artifact!.primaryPath, locality: record.locality };
       if (addon.locality === 'user') {
         return { ok: false, error: 'Already at global scope' };
       }
+      // Derive name from path
+      const norm = addon.primaryPath.replace(/\\/g, '/');
+      const addonName = norm.endsWith('/SKILL.md')
+        ? norm.slice(norm.slice(0, norm.lastIndexOf('/')).lastIndexOf('/') + 1, norm.lastIndexOf('/'))
+        : norm.slice(norm.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
       // Read the source file content
       try {
         const sourceUri = vscode.Uri.file(addon.primaryPath);
@@ -191,7 +226,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         const roots = config.resolveToolUserRoots(os.homedir());
         const { installViaCreator: install } = await import('./domains/addons/infrastructure/CreatorBasedInstaller');
         const creatorId = `claude/skill-folder/user`;
-        const installResult = await install(creatorId, addon.name, '', '', roots);
+        const installResult = await install(creatorId, addonName, '', '', roots);
         if (!installResult.ok) {
           return { ok: false, error: installResult.error };
         }

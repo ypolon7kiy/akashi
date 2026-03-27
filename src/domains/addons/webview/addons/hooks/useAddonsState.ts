@@ -3,9 +3,12 @@ import { getVscodeApi } from '../../../../../webview-shared/api';
 import { AddonsMessageType } from '../messages';
 import type {
   AddonsCatalogPayload,
-  InstalledAddonDescriptor,
   CatalogPluginDescriptor,
 } from '../../../../../shared/types/addonsCatalogPayload';
+import type {
+  ArtifactDescriptor,
+  SourceDescriptor,
+} from '../../../../../shared/types/sourcesSnapshotPayload';
 
 export type CategoryFilter = string | null;
 export type ViewTab = 'installed' | 'available';
@@ -26,7 +29,7 @@ export function useAddonsState() {
       if (msg?.type === AddonsMessageType.OperationResult) {
         const p = msg.payload as { operation?: string; ok?: boolean; error?: string } | undefined;
         if (p?.ok) {
-          setOperationMessage(`${p.operation === 'install' ? 'Installed' : 'Uninstalled'} successfully`);
+          setOperationMessage(`${p.operation === 'install' ? 'Installed' : p.operation === 'move' ? 'Moved' : 'Deleted'} successfully`);
         } else {
           setOperationMessage(p?.error ?? 'Operation failed');
         }
@@ -39,13 +42,20 @@ export function useAddonsState() {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  const filteredInstalled = catalog
-    ? applyInstalledFilters(catalog.installedAddons, categoryFilter, searchText)
-    : [];
+  // Use artifacts as the display unit (groups compound entries like hook+config)
+  // Fall back to records if no artifacts available
+  const installedItems = catalog ? buildInstalledItems(catalog) : [];
 
+  const filteredInstalled = applyInstalledFilters(installedItems, categoryFilter, searchText);
   const filteredAvailable = catalog
     ? applyAvailableFilters(catalog.catalogPlugins, categoryFilter, searchText)
     : [];
+
+  // Build category counts from installed items
+  const categoryCounts = new Map<string, number>();
+  for (const item of installedItems) {
+    categoryCounts.set(item.category, (categoryCounts.get(item.category) ?? 0) + 1);
+  }
 
   const openFile = useCallback((path: string) => {
     getVscodeApi()?.postMessage({ type: AddonsMessageType.OpenFile, payload: { path } });
@@ -63,24 +73,15 @@ export function useAddonsState() {
   }, []);
 
   const removeOrigin = useCallback((originId: string) => {
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.RemoveOrigin,
-      payload: { originId },
-    });
+    getVscodeApi()?.postMessage({ type: AddonsMessageType.RemoveOrigin, payload: { originId } });
   }, []);
 
   const toggleOrigin = useCallback((originId: string, enabled: boolean) => {
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.ToggleOrigin,
-      payload: { originId, enabled },
-    });
+    getVscodeApi()?.postMessage({ type: AddonsMessageType.ToggleOrigin, payload: { originId, enabled } });
   }, []);
 
   const fetchOrigin = useCallback((originId: string) => {
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.FetchOrigin,
-      payload: { originId },
-    });
+    getVscodeApi()?.postMessage({ type: AddonsMessageType.FetchOrigin, payload: { originId } });
   }, []);
 
   const installPlugin = useCallback((pluginId: string, locality: 'workspace' | 'user') => {
@@ -90,26 +91,15 @@ export function useAddonsState() {
     });
   }, []);
 
-  const uninstallPlugin = useCallback((pluginId: string) => {
+  const deleteAddon = useCallback((primaryPath?: string, pluginId?: string) => {
     getVscodeApi()?.postMessage({
-      type: AddonsMessageType.UninstallPlugin,
-      payload: { pluginId },
-    });
-  }, []);
-
-  // Delete uses the same backend as uninstall — removes tracked files via ledger
-  const deleteAddon = useCallback((addonId: string) => {
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.UninstallPlugin,
-      payload: { pluginId: addonId },
+      type: AddonsMessageType.DeleteAddon,
+      payload: { primaryPath, pluginId },
     });
   }, []);
 
   const moveToGlobal = useCallback((addonId: string) => {
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.MoveToGlobal,
-      payload: { addonId },
-    });
+    getVscodeApi()?.postMessage({ type: AddonsMessageType.MoveToGlobal, payload: { addonId } });
   }, []);
 
   return {
@@ -120,6 +110,8 @@ export function useAddonsState() {
     operationMessage,
     filteredInstalled,
     filteredAvailable,
+    categoryCounts,
+    installedItems,
     setCategoryFilter,
     setSearchText,
     setActiveTab,
@@ -130,18 +122,61 @@ export function useAddonsState() {
     toggleOrigin,
     fetchOrigin,
     installPlugin,
-    uninstallPlugin,
     deleteAddon,
     moveToGlobal,
   };
 }
 
+/** Installed item — directly from the snapshot, no custom type. */
+export interface InstalledItem {
+  readonly id: string;
+  readonly name: string;
+  readonly category: string;
+  readonly locality: 'workspace' | 'user';
+  readonly primaryPath: string;
+}
+
+/** Build installed items from snapshot data: prefer artifacts, fall back to records. */
+function buildInstalledItems(catalog: AddonsCatalogPayload): readonly InstalledItem[] {
+  if (catalog.artifacts && catalog.artifacts.length > 0) {
+    return catalog.artifacts.map((a: ArtifactDescriptor) => ({
+      id: a.id,
+      name: deriveName(a.primaryPath),
+      category: a.category,
+      locality: a.locality,
+      primaryPath: a.primaryPath,
+    }));
+  }
+  return catalog.records.map((r: SourceDescriptor) => ({
+    id: r.id,
+    name: deriveName(r.path),
+    category: r.category,
+    locality: r.locality,
+    primaryPath: r.path,
+  }));
+}
+
+/** Derive a display name from a file path using the snapshot data directly. */
+function deriveName(path: string): string {
+  const norm = path.replace(/\\/g, '/');
+  // Folder-layout: .claude/skills/my-skill/SKILL.md → "my-skill"
+  if (norm.endsWith('/SKILL.md')) {
+    const withoutFile = norm.slice(0, norm.lastIndexOf('/'));
+    const slash = withoutFile.lastIndexOf('/');
+    return slash >= 0 ? withoutFile.slice(slash + 1) : withoutFile;
+  }
+  // Flat: basename minus extension
+  const lastSlash = norm.lastIndexOf('/');
+  const basename = lastSlash >= 0 ? norm.slice(lastSlash + 1) : norm;
+  return basename.replace(/\.\w+$/i, '');
+}
+
 function applyInstalledFilters(
-  addons: readonly InstalledAddonDescriptor[],
+  items: readonly InstalledItem[],
   categoryFilter: CategoryFilter,
   searchText: string
-): readonly InstalledAddonDescriptor[] {
-  let result = addons;
+): readonly InstalledItem[] {
+  let result = items;
   if (categoryFilter) {
     result = result.filter((a) => a.category === categoryFilter);
   }

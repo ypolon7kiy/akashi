@@ -3,7 +3,7 @@ import type { CatalogPluginDescriptor } from '../../../../../shared/types/addons
 interface PluginGridProps {
   readonly plugins: readonly CatalogPluginDescriptor[];
   readonly onInstall: (pluginId: string, locality: 'workspace' | 'user') => void;
-  readonly onUninstall: (pluginId: string) => void;
+  readonly onDelete: (pluginId: string) => void;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -15,7 +15,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   bundle: 'codicon-package',
 };
 
-export function PluginGrid({ plugins, onInstall, onUninstall }: PluginGridProps) {
+export function PluginGrid({ plugins, onInstall, onDelete }: PluginGridProps) {
   if (plugins.length === 0) {
     return (
       <div className="akashi-addons-empty">
@@ -56,7 +56,7 @@ export function PluginGrid({ plugins, onInstall, onUninstall }: PluginGridProps)
             {plugin.installStatus === 'installed' ? (
               <button
                 className="akashi-addons-grid-card__btn akashi-addons-grid-card__btn--uninstall"
-                onClick={() => onUninstall(plugin.id)}
+                onClick={() => onDelete(plugin.id)}
                 title="Uninstall"
               >
                 <span className="codicon codicon-trash" />

@@ -1,10 +1,10 @@
-import type { InstalledAddonDescriptor } from '../../../../../shared/types/addonsCatalogPayload';
+import type { InstalledItem } from '../hooks/useAddonsState';
 import { StatusBadge } from './StatusBadge';
 
 interface PluginCardProps {
-  readonly addon: InstalledAddonDescriptor;
+  readonly addon: InstalledItem;
   readonly onOpen: (path: string) => void;
-  readonly onDelete?: (addonId: string) => void;
+  readonly onDelete?: (primaryPath: string) => void;
   readonly onMoveToGlobal?: (addonId: string) => void;
 }
 
@@ -14,6 +14,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   rule: 'codicon-law',
   hook: 'codicon-zap',
   mcp: 'codicon-plug',
+  context: 'codicon-book',
+  config: 'codicon-gear',
 };
 
 export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal }: PluginCardProps) {
@@ -54,7 +56,7 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal }: PluginCa
         {onDelete && (
           <button
             className="akashi-addons-card__action-btn akashi-addons-card__action-btn--danger"
-            onClick={(e) => { e.stopPropagation(); onDelete(addon.id); }}
+            onClick={(e) => { e.stopPropagation(); onDelete(addon.primaryPath); }}
             title="Delete"
           >
             <span className="codicon codicon-trash" />

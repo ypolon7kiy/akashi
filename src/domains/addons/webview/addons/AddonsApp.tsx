@@ -13,6 +13,8 @@ export function AddonsApp() {
     operationMessage,
     filteredInstalled,
     filteredAvailable,
+    categoryCounts,
+    installedItems,
     setCategoryFilter,
     setSearchText,
     setActiveTab,
@@ -23,7 +25,6 @@ export function AddonsApp() {
     toggleOrigin,
     fetchOrigin,
     installPlugin,
-    uninstallPlugin,
     deleteAddon,
     moveToGlobal,
   } = useAddonsState();
@@ -59,7 +60,7 @@ export function AddonsApp() {
             className={`akashi-addons-tab ${activeTab === 'installed' ? 'akashi-addons-tab--active' : ''}`}
             onClick={() => setActiveTab('installed')}
           >
-            Installed ({catalog.installedAddons.length})
+            Installed ({installedItems.length})
           </button>
           <button
             className={`akashi-addons-tab ${activeTab === 'available' ? 'akashi-addons-tab--active' : ''}`}
@@ -74,10 +75,10 @@ export function AddonsApp() {
           onSearchChange={setSearchText}
           categoryFilter={categoryFilter}
           onCategoryChange={setCategoryFilter}
-          categories={catalog.categorySummaries}
+          categoryCounts={categoryCounts}
           totalCount={
             activeTab === 'installed'
-              ? catalog.installedAddons.length
+              ? installedItems.length
               : catalog.catalogPlugins.length
           }
         />
@@ -92,7 +93,7 @@ export function AddonsApp() {
           <InstalledList
             addons={filteredInstalled}
             onOpen={openFile}
-            onDelete={deleteAddon}
+            onDelete={(primaryPath) => deleteAddon(primaryPath)}
             onMoveToGlobal={moveToGlobal}
           />
         ) : (
@@ -107,7 +108,7 @@ export function AddonsApp() {
             <PluginGrid
               plugins={filteredAvailable}
               onInstall={installPlugin}
-              onUninstall={uninstallPlugin}
+              onDelete={(pluginId) => deleteAddon(undefined, pluginId)}
             />
           </>
         )}

@@ -1,10 +1,10 @@
-import type { InstalledAddonDescriptor } from '../../../../../shared/types/addonsCatalogPayload';
+import type { InstalledItem } from '../hooks/useAddonsState';
 import { PluginCard } from './PluginCard';
 
 interface InstalledListProps {
-  readonly addons: readonly InstalledAddonDescriptor[];
+  readonly addons: readonly InstalledItem[];
   readonly onOpen: (path: string) => void;
-  readonly onDelete: (addonId: string) => void;
+  readonly onDelete: (primaryPath: string) => void;
   readonly onMoveToGlobal: (addonId: string) => void;
 }
 

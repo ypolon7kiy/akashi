@@ -15,9 +15,9 @@ export const AddonsMessageType = {
   ToggleOrigin: 'addons/toggleOrigin',
   FetchOrigin: 'addons/fetchOrigin',
 
-  // Install/Uninstall (Webview -> Host)
+  // Install/Delete (Webview -> Host)
   InstallPlugin: 'addons/installPlugin',
-  UninstallPlugin: 'addons/uninstallPlugin',
+  DeleteAddon: 'addons/deleteAddon',
 
   // Installed addon actions (Webview -> Host)
   MoveToGlobal: 'addons/moveToGlobal',
