@@ -20,7 +20,7 @@ import {
 } from '../domain/marketplaceOrigin';
 import {
   addToLedger,
-  findInLedger,
+  findInLedgerByPluginId,
   findInLedgerByPath,
   removeFromLedger,
   type InstalledAddonRecord,
@@ -223,11 +223,12 @@ export class AddonsService {
     }
 
     const record: InstalledAddonRecord = {
-      id: plugin.id,
+      id: `${plugin.id}/${locality}`,
       name: plugin.name,
       originId: plugin.originId,
       presetId: 'claude',
       category: plugin.category,
+      locality,
       version: plugin.version,
       installedAt: new Date().toISOString(),
       installedFiles: result.createdPaths,
@@ -248,7 +249,7 @@ export class AddonsService {
     // Try to find ledger record by pluginId or by path
     let record: InstalledAddonRecord | undefined;
     if (pluginId) {
-      record = findInLedger(ledger, pluginId);
+      record = findInLedgerByPluginId(ledger, pluginId);
     }
     if (!record && primaryPath) {
       record = findInLedgerByPath(ledger, primaryPath);

@@ -18,6 +18,7 @@ export interface InstalledAddonRecord {
   readonly originId: string;
   readonly presetId: string;
   readonly category: string;
+  readonly locality: 'workspace' | 'user';
   readonly version: string;
   readonly installedAt: string;
   /** Absolute paths of files created during install. */
@@ -61,6 +62,15 @@ export function findInLedger(
   addonId: string
 ): InstalledAddonRecord | undefined {
   return ledger.records.find((r) => r.id === addonId);
+}
+
+export function findInLedgerByPluginId(
+  ledger: InstallationLedger,
+  pluginId: string
+): InstalledAddonRecord | undefined {
+  return ledger.records.find(
+    (r) => r.id === pluginId || r.id.replace(/\/(workspace|user)$/, '') === pluginId
+  );
 }
 
 export function findInLedgerByPath(

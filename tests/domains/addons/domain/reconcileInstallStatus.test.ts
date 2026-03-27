@@ -53,12 +53,14 @@ function ledgerRecord(
   installedFiles: readonly string[] = [],
   overrides: Partial<InstalledAddonRecord> = {}
 ): InstalledAddonRecord {
+  const locality = overrides.locality ?? 'workspace';
   return {
-    id: `${name}@${originId}`,
+    id: `${name}@${originId}/${locality}`,
     name,
     originId,
     presetId: 'claude',
     category: 'skill',
+    locality,
     version: '1.0.0',
     installedAt: '2025-01-01T00:00:00.000Z',
     installedFiles,
@@ -199,7 +201,7 @@ describe('reconcile', () => {
     }));
 
     expect(result.prunedLedger.records).toHaveLength(1);
-    expect(result.prunedLedger.records[0].id).toBe('bar@origin-a');
+    expect(result.prunedLedger.records[0].id).toBe('bar@origin-a/workspace');
   });
 
   it('does not flag ledger records from other presets as stale', () => {

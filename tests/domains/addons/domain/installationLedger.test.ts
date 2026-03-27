@@ -14,12 +14,14 @@ function record(
   installedFiles: readonly string[] = [],
   overrides: Partial<InstalledAddonRecord> = {}
 ): InstalledAddonRecord {
+  const locality = overrides.locality ?? 'workspace';
   return {
-    id: `${name}@origin`,
+    id: `${name}@origin/${locality}`,
     name,
     originId: 'origin',
     presetId: 'claude',
     category: 'skill',
+    locality,
     version: '1.0.0',
     installedAt: '2025-01-01T00:00:00.000Z',
     installedFiles,
@@ -58,7 +60,7 @@ describe('installationLedger', () => {
   describe('removeFromLedger', () => {
     it('removes a record by id', () => {
       const ledger = addToLedger(emptyLedger(), record('foo', ['/a.md']));
-      const result = removeFromLedger(ledger, 'foo@origin');
+      const result = removeFromLedger(ledger, 'foo@origin/workspace');
       expect(result.records).toHaveLength(0);
     });
 
@@ -72,11 +74,11 @@ describe('installationLedger', () => {
   describe('findInLedger', () => {
     it('finds a record by id', () => {
       const ledger = addToLedger(emptyLedger(), record('foo', ['/a.md']));
-      expect(findInLedger(ledger, 'foo@origin')?.name).toBe('foo');
+      expect(findInLedger(ledger, 'foo@origin/workspace')?.name).toBe('foo');
     });
 
     it('returns undefined when not found', () => {
-      expect(findInLedger(emptyLedger(), 'foo@origin')).toBeUndefined();
+      expect(findInLedger(emptyLedger(), 'foo@origin/workspace')).toBeUndefined();
     });
   });
 

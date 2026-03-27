@@ -17,12 +17,14 @@ function ledgerRecord(
   installedFiles: readonly string[],
   overrides: Partial<InstalledAddonRecord> = {}
 ): InstalledAddonRecord {
+  const locality = overrides.locality ?? 'workspace';
   return {
-    id: `${name}@origin-a`,
+    id: `${name}@origin-a/${locality}`,
     name,
     originId: 'origin-a',
     presetId: 'claude',
     category: 'skill',
+    locality,
     version: '1.0.0',
     installedAt: '2025-01-01T00:00:00.000Z',
     installedFiles,
@@ -247,5 +249,30 @@ describe('AddonsService.deleteAddon', () => {
     const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
+  });
+
+  it('same plugin installed to both localities — deleting one preserves the other', async () => {
+    const wsRec = ledgerRecord('foo', ['/ws/.claude/commands/foo.md'], { locality: 'workspace' });
+    const userRec = ledgerRecord('foo', ['/home/user/.claude/commands/foo.md'], { locality: 'user' });
+    let ledger = addToLedger(emptyLedger(), wsRec);
+    ledger = addToLedger(ledger, userRec);
+    // Both records coexist because ids differ: foo@origin-a/workspace vs foo@origin-a/user
+    expect(ledger.records).toHaveLength(2);
+
+    const snap = snapshot([
+      artifact('/ws/.claude/commands/foo.md', 'single-file'),
+      artifact('/home/user/.claude/commands/foo.md', 'single-file'),
+    ]);
+    const ports = createMockPorts(ledger, snap);
+    const service = new AddonsService(ports.sourceSnapshot, ports.store, ports.fetcher, ports.installer);
+
+    // Delete the workspace install by path
+    const result = await service.deleteAddon('/ws/.claude/commands/foo.md');
+    expect(result.ok).toBe(true);
+    expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
+    // Ledger should have only the user record left
+    expect(ports.savedLedgers).toHaveLength(1);
+    expect(ports.savedLedgers[0].records).toHaveLength(1);
+    expect(ports.savedLedgers[0].records[0].locality).toBe('user');
   });
 });

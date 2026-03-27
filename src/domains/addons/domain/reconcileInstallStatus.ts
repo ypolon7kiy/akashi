@@ -106,15 +106,21 @@ export function reconcile(input: ReconcileInput): ReconcileResult {
   };
 
   // Step 4: Compute install status for each catalog plugin
+  // Ledger ids include locality suffix (e.g. "foo@origin/workspace").
+  // Strip it to match against catalog plugin ids (e.g. "foo@origin").
+  const stripLocality = (id: string): string => id.replace(/\/(workspace|user)$/, '');
+  const verifiedPluginIds = new Set([...verifiedLedgerIds].map(stripLocality));
+  const stalePluginIds = new Set([...staleIds].map(stripLocality));
+
   const plugins: CatalogPlugin[] = catalogPlugins.map((plugin) => {
     // Primary: verified ledger record
-    if (verifiedLedgerIds.has(plugin.id)) {
+    if (verifiedPluginIds.has(plugin.id)) {
       return { ...plugin, installStatus: 'installed' as InstallStatus };
     }
 
     // Secondary heuristic: name match — but NOT if a stale record was just pruned
     // for this plugin (the files were deliberately deleted)
-    if (!staleIds.has(plugin.id) && snapshotNames.has(plugin.name)) {
+    if (!stalePluginIds.has(plugin.id) && snapshotNames.has(plugin.name)) {
       return { ...plugin, installStatus: 'installed' as InstallStatus };
     }
 
