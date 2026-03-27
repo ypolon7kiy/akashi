@@ -6,9 +6,10 @@ interface InstalledListProps {
   readonly onOpen: (path: string) => void;
   readonly onDelete: (primaryPath: string) => void;
   readonly onMoveToGlobal: (addonId: string) => void;
+  readonly disabled?: boolean;
 }
 
-export function InstalledList({ addons, onOpen, onDelete, onMoveToGlobal }: InstalledListProps) {
+export function InstalledList({ addons, onOpen, onDelete, onMoveToGlobal, disabled }: InstalledListProps) {
   if (addons.length === 0) {
     return (
       <div className="akashi-addons-empty">
@@ -30,6 +31,7 @@ export function InstalledList({ addons, onOpen, onDelete, onMoveToGlobal }: Inst
           onOpen={onOpen}
           onDelete={onDelete}
           onMoveToGlobal={onMoveToGlobal}
+          disabled={disabled}
         />
       ))}
     </div>

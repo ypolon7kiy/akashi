@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getVscodeApi } from '../../../../../webview-shared/api';
 import { AddonsMessageType } from '../messages';
 import type {
@@ -31,6 +31,35 @@ export function useAddonsState() {
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState<ViewTab>('installed');
   const [operationMessage, setOperationMessage] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+  const busyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startBusy = useCallback(() => {
+    setIsBusy(true);
+    if (busyTimeoutRef.current !== null) {
+      clearTimeout(busyTimeoutRef.current);
+    }
+    busyTimeoutRef.current = setTimeout(() => {
+      setIsBusy(false);
+      busyTimeoutRef.current = null;
+    }, 30_000);
+  }, []);
+
+  const clearBusy = useCallback(() => {
+    setIsBusy(false);
+    if (busyTimeoutRef.current !== null) {
+      clearTimeout(busyTimeoutRef.current);
+      busyTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (busyTimeoutRef.current !== null) {
+        clearTimeout(busyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<unknown>) => {
@@ -39,7 +68,11 @@ export function useAddonsState() {
         setCatalog(msg.payload as AddonsCatalogPayload);
       }
       if (msg?.type === AddonsMessageType.OperationResult) {
-        const p = msg.payload as { operation?: string; ok?: boolean; error?: string } | undefined;
+        clearBusy();
+        const p = msg.payload as { operation?: string; ok?: boolean; error?: string; cancelled?: boolean } | undefined;
+        if (p?.cancelled) {
+          return;
+        }
         if (p?.ok) {
           setOperationMessage(`${p.operation === 'install' ? 'Installed' : p.operation === 'move' ? 'Moved' : 'Deleted'} successfully`);
         } else {
@@ -99,22 +132,25 @@ export function useAddonsState() {
   }, []);
 
   const installPlugin = useCallback((pluginId: string, locality: 'workspace' | 'user') => {
+    startBusy();
     getVscodeApi()?.postMessage({
       type: AddonsMessageType.InstallPlugin,
       payload: { pluginId, locality },
     });
-  }, []);
+  }, [startBusy]);
 
   const deleteAddon = useCallback((primaryPath?: string, pluginId?: string) => {
+    startBusy();
     getVscodeApi()?.postMessage({
       type: AddonsMessageType.DeleteAddon,
       payload: { primaryPath, pluginId },
     });
-  }, []);
+  }, [startBusy]);
 
   const moveToGlobal = useCallback((addonId: string) => {
+    startBusy();
     getVscodeApi()?.postMessage({ type: AddonsMessageType.MoveToGlobal, payload: { addonId } });
-  }, []);
+  }, [startBusy]);
 
   const switchTab = useCallback((tab: ViewTab) => {
     setActiveTab(tab);
@@ -123,6 +159,7 @@ export function useAddonsState() {
 
   return {
     catalog,
+    isBusy,
     categoryFilter,
     searchText,
     activeTab,

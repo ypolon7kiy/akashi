@@ -7,13 +7,15 @@ import { handleSidebarWebviewMessage } from './handleSidebarWebviewMessage';
 import { createSidebarSourcesHostActions } from './sidebarSourcesHostActions';
 import { codiconsDistRoot, getSidebarWebviewHtml } from './sidebarWebviewHtml';
 
-const SIDEBAR_FILTER_STATE_KEY = 'akashi.sidebar.filterState.v1';
+export const SIDEBAR_FILTER_STATE_KEY = 'akashi.sidebar.filterState.v1';
 
 export interface SidebarViewProviderOptions {
   /** Called after the sidebar (and filtered snapshot) has been updated — e.g. refresh graph panel. */
   onAfterSourcesSnapshotRefreshed?: () => void;
   /** Called when the sidebar filter result changes — relay matched paths to graph panel. */
   onFilterChanged?: (matchedPaths: readonly string[] | null) => void;
+  /** Called when the sidebar filter state is persisted — relay category toggles to addons panel. */
+  onFilterStateSaved?: (query: SerializedSourceSearchQuery) => void;
 }
 
 export function createSidebarViewProvider(
@@ -139,6 +141,13 @@ export function createSidebarViewProvider(
               `[Akashi] Sidebar: failed to save filter state: ${err instanceof Error ? err.message : String(err)}`
             )
           );
+        try {
+          options.onFilterStateSaved?.(query);
+        } catch (err) {
+          appendLine(
+            `[Akashi] Sidebar: onFilterStateSaved failed: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
       };
 
       const getSavedFilterState = (): SerializedSourceSearchQuery | null =>

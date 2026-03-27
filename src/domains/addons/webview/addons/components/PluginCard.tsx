@@ -6,6 +6,7 @@ interface PluginCardProps {
   readonly onOpen: (path: string) => void;
   readonly onDelete?: (primaryPath: string) => void;
   readonly onMoveToGlobal?: (addonId: string) => void;
+  readonly disabled?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -18,7 +19,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   config: 'codicon-gear',
 };
 
-export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal }: PluginCardProps) {
+export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }: PluginCardProps) {
   const iconClass = CATEGORY_ICONS[addon.category] ?? 'codicon-file';
   const canMoveToGlobal = addon.locality === 'workspace' && onMoveToGlobal;
 
@@ -49,6 +50,7 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal }: PluginCa
             className="akashi-addons-card__action-btn"
             onClick={(e) => { e.stopPropagation(); onMoveToGlobal(addon.id); }}
             title="Move to global (~/.claude/skills/)"
+            disabled={disabled}
           >
             <span className="codicon codicon-globe" />
           </button>
@@ -58,6 +60,7 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal }: PluginCa
             className="akashi-addons-card__action-btn akashi-addons-card__action-btn--danger"
             onClick={(e) => { e.stopPropagation(); onDelete(addon.primaryPath); }}
             title="Delete"
+            disabled={disabled}
           >
             <span className="codicon codicon-trash" />
           </button>

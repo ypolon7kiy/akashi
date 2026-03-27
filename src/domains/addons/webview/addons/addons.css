@@ -822,6 +822,20 @@ body {
   background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.3));
 }
 
+/* ───────── Progress indicator ───────── */
+
+.akashi-addons-progress-slot {
+  flex-shrink: 0;
+  height: 2px;
+}
+
+.akashi-addons-grid-card__btn:disabled,
+.akashi-addons-card__action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* ───────── High contrast ───────── */
 
 body.vscode-high-contrast .akashi-addons-card:hover {

@@ -129,6 +129,10 @@ export class AddonsPanel {
               'Delete'
             );
             if (confirm !== 'Delete') {
+              void this.panel.webview.postMessage({
+                type: AddonsMessageType.OperationResult,
+                payload: { operation: 'delete', ok: true, cancelled: true },
+              });
               return;
             }
             const result = await this.snapshotEnv?.deleteAddon(p.primaryPath, p.pluginId);

@@ -6,6 +6,7 @@ import { AvailableBrowse } from './components/AvailableBrowse';
 export function AddonsApp() {
   const {
     catalog,
+    isBusy,
     categoryFilter,
     searchText,
     activeTab,
@@ -84,6 +85,16 @@ export function AddonsApp() {
         />
       </header>
 
+      <div className="akashi-addons-progress-slot" aria-busy={isBusy}>
+        {isBusy && (
+          <div
+            className="akashi-progress"
+            role="progressbar"
+            aria-label="Operation in progress"
+          />
+        )}
+      </div>
+
       {operationMessage && (
         <div className="akashi-addons-toast">{operationMessage}</div>
       )}
@@ -95,6 +106,7 @@ export function AddonsApp() {
             onOpen={openFile}
             onDelete={(primaryPath) => deleteAddon(primaryPath)}
             onMoveToGlobal={moveToGlobal}
+            disabled={isBusy}
           />
         ) : (
           <AvailableBrowse
@@ -106,6 +118,7 @@ export function AddonsApp() {
             onFetchOrigin={fetchOrigin}
             onAddOrigin={addOrigin}
             onRemoveOrigin={removeOrigin}
+            disabled={isBusy}
           />
         )}
       </main>

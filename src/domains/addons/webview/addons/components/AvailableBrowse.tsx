@@ -13,6 +13,7 @@ interface AvailableBrowseProps {
   readonly onFetchOrigin: (originId: string) => void;
   readonly onAddOrigin: (label: string, kind: string, value: string) => void;
   readonly onRemoveOrigin: (originId: string) => void;
+  readonly disabled?: boolean;
 }
 
 export function AvailableBrowse({
@@ -24,6 +25,7 @@ export function AvailableBrowse({
   onFetchOrigin,
   onAddOrigin,
   onRemoveOrigin,
+  disabled,
 }: AvailableBrowseProps) {
   const totalCount = [...sections.values()].reduce((sum, list) => sum + list.length, 0);
 
@@ -56,7 +58,7 @@ export function AvailableBrowse({
                 <span>{section.label}</span>
                 <span className="akashi-addons-section-header__count">({plugins.length})</span>
               </div>
-              <PluginGrid plugins={plugins} onInstall={onInstall} onDelete={onDelete} />
+              <PluginGrid plugins={plugins} onInstall={onInstall} onDelete={onDelete} disabled={disabled} />
             </div>
           );
         })

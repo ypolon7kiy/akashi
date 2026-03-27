@@ -4,6 +4,7 @@ interface PluginGridProps {
   readonly plugins: readonly CatalogPluginDescriptor[];
   readonly onInstall: (pluginId: string, locality: 'workspace' | 'user') => void;
   readonly onDelete: (pluginId: string) => void;
+  readonly disabled?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -15,7 +16,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   bundle: 'codicon-package',
 };
 
-export function PluginGrid({ plugins, onInstall, onDelete }: PluginGridProps) {
+export function PluginGrid({ plugins, onInstall, onDelete, disabled }: PluginGridProps) {
   if (plugins.length === 0) {
     return (
       <div className="akashi-addons-empty">
@@ -58,6 +59,7 @@ export function PluginGrid({ plugins, onInstall, onDelete }: PluginGridProps) {
                 className="akashi-addons-grid-card__btn akashi-addons-grid-card__btn--uninstall"
                 onClick={() => onDelete(plugin.id)}
                 title="Uninstall"
+                disabled={disabled}
               >
                 <span className="codicon codicon-trash" />
               </button>
@@ -67,6 +69,7 @@ export function PluginGrid({ plugins, onInstall, onDelete }: PluginGridProps) {
                   className="akashi-addons-grid-card__btn akashi-addons-grid-card__btn--install"
                   onClick={() => onInstall(plugin.id, 'workspace')}
                   title="Install to project (.claude/skills/)"
+                  disabled={disabled}
                 >
                   <span className="codicon codicon-folder" /> Project
                 </button>
@@ -74,6 +77,7 @@ export function PluginGrid({ plugins, onInstall, onDelete }: PluginGridProps) {
                   className="akashi-addons-grid-card__btn akashi-addons-grid-card__btn--install-alt"
                   onClick={() => onInstall(plugin.id, 'user')}
                   title="Install globally (~/.claude/skills/)"
+                  disabled={disabled}
                 >
                   <span className="codicon codicon-home" /> Global
                 </button>
