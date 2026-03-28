@@ -23,6 +23,7 @@ import {
   addEntry,
   removeEntry,
   getEntries,
+  findEntry,
   type AkashiMeta,
   type AkashiMetaEntry,
 } from '../domain/akashiMeta';
@@ -351,6 +352,64 @@ export class AddonsService {
 
     const result = await this.deleteByPath(effectivePath, snapshot);
     return result;
+  }
+
+  // ── Move to Global ────────────────────────────────────────────────
+
+  /**
+   * Install an addon at global (user) scope and transfer its meta entry
+   * from the workspace meta file to the user meta file.
+   *
+   * The caller is responsible for reading the source content, overwriting the
+   * creator stub, deleting the workspace file, and refreshing sources.
+   */
+  async moveAddonToGlobal(
+    addonName: string,
+    category: PluginCategory,
+    workspaceRoot: string,
+    roots: ToolUserRoots
+  ): Promise<{ ok: boolean; createdPaths: readonly string[]; error?: string }> {
+    const creatorId = resolveCreatorId('claude', category, 'user');
+    if (!creatorId) {
+      return {
+        ok: false,
+        createdPaths: [],
+        error: `No global creator for category '${category}'`,
+      };
+    }
+
+    const installResult = await this.installer.installViaCreator(
+      creatorId,
+      addonName,
+      '',
+      workspaceRoot,
+      roots
+    );
+    if (!installResult.ok) {
+      return { ok: false, createdPaths: [], error: installResult.error };
+    }
+
+    // Transfer meta: remove workspace entry (if any), add user entry
+    const wsMeta = this.metaStore.readMeta('workspace', workspaceRoot, roots.claudeUserRoot);
+    const existingEntry = findEntry(wsMeta, 'claude', addonName, category);
+
+    if (existingEntry) {
+      const updatedWsMeta = removeEntry(wsMeta, 'claude', addonName, category);
+      await this.metaStore.writeMeta('workspace', workspaceRoot, roots.claudeUserRoot, updatedWsMeta);
+    }
+
+    const userMeta = this.metaStore.readMeta('user', workspaceRoot, roots.claudeUserRoot);
+    const newEntry: AkashiMetaEntry = {
+      name: addonName,
+      category,
+      originId: existingEntry?.originId ?? '',
+      version: existingEntry?.version ?? '',
+      installedPaths: installResult.createdPaths,
+    };
+    const updatedUserMeta = addEntry(userMeta, 'claude', newEntry);
+    await this.metaStore.writeMeta('user', workspaceRoot, roots.claudeUserRoot, updatedUserMeta);
+
+    return { ok: true, createdPaths: installResult.createdPaths };
   }
 
   /** Look up a meta entry by primaryPath or pluginId across both localities. */

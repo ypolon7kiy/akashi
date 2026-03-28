@@ -3,7 +3,7 @@
  * Represents an entry from a parsed marketplace.json.
  */
 
-export type PluginCategory = 'skill' | 'command' | 'hook' | 'mcp' | 'agent' | 'bundle';
+export type PluginCategory = 'skill' | 'command' | 'hook' | 'mcp' | 'agent' | 'bundle' | 'rule';
 
 export type PluginSourceRef =
   | { readonly kind: 'relative'; readonly path: string }

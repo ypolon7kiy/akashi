@@ -23,6 +23,7 @@ import {
   buildArtifactCreatorMenuEntries,
   findArtifactCreatorById,
 } from './domains/sources/registerSourcePresets';
+import { deriveNameFromPath } from './domains/addons/domain/reconcileInstallStatus';
 import { createSourceFileWatcher } from './domains/sources/infrastructure/sourceFileWatcher';
 import { appendLine, getLog } from './log';
 import { buildSourcesSnapshotPayload } from './sidebar/host/sources/sourcesSnapshotPayload';
@@ -223,44 +224,35 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       // Look up in artifacts first, then records
       const artifact = catalog?.artifacts.find((a) => a.id === addonId);
-      const record = artifact
-        ? { path: artifact.primaryPath, locality: artifact.locality }
-        : catalog?.records.find((r) => r.id === addonId);
-      if (!record) {
+      const fullRecord = !artifact ? catalog?.records.find((r) => r.id === addonId) : undefined;
+      const primaryPath = artifact?.primaryPath ?? fullRecord?.path;
+      const locality = artifact?.locality ?? fullRecord?.locality;
+      const category = artifact?.category ?? fullRecord?.category;
+      if (!primaryPath || !locality || !category) {
         return { ok: false, error: 'Addon not found' };
       }
-      const addon = {
-        primaryPath: 'path' in record ? record.path : artifact!.primaryPath,
-        locality: record.locality,
-      };
-      if (addon.locality === 'user') {
+      if (locality === 'user') {
         return { ok: false, error: 'Already at global scope' };
       }
-      // Derive name from path
-      const norm = addon.primaryPath.replace(/\\/g, '/');
-      const addonName = norm.endsWith('/SKILL.md')
-        ? norm.slice(
-            norm.slice(0, norm.lastIndexOf('/')).lastIndexOf('/') + 1,
-            norm.lastIndexOf('/')
-          )
-        : norm.slice(norm.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
-      // Read the source file content
+      const addonName = deriveNameFromPath(primaryPath);
+      // Read the source file content, then delegate install + meta to the service
       try {
-        const sourceUri = vscode.Uri.file(addon.primaryPath);
+        const sourceUri = vscode.Uri.file(primaryPath);
         const content = await vscode.workspace.fs.readFile(sourceUri);
         const textContent = new TextDecoder().decode(content);
-        // Install at global scope via the creator infrastructure
-        const { installViaCreator: install } =
-          await import('./domains/addons/infrastructure/CreatorBasedInstaller');
-        const creatorId = `claude/skill-folder/user`;
-        const installResult = await install(creatorId, addonName, '', '', roots);
-        if (!installResult.ok) {
-          return { ok: false, error: installResult.error };
+        const moveResult = await addonsService.moveAddonToGlobal(
+          addonName,
+          category as Parameters<typeof addonsService.moveAddonToGlobal>[1],
+          workspaceRoot,
+          roots
+        );
+        if (!moveResult.ok) {
+          return { ok: false, error: moveResult.error };
         }
         // If the creator-generated content is just a stub, overwrite with the original content
-        if (installResult.createdPaths.length > 0 && textContent.length > 0) {
+        if (moveResult.createdPaths.length > 0 && textContent.length > 0) {
           await vscode.workspace.fs.writeFile(
-            vscode.Uri.file(installResult.createdPaths[0]),
+            vscode.Uri.file(moveResult.createdPaths[0]),
             new TextEncoder().encode(textContent)
           );
         }
@@ -268,7 +260,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         await vscode.workspace.fs.delete(sourceUri);
         // Try to clean up empty parent dir (folder layout)
         try {
-          const parentUri = vscode.Uri.file(addon.primaryPath.replace(/[/\\][^/\\]+$/, ''));
+          const parentUri = vscode.Uri.file(primaryPath.replace(/[/\\][^/\\]+$/, ''));
           const entries = await vscode.workspace.fs.readDirectory(parentUri);
           if (entries.length === 0) {
             await vscode.workspace.fs.delete(parentUri);
