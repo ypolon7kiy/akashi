@@ -198,14 +198,35 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       }
     },
     addOrigin: async (label: string, source: { kind: string; value: string }) => {
-      await addonsService.addOrigin(label, parseOriginSource(source.kind, source.value));
+      const added = await addonsService.addOrigin(
+        label,
+        parseOriginSource(source.kind, source.value)
+      );
+      if (added.enabled) {
+        try {
+          await addonsService.fetchOriginCatalog(added);
+        } catch {
+          // Non-fatal — refreshAfterMutation will show empty catalog
+        }
+      }
     },
     editOrigin: async (
       originId: string,
       label: string,
       source: { kind: string; value: string }
     ) => {
-      await addonsService.editOrigin(originId, label, parseOriginSource(source.kind, source.value));
+      const updated = await addonsService.editOrigin(
+        originId,
+        label,
+        parseOriginSource(source.kind, source.value)
+      );
+      if (updated.enabled) {
+        try {
+          await addonsService.fetchOriginCatalog(updated);
+        } catch {
+          // Non-fatal — refreshAfterMutation will show empty catalog
+        }
+      }
     },
     removeOrigin: async (originId: string) => {
       await addonsService.removeOrigin(originId);

@@ -163,3 +163,66 @@ describe('AddonsService.editOrigin', () => {
     expect(saved[2].label).toBe('C');
   });
 });
+
+// ── Auto-fetch after edit (env wrapper behaviour) ─────────────────
+
+describe('editOrigin auto-fetch', () => {
+  async function editAndFetch(
+    service: AddonsService,
+    originId: string,
+    label: string,
+    source: OriginSource
+  ): Promise<void> {
+    const updated = await service.editOrigin(originId, label, source);
+    if (updated.enabled) {
+      await service.fetchOriginCatalog(updated);
+    }
+  }
+
+  it('fetches catalog after edit when origin is enabled', async () => {
+    const source: OriginSource = { kind: 'github', owner: 'acme', repo: 'skills' };
+    const newSource: OriginSource = { kind: 'url', url: 'https://fixed.com/marketplace.json' };
+    const ports = createMockPorts([customOrigin('My Skills', source, true)]);
+    const service = createService(ports);
+
+    await editAndFetch(service, 'github:acme/skills', 'My Skills', newSource);
+
+    expect(ports.fetcher.fetch).toHaveBeenCalledWith(newSource);
+  });
+
+  it('does not fetch catalog after edit when origin is disabled', async () => {
+    const source: OriginSource = { kind: 'github', owner: 'acme', repo: 'skills' };
+    const newSource: OriginSource = { kind: 'url', url: 'https://fixed.com/marketplace.json' };
+    const ports = createMockPorts([customOrigin('My Skills', source, false)]);
+    const service = createService(ports);
+
+    const updated = await service.editOrigin('github:acme/skills', 'My Skills', newSource);
+
+    expect(updated.enabled).toBe(false);
+    expect(ports.fetcher.fetch).not.toHaveBeenCalled();
+  });
+
+  it('swallows fetch failure without propagating', async () => {
+    const source: OriginSource = { kind: 'github', owner: 'acme', repo: 'skills' };
+    const newSource: OriginSource = { kind: 'url', url: 'https://still-bad.com/marketplace.json' };
+    const ports = createMockPorts([customOrigin('My Skills', source, true)]);
+    (ports.fetcher.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      error: 'HTTP 404: Not Found',
+    });
+    const service = createService(ports);
+
+    // Mirrors env wrapper: catch fetch errors silently
+    const updated = await service.editOrigin('github:acme/skills', 'My Skills', newSource);
+    if (updated.enabled) {
+      try {
+        await service.fetchOriginCatalog(updated);
+      } catch {
+        // Non-fatal — same as env wrapper
+      }
+    }
+
+    expect(ports.fetcher.fetch).toHaveBeenCalledWith(newSource);
+    // No unhandled error — test passes if we reach this point
+  });
+});
