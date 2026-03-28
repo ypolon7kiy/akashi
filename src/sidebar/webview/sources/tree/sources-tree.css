@@ -31,22 +31,31 @@
 }
 
 .akashi-tree--empty {
-  padding: var(--akashi-space-3) var(--akashi-space-2);
+  padding: var(--akashi-space-5) var(--akashi-space-3);
   text-align: center;
+  animation: akashi-empty-enter var(--akashi-duration-slow) var(--akashi-ease-out);
+}
+
+@keyframes akashi-empty-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .akashi-tree__empty-title {
-  margin: 0 0 var(--akashi-space-1);
-  font-size: var(--vscode-font-size);
+  margin: 0 0 var(--akashi-space-2);
+  font-size: var(--akashi-font-size-lg);
   font-weight: 600;
   color: var(--akashi-text);
 }
 
 .akashi-tree__empty-hint {
   margin: 0;
-  font-size: var(--vscode-font-size);
+  font-size: var(--akashi-font-size-sm);
   color: var(--akashi-text-muted);
-  line-height: 1.4;
+  line-height: 1.5;
+  max-width: 240px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .akashi-tree__list {
@@ -71,16 +80,14 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: var(--vscode-font-size);
+  font-size: var(--akashi-font-size-base);
   text-align: left;
   cursor: pointer;
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
 }
 
 .akashi-tree__row:hover {
-  background: var(
-    --vscode-list-hoverBackground,
-    color-mix(in srgb, var(--akashi-text) 6%, transparent)
-  );
+  background: var(--akashi-hover);
 }
 
 .akashi-tree__row:focus-visible {
@@ -132,7 +139,8 @@
 }
 
 .akashi-tree__row--folder {
-  font-weight: 400;
+  font-weight: 500;
+  color: var(--akashi-text);
 }
 
 /* VS Code-style vertical indent guide lines */
@@ -180,6 +188,10 @@
 
 .akashi-tree__chevron--expanded {
   transform: rotate(90deg);
+}
+
+.akashi-tree__chevron {
+  transition: transform var(--akashi-duration-normal) var(--akashi-ease);
 }
 
 .akashi-tree__label {
@@ -314,14 +326,15 @@
 .akashi-tree__fs-error {
   margin: 0 0 var(--akashi-space-2);
   padding: var(--akashi-space-2) var(--akashi-space-3);
-  font-size: var(--vscode-font-size);
+  font-size: var(--akashi-font-size-sm);
   line-height: 1.35;
   color: var(--vscode-errorForeground, var(--akashi-text));
   background: var(
     --vscode-inputValidation-errorBackground,
     color-mix(in srgb, var(--vscode-errorForeground, #f44) 12%, transparent)
   );
-  border-radius: var(--akashi-radius-sm);
+  border-radius: var(--akashi-radius-md);
+  border-left: 2px solid var(--akashi-danger);
 }
 
 .akashi-tree__rename-input {
@@ -354,16 +367,22 @@
   z-index: 1000;
   min-width: 200px;
   max-width: 320px;
-  padding: 4px 0;
+  padding: var(--akashi-space-1) 0;
   margin: 0;
   list-style: none;
-  font-size: var(--vscode-font-size);
+  font-size: var(--akashi-font-size-base);
   line-height: calc(var(--vscode-font-size) * 1.375);
   color: var(--vscode-menu-foreground, var(--akashi-text));
   background: var(--vscode-menu-background, var(--vscode-sideBar-background, var(--akashi-surface)));
   border: 1px solid var(--vscode-menu-border, var(--akashi-border));
-  border-radius: var(--akashi-radius-sm);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--akashi-text) 18%, transparent);
+  border-radius: var(--akashi-radius-md);
+  box-shadow: var(--akashi-shadow-lg);
+  animation: akashi-dropdown-enter var(--akashi-duration-normal) var(--akashi-ease-out);
+}
+
+@keyframes akashi-dropdown-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .akashi-tree-context__sep {
@@ -391,7 +410,7 @@
 .akashi-tree-context__item:focus-visible {
   background: var(
     --vscode-menu-selectionBackground,
-    var(--vscode-list-hoverBackground, color-mix(in srgb, var(--akashi-text) 8%, transparent))
+    var(--akashi-hover)
   );
   color: var(--vscode-menu-selectionForeground, inherit);
   outline: none;

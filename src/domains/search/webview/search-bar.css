@@ -63,7 +63,7 @@
 
 .akashi-search-bar__clear:hover {
   color: var(--akashi-text);
-  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+  background: var(--akashi-hover);
 }
 
 .akashi-search-bar__clear:focus-visible {
@@ -74,9 +74,10 @@
 .akashi-search-bar__count {
   flex-shrink: 0;
   font-family: var(--vscode-font-family);
-  font-size: calc(var(--vscode-font-size) * 0.85);
+  font-size: var(--akashi-font-size-sm);
   color: var(--akashi-text-muted);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Facet toggle row ─────────────────────────── */
@@ -107,19 +108,27 @@
 
 .akashi-search-bar__toggle {
   font-family: var(--vscode-font-family);
-  font-size: calc(var(--vscode-font-size) * 0.8);
-  padding: 2px 8px;
+  font-size: var(--akashi-font-size-xs);
+  padding: 2px var(--akashi-space-2);
   border: 1px solid var(--akashi-border);
   border-radius: var(--akashi-radius-sm);
   background: transparent;
   color: var(--akashi-text-muted);
   cursor: pointer;
-  transition: background 100ms ease, color 100ms ease;
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    color var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-fast) var(--akashi-ease),
+    transform var(--akashi-duration-fast) var(--akashi-ease-spring);
   line-height: 1.4;
 }
 
+.akashi-search-bar__toggle:active {
+  transform: scale(0.94);
+}
+
 .akashi-search-bar__toggle:hover {
-  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+  background: var(--akashi-hover);
   color: var(--vscode-list-hoverForeground, var(--vscode-foreground));
 }
 
@@ -169,7 +178,7 @@
 
 .akashi-search-bar__filter-toggle:hover {
   color: var(--akashi-text);
-  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+  background: var(--akashi-hover);
 }
 
 .akashi-search-bar__filter-toggle:focus-visible {
@@ -195,11 +204,23 @@
   background: var(--akashi-surface-1);
   border: 1px solid var(--akashi-border);
   border-radius: var(--akashi-radius-md);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--akashi-shadow-md);
   padding: var(--akashi-space-2);
   display: flex;
   flex-direction: column;
   gap: var(--akashi-space-1);
+  animation: akashi-dropdown-enter var(--akashi-duration-normal) var(--akashi-ease-out);
+}
+
+@keyframes akashi-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .akashi-filter-dropdown__section {
@@ -217,11 +238,11 @@
 
 .akashi-filter-dropdown__heading {
   margin: 0;
-  color: var(--akashi-text-muted);
-  font-size: calc(var(--vscode-font-size) * 0.8);
+  color: var(--akashi-brand);
+  font-size: var(--akashi-font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .akashi-filter-dropdown__footer {
@@ -233,7 +254,7 @@
 
 .akashi-filter-dropdown__reset {
   font-family: var(--vscode-font-family);
-  font-size: calc(var(--vscode-font-size) * 0.85);
+  font-size: var(--akashi-font-size-sm);
   color: var(--akashi-text-muted);
   background: none;
   border: none;
@@ -245,7 +266,7 @@
 
 .akashi-filter-dropdown__reset:hover {
   color: var(--akashi-text);
-  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+  background: var(--akashi-hover);
 }
 
 .akashi-filter-dropdown__reset:focus-visible {

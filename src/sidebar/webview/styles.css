@@ -42,20 +42,22 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--akashi-space-2);
+  padding-bottom: var(--akashi-space-3);
+  border-bottom: 2px solid var(--akashi-brand);
 }
 
 .akashi-overline {
   margin: 0;
-  color: var(--akashi-text-muted);
-  font-size: var(--vscode-font-size);
+  color: var(--akashi-brand);
+  font-size: var(--akashi-font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .akashi-title {
   margin: var(--akashi-space-1) 0 0;
-  font-size: var(--vscode-font-size);
+  font-size: var(--akashi-font-size-lg);
   font-weight: 600;
   color: var(--vscode-foreground);
 }

@@ -3,24 +3,64 @@
  * (including user-installed themes); do not hardcode colors here.
  */
 :root {
+  /* ── Surfaces ─────────────────────────────── */
   --akashi-surface-0: var(--vscode-sideBar-background);
   --akashi-surface-1: var(--vscode-editorWidget-background);
   --akashi-surface-2: var(--vscode-input-background);
   --akashi-border: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+
+  /* ── Text ─────────────────────────────────── */
   --akashi-text: var(--vscode-foreground);
   --akashi-text-muted: var(--vscode-descriptionForeground);
+
+  /* ── Brand: Torii vermillion ──────────────── */
+  --akashi-brand: #E84025;
+  --akashi-brand-dim: color-mix(in srgb, #E84025 60%, var(--akashi-surface-0));
+  --akashi-brand-subtle: color-mix(in srgb, #E84025 10%, transparent);
+
+  /* ── Interactive ──────────────────────────── */
   --akashi-accent: var(--vscode-button-background);
   --akashi-accent-hover: var(--vscode-button-hoverBackground);
   --akashi-accent-text: var(--vscode-button-foreground);
   --akashi-focus: var(--vscode-focusBorder);
+  --akashi-hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--akashi-text) 8%, transparent));
+
+  /* ── Semantic ─────────────────────────────── */
   --akashi-danger: var(--vscode-errorForeground);
   --akashi-success: var(--vscode-testing-iconPassed);
+  --akashi-warning: var(--vscode-editorWarning-foreground, #cca700);
   --akashi-info: var(--vscode-symbolIcon-interfaceForeground, var(--vscode-textLink-foreground));
+
+  /* ── Typography ───────────────────────────── */
+  --akashi-font-size-xs: calc(var(--vscode-font-size) * 0.77);
+  --akashi-font-size-sm: calc(var(--vscode-font-size) * 0.85);
+  --akashi-font-size-base: var(--vscode-font-size);
+  --akashi-font-size-lg: calc(var(--vscode-font-size) * 1.23);
+  --akashi-font-size-xl: calc(var(--vscode-font-size) * 1.46);
+
+  /* ── Radius ───────────────────────────────── */
   --akashi-radius-sm: 2px;
   --akashi-radius-md: 4px;
+  --akashi-radius-lg: 6px;
+
+  /* ── Spacing ──────────────────────────────── */
   --akashi-space-1: 4px;
   --akashi-space-2: 8px;
   --akashi-space-3: 12px;
   --akashi-space-4: 16px;
   --akashi-space-5: 20px;
+  --akashi-space-6: 24px;
+
+  /* ── Depth ────────────────────────────────── */
+  --akashi-shadow-sm: 0 1px 3px color-mix(in srgb, var(--akashi-text) 8%, transparent);
+  --akashi-shadow-md: 0 2px 8px color-mix(in srgb, var(--akashi-text) 12%, transparent);
+  --akashi-shadow-lg: 0 4px 16px color-mix(in srgb, var(--akashi-text) 16%, transparent);
+
+  /* ── Motion ───────────────────────────────── */
+  --akashi-duration-fast: 100ms;
+  --akashi-duration-normal: 180ms;
+  --akashi-duration-slow: 300ms;
+  --akashi-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --akashi-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --akashi-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }

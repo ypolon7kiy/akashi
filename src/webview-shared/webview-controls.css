@@ -16,8 +16,14 @@
   font-weight: 400;
   cursor: pointer;
   transition:
-    background-color 100ms ease,
-    border-color 100ms ease;
+    background-color var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-fast) var(--akashi-ease),
+    transform var(--akashi-duration-fast) var(--akashi-ease),
+    box-shadow var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-button:active:enabled {
+  transform: scale(0.97);
 }
 
 .akashi-button:focus-visible {
@@ -81,7 +87,7 @@
   position: absolute;
   inset: 0;
   width: 35%;
-  background: var(--vscode-progressBar-background, var(--akashi-accent));
+  background: var(--vscode-progressBar-background, var(--akashi-brand));
   animation: akashi-progress-slide 1s ease-in-out infinite;
 }
 
@@ -103,7 +109,18 @@ body.vscode-reduce-motion .akashi-button {
   transition: none;
 }
 
+body.vscode-reduce-motion .akashi-button:active:enabled {
+  transform: none;
+}
+
 body.vscode-reduce-motion .akashi-progress::before {
   animation: none;
   transform: translateX(0);
+}
+
+/* ── Shared motion utilities ─────────────── */
+
+body.vscode-reduce-motion * {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
 }
