@@ -82,9 +82,7 @@ export function AddonsApp() {
           </button>
         </div>
 
-        {activeTab === 'available' && (
-          <SearchBar searchText={searchText} onSearchChange={setSearchText} />
-        )}
+        <SearchBar searchText={searchText} onSearchChange={setSearchText} />
       </header>
 
       <div className="akashi-addons-progress-slot" aria-busy={isBusy}>

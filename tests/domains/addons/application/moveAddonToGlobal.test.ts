@@ -24,10 +24,7 @@ const ROOTS: ToolUserRoots = {
 
 // ── Mock Port Factories ─────────────────────────────────────────────
 
-function createMockPorts(
-  wsMeta: AkashiMeta = emptyMeta(),
-  userMeta: AkashiMeta = emptyMeta()
-) {
+function createMockPorts(wsMeta: AkashiMeta = emptyMeta(), userMeta: AkashiMeta = emptyMeta()) {
   const writtenMetas: { locality: string; meta: AkashiMeta }[] = [];
   const installedCreators: { creatorId: string; name: string }[] = [];
 
@@ -144,7 +141,7 @@ describe('AddonsService.moveAddonToGlobal', () => {
     // Should have written user meta with the new entry
     const userWrite = ports.writtenMetas.find((m) => m.locality === 'user');
     expect(userWrite).toBeDefined();
-    const entries = userWrite!.meta.installed['claude'] ?? [];
+    const entries = userWrite!.meta.installed.claude ?? [];
     expect(entries).toHaveLength(1);
     expect(entries[0]).toEqual({
       name: 'my-skill',
@@ -173,7 +170,7 @@ describe('AddonsService.moveAddonToGlobal', () => {
     // Should have written workspace meta with the entry removed
     const wsWrite = ports.writtenMetas.find((m) => m.locality === 'workspace');
     expect(wsWrite).toBeDefined();
-    const wsEntries = wsWrite!.meta.installed['claude'] ?? [];
+    const wsEntries = wsWrite!.meta.installed.claude ?? [];
     expect(wsEntries).toHaveLength(0);
   });
 
@@ -193,7 +190,7 @@ describe('AddonsService.moveAddonToGlobal', () => {
     expect(result.ok).toBe(true);
 
     const userWrite = ports.writtenMetas.find((m) => m.locality === 'user');
-    const entries = userWrite!.meta.installed['claude'] ?? [];
+    const entries = userWrite!.meta.installed.claude ?? [];
     expect(entries[0].originId).toBe('github:anthropics/skills');
     expect(entries[0].version).toBe('2.1.0');
   });
@@ -214,7 +211,7 @@ describe('AddonsService.moveAddonToGlobal', () => {
     // Should still have written user meta with defaults
     const userWrite = ports.writtenMetas.find((m) => m.locality === 'user');
     expect(userWrite).toBeDefined();
-    const entries = userWrite!.meta.installed['claude'] ?? [];
+    const entries = userWrite!.meta.installed.claude ?? [];
     expect(entries[0].originId).toBe('');
     expect(entries[0].version).toBe('');
   });

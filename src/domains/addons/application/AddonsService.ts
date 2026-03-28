@@ -395,7 +395,12 @@ export class AddonsService {
 
     if (existingEntry) {
       const updatedWsMeta = removeEntry(wsMeta, 'claude', addonName, category);
-      await this.metaStore.writeMeta('workspace', workspaceRoot, roots.claudeUserRoot, updatedWsMeta);
+      await this.metaStore.writeMeta(
+        'workspace',
+        workspaceRoot,
+        roots.claudeUserRoot,
+        updatedWsMeta
+      );
     }
 
     const userMeta = this.metaStore.readMeta('user', workspaceRoot, roots.claudeUserRoot);

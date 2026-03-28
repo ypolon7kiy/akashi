@@ -107,7 +107,7 @@ export function useAddonsState() {
     [sidebarMatchedPaths]
   );
 
-  const filteredInstalled = applyInstalledFilters(installedItems, matchedPathsSet);
+  const filteredInstalled = applyInstalledFilters(installedItems, matchedPathsSet, searchText);
   const filteredAvailable = catalog
     ? applyAvailableFilters(catalog.catalogPlugins, searchText)
     : [];
@@ -247,12 +247,20 @@ function deriveName(path: string): string {
 
 function applyInstalledFilters(
   items: readonly InstalledItem[],
-  matchedPaths: ReadonlySet<string> | null
+  matchedPaths: ReadonlySet<string> | null,
+  searchText: string
 ): readonly InstalledItem[] {
-  if (matchedPaths === null) {
-    return items;
+  let result = items;
+  if (matchedPaths !== null) {
+    result = result.filter((a) => matchedPaths.has(a.primaryPath));
   }
-  return items.filter((a) => matchedPaths.has(a.primaryPath));
+  if (searchText.length > 0) {
+    const lower = searchText.toLowerCase();
+    result = result.filter(
+      (a) => a.name.toLowerCase().includes(lower) || a.category.toLowerCase().includes(lower)
+    );
+  }
+  return result;
 }
 
 function applyAvailableFilters(
