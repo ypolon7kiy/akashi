@@ -174,7 +174,9 @@ export function MarketplaceBar({
                         onClick={() => (isEditing ? cancelEdit() : startEdit(origin))}
                         title="Edit connection details"
                       >
-                        <span className={`codicon ${isEditing ? 'codicon-close' : 'codicon-edit'}`} />
+                        <span
+                          className={`codicon ${isEditing ? 'codicon-close' : 'codicon-edit'}`}
+                        />
                       </button>
                       <button
                         className="akashi-addons-origin-item__btn akashi-addons-origin-item__btn--danger"

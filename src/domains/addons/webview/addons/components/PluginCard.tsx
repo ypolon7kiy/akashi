@@ -40,7 +40,9 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }
           </div>
           <div className="akashi-addons-card__meta">
             <span className="akashi-addons-card__category">{addon.category}</span>
-            <span className="akashi-addons-card__path">{shortenPath(addon.primaryPath, addon.shape)}</span>
+            <span className="akashi-addons-card__path">
+              {shortenPath(addon.primaryPath, addon.shape)}
+            </span>
           </div>
         </div>
       </button>

@@ -7,16 +7,15 @@ import type {
   MarketplaceFetcherPort,
   AddonInstallerPort,
 } from '@src/domains/addons/application/ports';
-import type { OriginSource, PersistedCustomOrigin } from '@src/domains/addons/domain/marketplaceOrigin';
+import type {
+  OriginSource,
+  PersistedCustomOrigin,
+} from '@src/domains/addons/domain/marketplaceOrigin';
 import { emptyMeta } from '@src/domains/addons/domain/akashiMeta';
 
 // ── Factories ──────────────────────────────────────────────────────
 
-function customOrigin(
-  label: string,
-  source: OriginSource,
-  enabled = true
-): PersistedCustomOrigin {
+function customOrigin(label: string, source: OriginSource, enabled = true): PersistedCustomOrigin {
   const id =
     source.kind === 'github'
       ? `github:${source.owner}/${source.repo}`
@@ -128,15 +127,12 @@ describe('AddonsService.editOrigin', () => {
   it('throws when new source collides with another existing origin', async () => {
     const sourceA: OriginSource = { kind: 'github', owner: 'acme', repo: 'skills' };
     const sourceB: OriginSource = { kind: 'url', url: 'https://example.com/market.json' };
-    const ports = createMockPorts([
-      customOrigin('A', sourceA),
-      customOrigin('B', sourceB),
-    ]);
+    const ports = createMockPorts([customOrigin('A', sourceA), customOrigin('B', sourceB)]);
     const service = createService(ports);
 
-    await expect(
-      service.editOrigin('github:acme/skills', 'A renamed', sourceB)
-    ).rejects.toThrow("An origin with source 'url:https://example.com/market.json' already exists");
+    await expect(service.editOrigin('github:acme/skills', 'A renamed', sourceB)).rejects.toThrow(
+      "An origin with source 'url:https://example.com/market.json' already exists"
+    );
   });
 
   it('preserves position in the origins array', async () => {
