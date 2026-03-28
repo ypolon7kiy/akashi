@@ -30,21 +30,28 @@ function customOrigin(label: string, source: OriginSource, enabled = true): Pers
 function createMockPorts(customOrigins: PersistedCustomOrigin[] = []) {
   let savedOrigins: readonly PersistedCustomOrigin[] = customOrigins;
 
+  const saveCustomOriginsSpy = vi.fn((origins: readonly PersistedCustomOrigin[]) => {
+    savedOrigins = origins;
+    return Promise.resolve();
+  });
+  const clearCachedCatalogSpy = vi.fn(() => Promise.resolve());
+  const fetchSpy = vi.fn(
+    (): Promise<{ ok: boolean; data: unknown; error?: string }> =>
+      Promise.resolve({ ok: true, data: {} })
+  );
+
   const sourceSnapshot: SourceSnapshotPort = {
     getLastSnapshot: vi.fn(() => Promise.resolve(null)),
   };
 
   const store: AddonsStorePort = {
     getCustomOrigins: () => savedOrigins,
-    saveCustomOrigins: vi.fn((origins: readonly PersistedCustomOrigin[]) => {
-      savedOrigins = origins;
-      return Promise.resolve();
-    }),
+    saveCustomOrigins: saveCustomOriginsSpy,
     getOriginOverrides: () => [],
     saveOriginOverrides: vi.fn(() => Promise.resolve()),
     getCachedCatalog: vi.fn(() => null),
     saveCachedCatalog: vi.fn(() => Promise.resolve()),
-    clearCachedCatalog: vi.fn(() => Promise.resolve()),
+    clearCachedCatalog: clearCachedCatalogSpy,
   };
 
   const metaStore: AkashiMetaPort = {
@@ -53,7 +60,7 @@ function createMockPorts(customOrigins: PersistedCustomOrigin[] = []) {
   };
 
   const fetcher: MarketplaceFetcherPort = {
-    fetch: vi.fn(() => Promise.resolve({ ok: true, data: {} })),
+    fetch: fetchSpy,
   };
 
   const installer: AddonInstallerPort = {
@@ -63,7 +70,16 @@ function createMockPorts(customOrigins: PersistedCustomOrigin[] = []) {
     removeDirectory: vi.fn(() => Promise.resolve({ ok: true })),
   };
 
-  return { sourceSnapshot, store, metaStore, fetcher, installer };
+  return {
+    sourceSnapshot,
+    store,
+    metaStore,
+    fetcher,
+    installer,
+    saveCustomOriginsSpy,
+    clearCachedCatalogSpy,
+    fetchSpy,
+  };
 }
 
 function createService(ports: ReturnType<typeof createMockPorts>) {
@@ -88,7 +104,7 @@ describe('AddonsService.editOrigin', () => {
 
     expect(result.id).toBe('github:acme/skills');
     expect(result.label).toBe('New Label');
-    expect(ports.store.clearCachedCatalog).not.toHaveBeenCalled();
+    expect(ports.clearCachedCatalogSpy).not.toHaveBeenCalled();
   });
 
   it('clears old cache when source changes (id changes)', async () => {
@@ -101,7 +117,7 @@ describe('AddonsService.editOrigin', () => {
 
     expect(result.id).toBe('url:https://example.com/marketplace.json');
     expect(result.label).toBe('My Skills');
-    expect(ports.store.clearCachedCatalog).toHaveBeenCalledWith('github:acme/skills');
+    expect(ports.clearCachedCatalogSpy).toHaveBeenCalledWith('github:acme/skills');
   });
 
   it('preserves enabled state from the original origin', async () => {
@@ -151,7 +167,7 @@ describe('AddonsService.editOrigin', () => {
     await service.editOrigin('url:https://b.com/market.json', 'B Updated', newSource);
 
     // Verify saveCustomOrigins was called and the middle element changed
-    const saved = (ports.store.saveCustomOrigins as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    const saved = ports.saveCustomOriginsSpy.mock.calls[0][0];
     expect(saved).toHaveLength(3);
     expect(saved[0].label).toBe('A');
     expect(saved[1].label).toBe('B Updated');
@@ -183,7 +199,7 @@ describe('editOrigin auto-fetch', () => {
 
     await editAndFetch(service, 'github:acme/skills', 'My Skills', newSource);
 
-    expect(ports.fetcher.fetch).toHaveBeenCalledWith(newSource);
+    expect(ports.fetchSpy).toHaveBeenCalledWith(newSource);
   });
 
   it('does not fetch catalog after edit when origin is disabled', async () => {
@@ -195,15 +211,16 @@ describe('editOrigin auto-fetch', () => {
     const updated = await service.editOrigin('github:acme/skills', 'My Skills', newSource);
 
     expect(updated.enabled).toBe(false);
-    expect(ports.fetcher.fetch).not.toHaveBeenCalled();
+    expect(ports.fetchSpy).not.toHaveBeenCalled();
   });
 
   it('swallows fetch failure without propagating', async () => {
     const source: OriginSource = { kind: 'github', owner: 'acme', repo: 'skills' };
     const newSource: OriginSource = { kind: 'url', url: 'https://still-bad.com/marketplace.json' };
     const ports = createMockPorts([customOrigin('My Skills', source, true)]);
-    (ports.fetcher.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    ports.fetchSpy.mockResolvedValue({
       ok: false,
+      data: null,
       error: 'HTTP 404: Not Found',
     });
     const service = createService(ports);
@@ -218,7 +235,7 @@ describe('editOrigin auto-fetch', () => {
       }
     }
 
-    expect(ports.fetcher.fetch).toHaveBeenCalledWith(newSource);
+    expect(ports.fetchSpy).toHaveBeenCalledWith(newSource);
     // No unhandled error — test passes if we reach this point
   });
 });
