@@ -26,6 +26,7 @@ function artifact(
     shape,
     memberRecordIds: ['rec-1'],
     primaryPath,
+    topLevel: true,
   };
 }
 

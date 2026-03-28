@@ -38,4 +38,6 @@ export interface IndexedArtifact {
   readonly memberRecordIds: readonly string[];
   /** The "primary" file path — the file a user would open to work on this artifact. */
   readonly primaryPath: string;
+  /** Whether this artifact is a top-level display unit for graph and addons. */
+  readonly topLevel: boolean;
 }

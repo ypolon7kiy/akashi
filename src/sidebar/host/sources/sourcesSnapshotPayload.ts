@@ -40,6 +40,7 @@ function toArtifactDescriptor(a: IndexedArtifact): ArtifactDescriptor {
     shape: a.shape,
     memberRecordIds: a.memberRecordIds,
     primaryPath: a.primaryPath,
+    topLevel: a.topLevel,
   };
 }
 

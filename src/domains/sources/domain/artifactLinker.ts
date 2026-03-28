@@ -165,6 +165,7 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
       shape: 'file-json',
       memberRecordIds: memberIds,
       primaryPath: entry.path,
+      topLevel: true,
     });
     claimed.add(entry.id);
     claimed.add(configEntry.id);
@@ -205,6 +206,7 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
       shape: 'folder-file',
       memberRecordIds: memberIds,
       primaryPath: marker.path,
+      topLevel: true,
     });
 
     for (const mid of memberIds) {
@@ -225,6 +227,7 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
         shape: 'json-only',
         memberRecordIds: [entry.id],
         primaryPath: entry.path,
+        topLevel: true,
       });
     } else {
       artifacts.push({
@@ -235,6 +238,7 @@ export function linkArtifacts(entries: readonly IndexedSourceEntry[]): readonly 
         shape: 'single-file',
         memberRecordIds: [entry.id],
         primaryPath: entry.path,
+        topLevel: true,
       });
     }
   }

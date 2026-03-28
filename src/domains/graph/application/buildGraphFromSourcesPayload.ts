@@ -2,7 +2,6 @@ import type {
   SourceDescriptor,
   SourcesSnapshotPayload,
 } from '../../../shared/types/sourcesSnapshotPayload';
-import { buildRecordToArtifactMap } from '../../sources/domain/artifactLookup';
 import type { GraphEdge3D, GraphNode3D, GraphLocality } from '../domain/graphTypes';
 import {
   GRAPH_SOURCE_CATEGORY_IDS_FOR_EMPTY_NODES,
@@ -202,10 +201,42 @@ export function buildGraphFromSourcesPayload(
   const filteredPaths = options?.matchedPaths ?? null;
   const minFilesForFolderNode = options?.minFilesForFolderNode ?? DEFAULT_MIN_FILES_FOR_FOLDER_NODE;
 
+  // Build sets for top-level artifact handling:
+  // - skipRecordIds: subordinate records of multi-member artifacts (hidden from graph)
+  // - directToCategoryIds: primary records of top-level artifacts (bypass folder grouping)
+  // - directRecordLabel: label overrides for folder-file primaries (folder name, not SKILL.md)
+  const skipRecordIds = new Set<string>();
+  const directToCategoryIds = new Set<string>();
+  const directRecordLabel = new Map<string, string>();
+  if (payload.artifacts) {
+    const recordPathById = new Map<string, string>();
+    for (const r of payload.records) {
+      recordPathById.set(r.id, r.path);
+    }
+    for (const art of payload.artifacts) {
+      if (art.topLevel === false) continue;
+      const primaryNorm = art.primaryPath.replace(/\\/g, '/');
+      for (const rid of art.memberRecordIds) {
+        const rPath = recordPathById.get(rid)?.replace(/\\/g, '/');
+        if (rPath === primaryNorm) {
+          directToCategoryIds.add(rid);
+          if (art.shape === 'folder-file') {
+            directRecordLabel.set(rid, baseName(dirnamePath(primaryNorm)));
+          }
+        } else {
+          skipRecordIds.add(rid);
+        }
+      }
+    }
+  }
+
   type BucketKey = string;
   const buckets = new Map<BucketKey, typeof payload.records>();
 
   for (const r of payload.records) {
+    if (skipRecordIds.has(r.id)) {
+      continue;
+    }
     const presetId = r.preset;
     if (!presetId) {
       continue;
@@ -229,8 +260,6 @@ export function buildGraphFromSourcesPayload(
   if (buckets.size === 0) {
     return { nodes: [], edges: [] };
   }
-
-  const recordArtifactMap = payload.artifacts ? buildRecordToArtifactMap(payload.artifacts) : null;
 
   const nodes: GraphNode3D[] = [];
   const edges: GraphEdge3D[] = [];
@@ -351,7 +380,36 @@ export function buildGraphFromSourcesPayload(
       });
       addEdge(locId, catId, 'contains', 'branch');
 
-      const byParentDir = groupSourceRecordsByParentDir(catRecords);
+      // Top-level artifact primaries connect directly to category (no folder node).
+      const directRecords = catRecords.filter((r) => directToCategoryIds.has(r.id));
+      const folderRecords = catRecords.filter((r) => !directToCategoryIds.has(r.id));
+
+      for (const r of directRecords) {
+        const path = r.path;
+        const nid = graphFileNodeId(presetId, locality, path);
+        const fileLabel = truncateLabel(directRecordLabel.get(r.id) ?? baseName(path));
+        nodes.push({
+          id: nid,
+          label: fileLabel,
+          formattedTextLines: [fileLabel],
+          type: 'note',
+          position: [0, 0, 0],
+          size: fileNodeSize(r.metadata.byteLength),
+          isSelected: false,
+          isPointed: false,
+          isVisible: true,
+          layoutDepth: LAYOUT_DEPTH_FILE_DIRECT,
+          folderPath: dirnamePath(path) || undefined,
+          filesystemPath: path,
+          graphPresetId: presetId,
+          graphLocality: locality,
+          graphSliceKey: key,
+          graphCategoryId: cat,
+        });
+        addEdge(catId, nid, 'contains', 'leaf');
+      }
+
+      const byParentDir = groupSourceRecordsByParentDir(folderRecords);
 
       for (const [, dirRecords] of byParentDir) {
         const useFolder = useFolderNodeForDirectory(dirRecords.length, minFilesForFolderNode);
@@ -404,7 +462,6 @@ export function buildGraphFromSourcesPayload(
               graphLocality: locality,
               graphSliceKey: key,
               graphCategoryId: cat,
-              graphArtifactId: recordArtifactMap?.get(r.id) ?? undefined,
             });
             addEdge(folId, nid, 'contains', 'leaf');
           }
@@ -430,7 +487,6 @@ export function buildGraphFromSourcesPayload(
               graphLocality: locality,
               graphSliceKey: key,
               graphCategoryId: cat,
-              graphArtifactId: recordArtifactMap?.get(r.id) ?? undefined,
             });
             addEdge(catId, nid, 'contains', 'leaf');
           }

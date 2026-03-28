@@ -129,15 +129,12 @@ export function useAddonsState() {
     });
   }, []);
 
-  const editOrigin = useCallback(
-    (originId: string, label: string, kind: string, value: string) => {
-      getVscodeApi()?.postMessage({
-        type: AddonsMessageType.EditOrigin,
-        payload: { originId, label, kind, value },
-      });
-    },
-    []
-  );
+  const editOrigin = useCallback((originId: string, label: string, kind: string, value: string) => {
+    getVscodeApi()?.postMessage({
+      type: AddonsMessageType.EditOrigin,
+      payload: { originId, label, kind, value },
+    });
+  }, []);
 
   const removeOrigin = useCallback((originId: string) => {
     getVscodeApi()?.postMessage({ type: AddonsMessageType.RemoveOrigin, payload: { originId } });

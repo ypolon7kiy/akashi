@@ -25,6 +25,8 @@ export interface ArtifactDescriptor {
   readonly shape: string;
   readonly memberRecordIds: readonly string[];
   readonly primaryPath: string;
+  /** Whether this artifact is a top-level display unit for graph and addons. */
+  readonly topLevel: boolean;
 }
 
 export interface SourceDescriptor {

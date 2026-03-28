@@ -27,6 +27,19 @@ describe('linkArtifacts', () => {
     expect(linkArtifacts([])).toEqual([]);
   });
 
+  it('marks all artifacts as topLevel regardless of shape', () => {
+    const rule = entry('/ws/.claude/rules/foo.md', 'claude', 'workspace', 'rule');
+    const skillMd = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
+    const skillHelper = entry('/ws/.claude/skills/my-skill/lib.js', 'claude', 'workspace', 'skill');
+    const hookScript = entry('/ws/.claude/hooks/lint.sh', 'claude', 'workspace', 'hook');
+    const hookConfig = entry('/ws/.claude/settings.json', 'claude', 'workspace', 'config');
+    const mcp = entry('/ws/.mcp.json', 'claude', 'workspace', 'mcp');
+
+    const artifacts = linkArtifacts([rule, skillMd, skillHelper, hookScript, hookConfig, mcp]);
+    expect(artifacts.length).toBeGreaterThanOrEqual(4);
+    expect(artifacts.every((a) => a.topLevel === true)).toBe(true);
+  });
+
   describe('single-file (default)', () => {
     it('creates a single-file artifact for a plain entry', () => {
       const e = entry('/ws/.claude/rules/foo.md', 'claude', 'workspace', 'rule');
