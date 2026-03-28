@@ -88,7 +88,7 @@ describe('AkashiMetaFileStore', () => {
     // File should exist and be readable
     const filePath = join(userRoot(), 'akashi-meta.json');
     const content = readFileSync(filePath, 'utf-8');
-    expect(JSON.parse(content).version).toBe(1);
+    expect((JSON.parse(content) as { version: number }).version).toBe(1);
   });
 
   it('workspace and user meta files are independent', async () => {

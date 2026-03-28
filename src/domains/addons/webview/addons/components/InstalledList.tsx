@@ -9,7 +9,13 @@ interface InstalledListProps {
   readonly disabled?: boolean;
 }
 
-export function InstalledList({ addons, onOpen, onDelete, onMoveToGlobal, disabled }: InstalledListProps) {
+export function InstalledList({
+  addons,
+  onOpen,
+  onDelete,
+  onMoveToGlobal,
+  disabled,
+}: InstalledListProps) {
   if (addons.length === 0) {
     return (
       <div className="akashi-addons-empty">

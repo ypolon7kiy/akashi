@@ -112,7 +112,10 @@ export function MarketplaceBar({
               </label>
               <div className="akashi-addons-origin-item__actions">
                 {origin.lastFetchedAt && (
-                  <span className="akashi-addons-origin-item__fetched" title={`Last fetched: ${origin.lastFetchedAt}`}>
+                  <span
+                    className="akashi-addons-origin-item__fetched"
+                    title={`Last fetched: ${origin.lastFetchedAt}`}
+                  >
                     <span className="codicon codicon-check" />
                   </span>
                 )}

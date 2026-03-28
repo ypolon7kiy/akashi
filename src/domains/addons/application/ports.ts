@@ -8,10 +8,7 @@ import type { ToolUserRoots } from '../../../shared/toolUserRoots';
 import type { OriginSource } from '../domain/marketplaceOrigin';
 import type { AkashiMeta } from '../domain/akashiMeta';
 import type { CatalogPlugin } from '../domain/catalogPlugin';
-import type {
-  PersistedCustomOrigin,
-  PersistedOriginOverride,
-} from '../domain/marketplaceOrigin';
+import type { PersistedCustomOrigin, PersistedOriginOverride } from '../domain/marketplaceOrigin';
 
 /** Provides the latest source index snapshot for addon projection. */
 export interface SourceSnapshotPort {
@@ -29,15 +26,26 @@ export interface AddonsStorePort {
   saveCustomOrigins(origins: readonly PersistedCustomOrigin[]): Promise<void>;
   getOriginOverrides(): readonly PersistedOriginOverride[];
   saveOriginOverrides(overrides: readonly PersistedOriginOverride[]): Promise<void>;
-  getCachedCatalog(originId: string): { originId: string; fetchedAt: string; plugins: readonly CatalogPlugin[] } | null;
-  saveCachedCatalog(entry: { originId: string; fetchedAt: string; plugins: readonly CatalogPlugin[] }): Promise<void>;
+  getCachedCatalog(
+    originId: string
+  ): { originId: string; fetchedAt: string; plugins: readonly CatalogPlugin[] } | null;
+  saveCachedCatalog(entry: {
+    originId: string;
+    fetchedAt: string;
+    plugins: readonly CatalogPlugin[];
+  }): Promise<void>;
   clearCachedCatalog(originId: string): Promise<void>;
 }
 
 /** Per-locality akashi-meta.json reader/writer. */
 export interface AkashiMetaPort {
   readMeta(locality: SourceLocality, workspaceRoot: string, userRoot: string): AkashiMeta;
-  writeMeta(locality: SourceLocality, workspaceRoot: string, userRoot: string, meta: AkashiMeta): Promise<void>;
+  writeMeta(
+    locality: SourceLocality,
+    workspaceRoot: string,
+    userRoot: string,
+    meta: AkashiMeta
+  ): Promise<void>;
 }
 
 /** Target directories for plugin component installation. */

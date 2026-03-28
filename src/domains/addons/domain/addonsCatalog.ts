@@ -5,7 +5,7 @@
  */
 
 import type { SourcePresetId } from '../../../shared/sourcePresetId';
-import type { IndexedSourceEntry, SourceIndexSnapshot } from '../../sources/domain/model';
+import type { IndexedSourceEntry } from '../../sources/domain/model';
 import type { IndexedArtifact } from '../../sources/domain/artifact';
 import type { CatalogPlugin } from './catalogPlugin';
 import type { MarketplaceOrigin } from './marketplaceOrigin';

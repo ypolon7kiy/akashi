@@ -13,7 +13,10 @@ export interface SidebarViewProviderOptions {
   /** Called after the sidebar (and filtered snapshot) has been updated — e.g. refresh graph panel. */
   onAfterSourcesSnapshotRefreshed?: () => void;
   /** Called after sidebar filter state is persisted — relay to graph + addons panels. */
-  onFilterStateSaved?: (query: SerializedSourceSearchQuery, matchedPaths: readonly string[] | null) => void;
+  onFilterStateSaved?: (
+    query: SerializedSourceSearchQuery,
+    matchedPaths: readonly string[] | null
+  ) => void;
 }
 
 export function createSidebarViewProvider(
@@ -121,7 +124,10 @@ export function createSidebarViewProvider(
         configDomain.generalConfig
       );
 
-      const saveFilterState = (query: SerializedSourceSearchQuery, matchedPaths: readonly string[] | null): void => {
+      const saveFilterState = (
+        query: SerializedSourceSearchQuery,
+        matchedPaths: readonly string[] | null
+      ): void => {
         context.globalState
           .update(SIDEBAR_FILTER_STATE_KEY, query)
           .then(undefined, (err) =>

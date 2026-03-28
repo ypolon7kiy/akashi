@@ -4,10 +4,7 @@
  * — no custom projection or type derivation.
  */
 
-import type {
-  SourceDescriptor,
-  ArtifactDescriptor,
-} from './sourcesSnapshotPayload';
+import type { SourceDescriptor, ArtifactDescriptor } from './sourcesSnapshotPayload';
 
 export interface CatalogPluginDescriptor {
   readonly id: string;

@@ -8,7 +8,12 @@ import { AddonsService } from './domains/addons/application/AddonsService';
 import { VscodeAddonsStore } from './domains/addons/infrastructure/VscodeAddonsStore';
 import { AkashiMetaFileStore } from './domains/addons/infrastructure/AkashiMetaFileStore';
 import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
-import { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory } from './domains/addons/infrastructure/CreatorBasedInstaller';
+import {
+  installFromMarketplace,
+  installViaCreator,
+  removeTrackedFiles,
+  removeDirectory,
+} from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
 import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
 import { createConfigDomain } from './domains/config';
@@ -221,14 +226,20 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       if (!record) {
         return { ok: false, error: 'Addon not found' };
       }
-      const addon = { primaryPath: 'path' in record ? record.path : artifact!.primaryPath, locality: record.locality };
+      const addon = {
+        primaryPath: 'path' in record ? record.path : artifact!.primaryPath,
+        locality: record.locality,
+      };
       if (addon.locality === 'user') {
         return { ok: false, error: 'Already at global scope' };
       }
       // Derive name from path
       const norm = addon.primaryPath.replace(/\\/g, '/');
       const addonName = norm.endsWith('/SKILL.md')
-        ? norm.slice(norm.slice(0, norm.lastIndexOf('/')).lastIndexOf('/') + 1, norm.lastIndexOf('/'))
+        ? norm.slice(
+            norm.slice(0, norm.lastIndexOf('/')).lastIndexOf('/') + 1,
+            norm.lastIndexOf('/')
+          )
         : norm.slice(norm.lastIndexOf('/') + 1).replace(/\.\w+$/, '');
       // Read the source file content
       try {
@@ -236,7 +247,8 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         const content = await vscode.workspace.fs.readFile(sourceUri);
         const textContent = new TextDecoder().decode(content);
         // Install at global scope via the creator infrastructure
-        const { installViaCreator: install } = await import('./domains/addons/infrastructure/CreatorBasedInstaller');
+        const { installViaCreator: install } =
+          await import('./domains/addons/infrastructure/CreatorBasedInstaller');
         const creatorId = `claude/skill-folder/user`;
         const installResult = await install(creatorId, addonName, '', '', roots);
         if (!installResult.ok) {

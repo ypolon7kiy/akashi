@@ -29,10 +29,10 @@ export interface InstallResult {
  * Resolved by the caller based on locality (workspace vs user).
  */
 export interface InstallTargets {
-  readonly skills: string;   // e.g. .claude/skills/
-  readonly commands: string;  // e.g. .claude/commands/
-  readonly hooks: string;     // e.g. .claude/hooks/
-  readonly root: string;      // e.g. .claude/ (for .mcp.json, settings.json)
+  readonly skills: string; // e.g. .claude/skills/
+  readonly commands: string; // e.g. .claude/commands/
+  readonly hooks: string; // e.g. .claude/hooks/
+  readonly root: string; // e.g. .claude/ (for .mcp.json, settings.json)
 }
 
 /**
@@ -73,7 +73,9 @@ export async function installFromMarketplace(
       // ── Plugin bundle: install each component to its correct location ──
 
       // Skills: skills/**/SKILL.md → .claude/skills/{name}/SKILL.md
-      const skillFiles = files.filter((f) => f.relativePath.startsWith(resolveDir(manifest?.skills, DEFAULT_PLUGIN_DIRS.skills) + '/'));
+      const skillFiles = files.filter((f) =>
+        f.relativePath.startsWith(resolveDir(manifest?.skills, DEFAULT_PLUGIN_DIRS.skills) + '/')
+      );
       for (const file of skillFiles) {
         const relFromSkills = file.relativePath.slice(file.relativePath.indexOf('/') + 1);
         const filePath = join(targets.skills, relFromSkills);
@@ -83,7 +85,11 @@ export async function installFromMarketplace(
       }
 
       // Commands: commands/*.md → .claude/commands/*.md
-      const cmdFiles = files.filter((f) => f.relativePath.startsWith(resolveDir(manifest?.commands, DEFAULT_PLUGIN_DIRS.commands) + '/'));
+      const cmdFiles = files.filter((f) =>
+        f.relativePath.startsWith(
+          resolveDir(manifest?.commands, DEFAULT_PLUGIN_DIRS.commands) + '/'
+        )
+      );
       for (const file of cmdFiles) {
         const relFromCmds = file.relativePath.slice(file.relativePath.indexOf('/') + 1);
         const filePath = join(targets.commands, relFromCmds);
@@ -93,8 +99,8 @@ export async function installFromMarketplace(
       }
 
       // Hooks: hooks/ scripts → .claude/hooks/
-      const hookFiles = files.filter((f) =>
-        f.relativePath.startsWith('hooks/') || f.relativePath.startsWith('scripts/')
+      const hookFiles = files.filter(
+        (f) => f.relativePath.startsWith('hooks/') || f.relativePath.startsWith('scripts/')
       );
       for (const file of hookFiles) {
         const filePath = join(targets.hooks, '..', file.relativePath);
@@ -162,7 +168,10 @@ async function writeSkillFiles(
 }
 
 /** Resolve a manifest path field to a directory name. */
-function resolveDir(manifestPath: string | readonly string[] | undefined, fallback: string): string {
+function resolveDir(
+  manifestPath: string | readonly string[] | undefined,
+  fallback: string
+): string {
   if (typeof manifestPath === 'string') return manifestPath.replace(/^\.\//, '').replace(/\/$/, '');
   if (Array.isArray(manifestPath) && manifestPath.length > 0) {
     return (manifestPath[0] as string).replace(/^\.\//, '').replace(/\/$/, '');
@@ -227,12 +236,12 @@ async function fetchGithubDirectory(
     });
 
     if (response.ok) {
-      const entries = (await response.json()) as Array<{
+      const entries = (await response.json()) as {
         name: string;
         path: string;
         type: string;
         download_url: string | null;
-      }>;
+      }[];
 
       const files: FetchedFile[] = [];
 
@@ -356,9 +365,7 @@ async function tryRemoveEmptyDir(dirPath: string): Promise<void> {
   }
 }
 
-export async function removeDirectory(
-  dirPath: string
-): Promise<{ ok: boolean; error?: string }> {
+export async function removeDirectory(dirPath: string): Promise<{ ok: boolean; error?: string }> {
   try {
     await rm(dirPath, { recursive: true, force: true });
     return { ok: true };

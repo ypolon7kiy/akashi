@@ -1123,34 +1123,37 @@ export function ForceGraphView(props: {
     [clientToWorld, pickNode]
   );
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (draggingRef.current) {
-      const hit = simNodesRef.current.find((n) => n.id === draggingRef.current?.id);
-      if (hit) {
-        hit.fx = null;
-        hit.fy = null;
-      }
-      draggingRef.current = null;
-      simRef.current?.alphaTarget(0).restart();
-    }
-    // Right-click release: show context menu if it was a quick click (< 1s) with little movement
-    if (e.button === 2 && rightDownTimeRef.current) {
-      if (Date.now() - rightDownTimeRef.current < 1000) {
-        const { wx, wy } = clientToWorld(e.clientX, e.clientY);
-        const hit = pickNode(wx, wy);
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (draggingRef.current) {
+        const hit = simNodesRef.current.find((n) => n.id === draggingRef.current?.id);
         if (hit) {
-          setContextMenu({ x: e.clientX, y: e.clientY, node: hit });
+          hit.fx = null;
+          hit.fy = null;
         }
+        draggingRef.current = null;
+        simRef.current?.alphaTarget(0).restart();
       }
-      rightDownTimeRef.current = 0;
-    }
-    panRef.current = null;
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  }, [clientToWorld, pickNode]);
+      // Right-click release: show context menu if it was a quick click (< 1s) with little movement
+      if (e.button === 2 && rightDownTimeRef.current) {
+        if (Date.now() - rightDownTimeRef.current < 1000) {
+          const { wx, wy } = clientToWorld(e.clientX, e.clientY);
+          const hit = pickNode(wx, wy);
+          if (hit) {
+            setContextMenu({ x: e.clientX, y: e.clientY, node: hit });
+          }
+        }
+        rightDownTimeRef.current = 0;
+      }
+      panRef.current = null;
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [clientToWorld, pickNode]
+  );
 
   const onDoubleClick = useCallback(
     (e: React.MouseEvent) => {

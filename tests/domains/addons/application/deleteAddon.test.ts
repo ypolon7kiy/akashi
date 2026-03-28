@@ -9,6 +9,7 @@ import type {
 } from '@src/domains/addons/application/ports';
 import type { SourceIndexSnapshot, SourceFacetTag } from '@src/domains/sources/domain/model';
 import type { IndexedArtifact } from '@src/domains/sources/domain/artifact';
+import type { ToolUserRoots } from '@src/shared/toolUserRoots';
 import { emptyMeta, addEntry, type AkashiMeta } from '@src/domains/addons/domain/akashiMeta';
 
 // ── Test Factories ──────────────────────────────────────────────────
@@ -56,6 +57,12 @@ function snapshot(
 
 const WS_ROOT = '/ws';
 const USER_ROOT = '/home/user/.claude';
+const ROOTS: ToolUserRoots = {
+  claudeUserRoot: USER_ROOT,
+  cursorUserRoot: '/home/user/.cursor',
+  geminiUserRoot: '/home/user/.gemini',
+  codexUserRoot: '/home/user/.codex',
+};
 
 function createMockPorts(
   snap: SourceIndexSnapshot | null = null,
@@ -63,47 +70,57 @@ function createMockPorts(
 ) {
   const removedFiles: string[][] = [];
   const removedDirs: string[] = [];
-  const writtenMetas: Array<{ locality: string; meta: AkashiMeta }> = [];
+  const writtenMetas: { locality: string; meta: AkashiMeta }[] = [];
 
   const sourceSnapshot: SourceSnapshotPort = {
-    getLastSnapshot: vi.fn(async () => snap),
+    getLastSnapshot: vi.fn(() => Promise.resolve(snap)),
   };
 
   const store: AddonsStorePort = {
     getCustomOrigins: () => [],
-    saveCustomOrigins: vi.fn(async () => {}),
+    saveCustomOrigins: vi.fn(() => Promise.resolve()),
     getOriginOverrides: () => [],
-    saveOriginOverrides: vi.fn(async () => {}),
+    saveOriginOverrides: vi.fn(() => Promise.resolve()),
     getCachedCatalog: () => null,
-    saveCachedCatalog: vi.fn(async () => {}),
-    clearCachedCatalog: vi.fn(async () => {}),
+    saveCachedCatalog: vi.fn(() => Promise.resolve()),
+    clearCachedCatalog: vi.fn(() => Promise.resolve()),
   };
 
   const metaStore: AkashiMetaPort = {
     readMeta: vi.fn((locality: string) => (locality === 'workspace' ? wsMeta : emptyMeta())),
-    writeMeta: vi.fn(async (locality: string, _ws: string, _ur: string, meta: AkashiMeta) => {
+    writeMeta: vi.fn((locality: string, _ws: string, _ur: string, meta: AkashiMeta) => {
       writtenMetas.push({ locality, meta });
+      return Promise.resolve();
     }),
   };
 
   const fetcher: MarketplaceFetcherPort = {
-    fetch: vi.fn(async () => ({ ok: true, data: {} })),
+    fetch: vi.fn(() => Promise.resolve({ ok: true, data: {} })),
   };
 
   const installer: AddonInstallerPort = {
-    installFromMarketplace: vi.fn(async () => ({ ok: true, createdPaths: [] })),
-    installViaCreator: vi.fn(async () => ({ ok: true, createdPaths: [] })),
-    removeTrackedFiles: vi.fn(async (paths: readonly string[]) => {
+    installFromMarketplace: vi.fn(() => Promise.resolve({ ok: true, createdPaths: [] })),
+    installViaCreator: vi.fn(() => Promise.resolve({ ok: true, createdPaths: [] })),
+    removeTrackedFiles: vi.fn((paths: readonly string[]) => {
       removedFiles.push([...paths]);
-      return { ok: true };
+      return Promise.resolve({ ok: true });
     }),
-    removeDirectory: vi.fn(async (dir: string) => {
+    removeDirectory: vi.fn((dir: string) => {
       removedDirs.push(dir);
-      return { ok: true };
+      return Promise.resolve({ ok: true });
     }),
   };
 
-  return { sourceSnapshot, store, metaStore, fetcher, installer, removedFiles, removedDirs, writtenMetas };
+  return {
+    sourceSnapshot,
+    store,
+    metaStore,
+    fetcher,
+    installer,
+    removedFiles,
+    removedDirs,
+    writtenMetas,
+  };
 }
 
 function createService(ports: ReturnType<typeof createMockPorts>) {
@@ -123,7 +140,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts();
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any);
+    const result = await service.deleteAddon(WS_ROOT, ROOTS);
     expect(result.ok).toBe(false);
     expect(result.error).toBe('No addon found to delete');
   });
@@ -136,7 +153,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(snap);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
     expect(ports.removedDirs).toHaveLength(0);
@@ -150,7 +167,11 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(snap);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/skills/my-skill/SKILL.md');
+    const result = await service.deleteAddon(
+      WS_ROOT,
+      ROOTS,
+      '/ws/.claude/skills/my-skill/SKILL.md'
+    );
     expect(result.ok).toBe(true);
     expect(ports.removedDirs).toEqual(['/ws/.claude/skills/my-skill']);
     expect(ports.removedFiles).toHaveLength(0);
@@ -168,7 +189,7 @@ describe('AddonsService.deleteAddon', () => {
     });
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(false);
     expect(result.error).toBe('EACCES: permission denied');
     // Meta should NOT be modified on failure
@@ -187,7 +208,11 @@ describe('AddonsService.deleteAddon', () => {
     });
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/skills/my-skill/SKILL.md');
+    const result = await service.deleteAddon(
+      WS_ROOT,
+      ROOTS,
+      '/ws/.claude/skills/my-skill/SKILL.md'
+    );
     expect(result.ok).toBe(false);
     expect(result.error).toBe('EACCES: permission denied');
   });
@@ -197,7 +222,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(snap);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
     expect(ports.removedDirs).toHaveLength(0);
@@ -207,7 +232,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(null);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
   });
@@ -220,7 +245,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(snap);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, undefined, 'foo@origin-a');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, undefined, 'foo@origin-a');
     expect(result.ok).toBe(true);
     expect(ports.removedFiles).toEqual([['/ws/.claude/commands/foo.md']]);
   });
@@ -233,7 +258,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(snap);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, undefined, 'foo@origin-a');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, undefined, 'foo@origin-a');
     expect(result.ok).toBe(true);
     expect(ports.removedDirs).toEqual(['/ws/.claude/skills/foo']);
     expect(ports.removedFiles).toHaveLength(0);
@@ -254,7 +279,7 @@ describe('AddonsService.deleteAddon', () => {
     const ports = createMockPorts(snap, wsMeta);
     const service = createService(ports);
 
-    const result = await service.deleteAddon(WS_ROOT, { claudeUserRoot: USER_ROOT } as any, '/ws/.claude/commands/foo.md');
+    const result = await service.deleteAddon(WS_ROOT, ROOTS, '/ws/.claude/commands/foo.md');
     expect(result.ok).toBe(true);
     expect(ports.writtenMetas).toHaveLength(1);
     expect(ports.writtenMetas[0].locality).toBe('workspace');

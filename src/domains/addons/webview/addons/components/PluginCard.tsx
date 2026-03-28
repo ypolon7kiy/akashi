@@ -48,7 +48,10 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }
         {canMoveToGlobal && (
           <button
             className="akashi-addons-card__action-btn"
-            onClick={(e) => { e.stopPropagation(); onMoveToGlobal(addon.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveToGlobal(addon.id);
+            }}
             title="Move to global (~/.claude/skills/)"
             disabled={disabled}
           >
@@ -58,7 +61,10 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }
         {onDelete && (
           <button
             className="akashi-addons-card__action-btn akashi-addons-card__action-btn--danger"
-            onClick={(e) => { e.stopPropagation(); onDelete(addon.primaryPath); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(addon.primaryPath);
+            }}
             title="Delete"
             disabled={disabled}
           >

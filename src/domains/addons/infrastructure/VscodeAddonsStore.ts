@@ -4,10 +4,7 @@
  */
 
 import type * as vscode from 'vscode';
-import type {
-  PersistedCustomOrigin,
-  PersistedOriginOverride,
-} from '../domain/marketplaceOrigin';
+import type { PersistedCustomOrigin, PersistedOriginOverride } from '../domain/marketplaceOrigin';
 import type { CatalogPlugin } from '../domain/catalogPlugin';
 
 const CUSTOM_ORIGINS_KEY = 'akashi.addons.customOrigins.v1';
@@ -30,10 +27,7 @@ export class VscodeAddonsStore {
   // ── Custom Origins ────────────────────────────────────────────────
 
   getCustomOrigins(): readonly PersistedCustomOrigin[] {
-    return this.context.globalState.get<readonly PersistedCustomOrigin[]>(
-      CUSTOM_ORIGINS_KEY,
-      []
-    );
+    return this.context.globalState.get<readonly PersistedCustomOrigin[]>(CUSTOM_ORIGINS_KEY, []);
   }
 
   async saveCustomOrigins(origins: readonly PersistedCustomOrigin[]): Promise<void> {

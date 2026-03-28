@@ -8,9 +8,19 @@ export type PluginCategory = 'skill' | 'command' | 'hook' | 'mcp' | 'agent' | 'b
 export type PluginSourceRef =
   | { readonly kind: 'relative'; readonly path: string }
   | { readonly kind: 'github'; readonly repo: string; readonly ref?: string; readonly sha?: string }
-  | { readonly kind: 'npm'; readonly package: string; readonly version?: string; readonly registry?: string }
+  | {
+      readonly kind: 'npm';
+      readonly package: string;
+      readonly version?: string;
+      readonly registry?: string;
+    }
   | { readonly kind: 'url'; readonly url: string; readonly ref?: string; readonly sha?: string }
-  | { readonly kind: 'git-subdir'; readonly url: string; readonly path: string; readonly ref?: string };
+  | {
+      readonly kind: 'git-subdir';
+      readonly url: string;
+      readonly path: string;
+      readonly ref?: string;
+    };
 
 export type InstallStatus = 'available' | 'installed';
 

@@ -35,11 +35,7 @@ export function emptyMeta(): AkashiMeta {
 }
 
 /** Upsert an entry — replaces any existing entry with the same name + category. */
-export function addEntry(
-  meta: AkashiMeta,
-  presetId: string,
-  entry: AkashiMetaEntry
-): AkashiMeta {
+export function addEntry(meta: AkashiMeta, presetId: string, entry: AkashiMetaEntry): AkashiMeta {
   const existing = meta.installed[presetId] ?? [];
   const filtered = existing.filter(
     (e) => !(e.name === entry.name && e.category === entry.category)
@@ -59,9 +55,7 @@ export function removeEntry(
 ): AkashiMeta {
   const existing = meta.installed[presetId];
   if (!existing) return meta;
-  const filtered = existing.filter(
-    (e) => !(e.name === name && e.category === category)
-  );
+  const filtered = existing.filter((e) => !(e.name === name && e.category === category));
   return {
     ...meta,
     installed: { ...meta.installed, [presetId]: filtered },
@@ -75,27 +69,17 @@ export function findEntry(
   name: string,
   category: PluginCategory
 ): AkashiMetaEntry | undefined {
-  return (meta.installed[presetId] ?? []).find(
-    (e) => e.name === name && e.category === category
-  );
+  return (meta.installed[presetId] ?? []).find((e) => e.name === name && e.category === category);
 }
 
 /** Get all entries for a preset. */
-export function getEntries(
-  meta: AkashiMeta,
-  presetId: string
-): readonly AkashiMetaEntry[] {
+export function getEntries(meta: AkashiMeta, presetId: string): readonly AkashiMetaEntry[] {
   return meta.installed[presetId] ?? [];
 }
 
 /** Parse a raw JSON blob into AkashiMeta. Returns emptyMeta() on invalid input. */
 export function parseAkashiMeta(raw: unknown): AkashiMeta {
-  if (
-    raw === null ||
-    raw === undefined ||
-    typeof raw !== 'object' ||
-    Array.isArray(raw)
-  ) {
+  if (raw === null || raw === undefined || typeof raw !== 'object' || Array.isArray(raw)) {
     return emptyMeta();
   }
 

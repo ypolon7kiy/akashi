@@ -7,10 +7,7 @@ import { readFile } from 'node:fs/promises';
 import type { OriginSource } from '../domain/marketplaceOrigin';
 
 /** Well-known paths where marketplace.json may live in a repo. */
-const MARKETPLACE_PATHS = [
-  '.claude-plugin/marketplace.json',
-  'marketplace.json',
-];
+const MARKETPLACE_PATHS = ['.claude-plugin/marketplace.json', 'marketplace.json'];
 
 export interface FetchResult {
   readonly ok: boolean;

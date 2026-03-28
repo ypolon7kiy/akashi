@@ -19,7 +19,13 @@ import {
   type OriginSource,
   type PersistedCustomOrigin,
 } from '../domain/marketplaceOrigin';
-import { addEntry, removeEntry, getEntries, type AkashiMeta, type AkashiMetaEntry } from '../domain/akashiMeta';
+import {
+  addEntry,
+  removeEntry,
+  getEntries,
+  type AkashiMeta,
+  type AkashiMetaEntry,
+} from '../domain/akashiMeta';
 import { deriveNameFromPath } from '../domain/reconcileInstallStatus';
 import type { CatalogPlugin, InstallStatus, PluginCategory } from '../domain/catalogPlugin';
 import type {
@@ -75,14 +81,27 @@ export class AddonsService {
     if (existing.some((o) => o.id === id)) {
       const found = existing.find((o) => o.id === id)!;
       return {
-        id: found.id, label: found.label, source: found.source,
-        builtIn: false, enabled: found.enabled, lastFetchedAt: null, lastError: null,
+        id: found.id,
+        label: found.label,
+        source: found.source,
+        builtIn: false,
+        enabled: found.enabled,
+        lastFetchedAt: null,
+        lastError: null,
       };
     }
 
     const newOrigin: PersistedCustomOrigin = { id, label, source, enabled: true };
     await this.store.saveCustomOrigins([...existing, newOrigin]);
-    return { id, label, source, builtIn: false, enabled: true, lastFetchedAt: null, lastError: null };
+    return {
+      id,
+      label,
+      source,
+      builtIn: false,
+      enabled: true,
+      lastFetchedAt: null,
+      lastError: null,
+    };
   }
 
   async removeOrigin(originId: string): Promise<void> {
@@ -182,7 +201,12 @@ export class AddonsService {
       }
     }
     if (wsMetaUpdated !== wsMeta) {
-      await this.metaStore.writeMeta('workspace', workspaceRoot, roots.claudeUserRoot, wsMetaUpdated);
+      await this.metaStore.writeMeta(
+        'workspace',
+        workspaceRoot,
+        roots.claudeUserRoot,
+        wsMetaUpdated
+      );
     }
 
     let userMetaUpdated = userMeta;
@@ -241,10 +265,17 @@ export class AddonsService {
       // Fallback: create stub via creator if origin not found
       const creatorId = resolveCreatorId('claude', plugin.category, locality);
       if (!creatorId) {
-        return { ok: false, error: `No creator for category '${plugin.category}' at ${locality} scope` };
+        return {
+          ok: false,
+          error: `No creator for category '${plugin.category}' at ${locality} scope`,
+        };
       }
       result = await this.installer.installViaCreator(
-        creatorId, plugin.name, plugin.description, workspaceRoot, roots
+        creatorId,
+        plugin.name,
+        plugin.description,
+        workspaceRoot,
+        roots
       );
     }
 
@@ -279,12 +310,26 @@ export class AddonsService {
 
     if (metaMatch) {
       // Meta-tracked addon: use installedPaths for precise cleanup
-      const result = await this.deleteTrackedPaths(metaMatch.entry.installedPaths, primaryPath, snapshot);
+      const result = await this.deleteTrackedPaths(
+        metaMatch.entry.installedPaths,
+        primaryPath,
+        snapshot
+      );
       if (!result.ok) {
         return result;
       }
-      const updated = removeEntry(metaMatch.meta, 'claude', metaMatch.entry.name, metaMatch.entry.category);
-      await this.metaStore.writeMeta(metaMatch.locality, workspaceRoot, roots.claudeUserRoot, updated);
+      const updated = removeEntry(
+        metaMatch.meta,
+        'claude',
+        metaMatch.entry.name,
+        metaMatch.entry.category
+      );
+      await this.metaStore.writeMeta(
+        metaMatch.locality,
+        workspaceRoot,
+        roots.claudeUserRoot,
+        updated
+      );
       return { ok: true };
     }
 
@@ -314,7 +359,9 @@ export class AddonsService {
     roots: ToolUserRoots,
     primaryPath?: string,
     pluginId?: string,
-    snapshot?: { records: readonly { path: string; locality: SourceLocality; category: string }[] } | null
+    snapshot?: {
+      records: readonly { path: string; locality: SourceLocality; category: string }[];
+    } | null
   ): { entry: AkashiMetaEntry; meta: AkashiMeta; locality: SourceLocality } | null {
     const addonName = primaryPath
       ? deriveNameFromPath(primaryPath)
@@ -324,11 +371,13 @@ export class AddonsService {
     if (!addonName) return null;
 
     // Determine preferred locality from snapshot record
-    const snapshotRecord = primaryPath && snapshot
-      ? snapshot.records.find((r) => r.path === primaryPath)
-      : null;
+    const snapshotRecord =
+      primaryPath && snapshot ? snapshot.records.find((r) => r.path === primaryPath) : null;
     const preferredLocality: SourceLocality = snapshotRecord?.locality ?? 'workspace';
-    const localities: readonly SourceLocality[] = [preferredLocality, preferredLocality === 'workspace' ? 'user' : 'workspace'];
+    const localities: readonly SourceLocality[] = [
+      preferredLocality,
+      preferredLocality === 'workspace' ? 'user' : 'workspace',
+    ];
 
     for (const loc of localities) {
       const meta = this.metaStore.readMeta(loc, workspaceRoot, roots.claudeUserRoot);
@@ -398,7 +447,10 @@ function resolveCreatorId(
   locality: SourceLocality
 ): string | null {
   const map: Record<string, Record<string, string>> = {
-    skill: { workspace: `${presetId}/skill-folder/workspace`, user: `${presetId}/skill-folder/user` },
+    skill: {
+      workspace: `${presetId}/skill-folder/workspace`,
+      user: `${presetId}/skill-folder/user`,
+    },
     command: { workspace: `${presetId}/command/workspace`, user: `${presetId}/command/user` },
     rule: { workspace: `${presetId}/rule/workspace`, user: `${presetId}/rule/user` },
   };

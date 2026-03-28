@@ -77,9 +77,7 @@ export function AddonsApp() {
           onCategoryChange={setCategoryFilter}
           categoryCounts={categoryCounts}
           totalCount={
-            activeTab === 'installed'
-              ? installedItems.length
-              : catalog.catalogPlugins.length
+            activeTab === 'installed' ? installedItems.length : catalog.catalogPlugins.length
           }
           showCategoryTabs={activeTab === 'installed'}
         />
@@ -87,17 +85,11 @@ export function AddonsApp() {
 
       <div className="akashi-addons-progress-slot" aria-busy={isBusy}>
         {isBusy && (
-          <div
-            className="akashi-progress"
-            role="progressbar"
-            aria-label="Operation in progress"
-          />
+          <div className="akashi-progress" role="progressbar" aria-label="Operation in progress" />
         )}
       </div>
 
-      {operationMessage && (
-        <div className="akashi-addons-toast">{operationMessage}</div>
-      )}
+      {operationMessage && <div className="akashi-addons-toast">{operationMessage}</div>}
 
       <main className="akashi-addons-main">
         {activeTab === 'installed' ? (

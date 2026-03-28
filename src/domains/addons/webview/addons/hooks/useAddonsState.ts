@@ -22,7 +22,12 @@ export interface AvailableSection {
 
 export const AVAILABLE_SECTIONS: readonly AvailableSection[] = [
   { key: 'skills', label: 'Skills', icon: 'codicon-lightbulb', matchCategories: ['skill'] },
-  { key: 'plugins', label: 'Plugins', icon: 'codicon-extensions', matchCategories: ['command', 'hook', 'mcp', 'agent', 'bundle'] },
+  {
+    key: 'plugins',
+    label: 'Plugins',
+    icon: 'codicon-extensions',
+    matchCategories: ['command', 'hook', 'mcp', 'agent', 'bundle'],
+  },
 ];
 
 export function useAddonsState() {
@@ -69,12 +74,16 @@ export function useAddonsState() {
       }
       if (msg?.type === AddonsMessageType.OperationResult) {
         clearBusy();
-        const p = msg.payload as { operation?: string; ok?: boolean; error?: string; cancelled?: boolean } | undefined;
+        const p = msg.payload as
+          | { operation?: string; ok?: boolean; error?: string; cancelled?: boolean }
+          | undefined;
         if (p?.cancelled) {
           return;
         }
         if (p?.ok) {
-          setOperationMessage(`${p.operation === 'install' ? 'Installed' : p.operation === 'move' ? 'Moved' : 'Deleted'} successfully`);
+          setOperationMessage(
+            `${p.operation === 'install' ? 'Installed' : p.operation === 'move' ? 'Moved' : 'Deleted'} successfully`
+          );
         } else {
           setOperationMessage(p?.error ?? 'Operation failed');
         }
@@ -124,33 +133,45 @@ export function useAddonsState() {
   }, []);
 
   const toggleOrigin = useCallback((originId: string, enabled: boolean) => {
-    getVscodeApi()?.postMessage({ type: AddonsMessageType.ToggleOrigin, payload: { originId, enabled } });
+    getVscodeApi()?.postMessage({
+      type: AddonsMessageType.ToggleOrigin,
+      payload: { originId, enabled },
+    });
   }, []);
 
   const fetchOrigin = useCallback((originId: string) => {
     getVscodeApi()?.postMessage({ type: AddonsMessageType.FetchOrigin, payload: { originId } });
   }, []);
 
-  const installPlugin = useCallback((pluginId: string, locality: 'workspace' | 'user') => {
-    startBusy();
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.InstallPlugin,
-      payload: { pluginId, locality },
-    });
-  }, [startBusy]);
+  const installPlugin = useCallback(
+    (pluginId: string, locality: 'workspace' | 'user') => {
+      startBusy();
+      getVscodeApi()?.postMessage({
+        type: AddonsMessageType.InstallPlugin,
+        payload: { pluginId, locality },
+      });
+    },
+    [startBusy]
+  );
 
-  const deleteAddon = useCallback((primaryPath?: string, pluginId?: string) => {
-    startBusy();
-    getVscodeApi()?.postMessage({
-      type: AddonsMessageType.DeleteAddon,
-      payload: { primaryPath, pluginId },
-    });
-  }, [startBusy]);
+  const deleteAddon = useCallback(
+    (primaryPath?: string, pluginId?: string) => {
+      startBusy();
+      getVscodeApi()?.postMessage({
+        type: AddonsMessageType.DeleteAddon,
+        payload: { primaryPath, pluginId },
+      });
+    },
+    [startBusy]
+  );
 
-  const moveToGlobal = useCallback((addonId: string) => {
-    startBusy();
-    getVscodeApi()?.postMessage({ type: AddonsMessageType.MoveToGlobal, payload: { addonId } });
-  }, [startBusy]);
+  const moveToGlobal = useCallback(
+    (addonId: string) => {
+      startBusy();
+      getVscodeApi()?.postMessage({ type: AddonsMessageType.MoveToGlobal, payload: { addonId } });
+    },
+    [startBusy]
+  );
 
   const switchTab = useCallback((tab: ViewTab) => {
     setActiveTab(tab);
@@ -275,9 +296,7 @@ function groupBySection(
     grouped.set(section.key, []);
   }
   for (const plugin of plugins) {
-    const section = AVAILABLE_SECTIONS.find((s) =>
-      s.matchCategories.includes(plugin.category)
-    );
+    const section = AVAILABLE_SECTIONS.find((s) => s.matchCategories.includes(plugin.category));
     const key = section?.key ?? 'plugins';
     grouped.get(key)!.push(plugin);
   }

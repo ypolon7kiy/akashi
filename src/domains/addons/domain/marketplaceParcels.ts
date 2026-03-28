@@ -6,7 +6,12 @@
  * an explicit hint skips detection.
  */
 
-import { buildCatalogPluginId, type CatalogPlugin, type PluginCategory, type PluginSourceRef } from './catalogPlugin';
+import {
+  buildCatalogPluginId,
+  type CatalogPlugin,
+  type PluginCategory,
+  type PluginSourceRef,
+} from './catalogPlugin';
 
 const VALID_CATEGORIES = new Set<string>(['skill', 'command', 'hook', 'mcp', 'agent', 'bundle']);
 
@@ -54,7 +59,12 @@ function parsePluginSource(raw: unknown): PluginSourceRef | null {
         const url = typeof obj.url === 'string' ? obj.url : '';
         const path = typeof obj.path === 'string' ? obj.path : '';
         if (!url || !path) return null;
-        return { kind: 'git-subdir', url, path, ref: typeof obj.ref === 'string' ? obj.ref : undefined };
+        return {
+          kind: 'git-subdir',
+          url,
+          path,
+          ref: typeof obj.ref === 'string' ? obj.ref : undefined,
+        };
       }
     }
   }
@@ -88,7 +98,9 @@ function buildPluginEntry(
     name,
     description: fields.description ?? '',
     version: fields.version ?? '',
-    category: (VALID_CATEGORIES.has(fields.category ?? '') ? fields.category! : 'skill') as PluginCategory,
+    category: (VALID_CATEGORIES.has(fields.category ?? '')
+      ? fields.category!
+      : 'skill') as PluginCategory,
     tags: fields.tags ?? [],
     keywords: fields.keywords ?? [],
     source: fields.source,
@@ -117,7 +129,10 @@ const skillsBundleParcel: MarketplaceParcel = {
     const plugins = Array.isArray(raw.plugins) ? raw.plugins : [];
     return plugins.some(
       (p: unknown) =>
-        p !== null && typeof p === 'object' && !Array.isArray(p) && Array.isArray((p as Record<string, unknown>).skills)
+        p !== null &&
+        typeof p === 'object' &&
+        !Array.isArray(p) &&
+        Array.isArray((p as Record<string, unknown>).skills)
     );
   },
 
@@ -135,7 +150,9 @@ const skillsBundleParcel: MarketplaceParcel = {
       const tags = parseStringArray(p.tags);
       const keywords = parseStringArray(p.keywords);
 
-      const subSkills = Array.isArray(p.skills) ? p.skills.filter((s): s is string => typeof s === 'string') : [];
+      const subSkills = Array.isArray(p.skills)
+        ? p.skills.filter((s): s is string => typeof s === 'string')
+        : [];
 
       if (subSkills.length > 0) {
         for (const skillPath of subSkills) {
@@ -156,7 +173,16 @@ const skillsBundleParcel: MarketplaceParcel = {
         if (!name) continue;
         const source = parsePluginSource(p.source);
         if (!source) continue;
-        results.push(buildPluginEntry(originId, name, { description, version, category, tags, keywords, source }));
+        results.push(
+          buildPluginEntry(originId, name, {
+            description,
+            version,
+            category,
+            tags,
+            keywords,
+            source,
+          })
+        );
       }
     }
 
@@ -179,7 +205,10 @@ const pluginDirectoryParcel: MarketplaceParcel = {
     const plugins = Array.isArray(raw.plugins) ? raw.plugins : [];
     return plugins.some(
       (p: unknown) =>
-        p !== null && typeof p === 'object' && !Array.isArray(p) && typeof (p as Record<string, unknown>).homepage === 'string'
+        p !== null &&
+        typeof p === 'object' &&
+        !Array.isArray(p) &&
+        typeof (p as Record<string, unknown>).homepage === 'string'
     );
   },
 

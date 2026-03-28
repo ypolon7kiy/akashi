@@ -9,13 +9,19 @@ import type {
 } from '@src/domains/addons/application/ports';
 import type { SourceIndexSnapshot, SourceFacetTag } from '@src/domains/sources/domain/model';
 import type { CatalogPlugin } from '@src/domains/addons/domain/catalogPlugin';
+import type { ToolUserRoots } from '@src/shared/toolUserRoots';
 import { emptyMeta, addEntry, type AkashiMeta } from '@src/domains/addons/domain/akashiMeta';
 
 // ── Factories ──────────────────────────────────────────────────────
 
 const WS_ROOT = '/ws';
 const USER_ROOT = '/home/user/.claude';
-const ROOTS = { claudeUserRoot: USER_ROOT } as any;
+const ROOTS: ToolUserRoots = {
+  claudeUserRoot: USER_ROOT,
+  cursorUserRoot: '/home/user/.cursor',
+  geminiUserRoot: '/home/user/.gemini',
+  codexUserRoot: '/home/user/.codex',
+};
 
 function snapshotRecord(path: string) {
   return {
@@ -55,12 +61,14 @@ function catalogPlugin(name: string, originId = 'origin-a'): CatalogPlugin {
 
 // ── Mock Ports ─────────────────────────────────────────────────────
 
-function createMockPorts(opts: {
-  snap?: SourceIndexSnapshot | null;
-  wsMeta?: AkashiMeta;
-  userMeta?: AkashiMeta;
-  cachedPlugins?: readonly CatalogPlugin[];
-} = {}) {
+function createMockPorts(
+  opts: {
+    snap?: SourceIndexSnapshot | null;
+    wsMeta?: AkashiMeta;
+    userMeta?: AkashiMeta;
+    cachedPlugins?: readonly CatalogPlugin[];
+  } = {}
+) {
   const {
     snap = snapshot(),
     wsMeta = emptyMeta(),
@@ -68,42 +76,48 @@ function createMockPorts(opts: {
     cachedPlugins = [],
   } = opts;
 
-  const writtenMetas: Array<{ locality: string; meta: AkashiMeta }> = [];
+  const writtenMetas: { locality: string; meta: AkashiMeta }[] = [];
 
   const sourceSnapshot: SourceSnapshotPort = {
-    getLastSnapshot: vi.fn(async () => snap),
+    getLastSnapshot: vi.fn(() => Promise.resolve(snap)),
   };
 
   const store: AddonsStorePort = {
     getCustomOrigins: () => [],
-    saveCustomOrigins: vi.fn(async () => {}),
+    saveCustomOrigins: vi.fn(() => Promise.resolve()),
     getOriginOverrides: () => [],
-    saveOriginOverrides: vi.fn(async () => {}),
+    saveOriginOverrides: vi.fn(() => Promise.resolve()),
     getCachedCatalog: vi.fn(() =>
       cachedPlugins.length > 0
         ? { originId: 'origin-a', fetchedAt: new Date().toISOString(), plugins: cachedPlugins }
         : null
     ),
-    saveCachedCatalog: vi.fn(async () => {}),
-    clearCachedCatalog: vi.fn(async () => {}),
+    saveCachedCatalog: vi.fn(() => Promise.resolve()),
+    clearCachedCatalog: vi.fn(() => Promise.resolve()),
   };
 
   const metaStore: AkashiMetaPort = {
     readMeta: vi.fn((locality: string) => (locality === 'workspace' ? wsMeta : userMeta)),
-    writeMeta: vi.fn(async (locality: string, _ws: string, _ur: string, meta: AkashiMeta) => {
+    writeMeta: vi.fn((locality: string, _ws: string, _ur: string, meta: AkashiMeta) => {
       writtenMetas.push({ locality, meta });
+      return Promise.resolve();
     }),
   };
 
   const fetcher: MarketplaceFetcherPort = {
-    fetch: vi.fn(async () => ({ ok: true, data: {} })),
+    fetch: vi.fn(() => Promise.resolve({ ok: true, data: {} })),
   };
 
   const installer: AddonInstallerPort = {
-    installFromMarketplace: vi.fn(async () => ({ ok: true, createdPaths: ['/ws/.claude/skills/foo/SKILL.md'] })),
-    installViaCreator: vi.fn(async () => ({ ok: true, createdPaths: [] })),
-    removeTrackedFiles: vi.fn(async () => ({ ok: true })),
-    removeDirectory: vi.fn(async () => ({ ok: true })),
+    installFromMarketplace: vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        createdPaths: ['/ws/.claude/skills/foo/SKILL.md'],
+      })
+    ),
+    installViaCreator: vi.fn(() => Promise.resolve({ ok: true, createdPaths: [] })),
+    removeTrackedFiles: vi.fn(() => Promise.resolve({ ok: true })),
+    removeDirectory: vi.fn(() => Promise.resolve({ ok: true })),
   };
 
   return { sourceSnapshot, store, metaStore, fetcher, installer, writtenMetas };

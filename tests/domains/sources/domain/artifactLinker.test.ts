@@ -172,12 +172,7 @@ describe('linkArtifacts', () => {
 
   describe('folder-file (Claude/Cursor/Codex skill folders)', () => {
     it('creates a folder-file artifact for .claude/skills SKILL.md', () => {
-      const skill = entry(
-        '/ws/.claude/skills/my-skill/SKILL.md',
-        'claude',
-        'workspace',
-        'skill'
-      );
+      const skill = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
       const artifacts = linkArtifacts([skill]);
       expect(artifacts).toHaveLength(1);
       expect(artifacts[0].shape).toBe('folder-file');
@@ -186,12 +181,7 @@ describe('linkArtifacts', () => {
     });
 
     it('groups folder siblings under the same folder-file artifact', () => {
-      const skillMd = entry(
-        '/ws/.claude/skills/my-skill/SKILL.md',
-        'claude',
-        'workspace',
-        'skill'
-      );
+      const skillMd = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
       const helper = entry(
         '/ws/.claude/skills/my-skill/helpers/util.js',
         'claude',
@@ -217,9 +207,19 @@ describe('linkArtifacts', () => {
 
     it('groups multiple skill folders into separate artifacts', () => {
       const skill1Md = entry('/ws/.claude/skills/skill-a/SKILL.md', 'claude', 'workspace', 'skill');
-      const skill1Helper = entry('/ws/.claude/skills/skill-a/lib.js', 'claude', 'workspace', 'skill');
+      const skill1Helper = entry(
+        '/ws/.claude/skills/skill-a/lib.js',
+        'claude',
+        'workspace',
+        'skill'
+      );
       const skill2Md = entry('/ws/.claude/skills/skill-b/SKILL.md', 'claude', 'workspace', 'skill');
-      const skill2Helper = entry('/ws/.claude/skills/skill-b/data.json', 'claude', 'workspace', 'skill');
+      const skill2Helper = entry(
+        '/ws/.claude/skills/skill-b/data.json',
+        'claude',
+        'workspace',
+        'skill'
+      );
 
       const artifacts = linkArtifacts([skill1Md, skill1Helper, skill2Md, skill2Helper]);
 
@@ -236,7 +236,12 @@ describe('linkArtifacts', () => {
 
     it('flat skill file remains single-file alongside folder skill', () => {
       const folder = entry('/ws/.claude/skills/my-skill/SKILL.md', 'claude', 'workspace', 'skill');
-      const folderHelper = entry('/ws/.claude/skills/my-skill/lib.js', 'claude', 'workspace', 'skill');
+      const folderHelper = entry(
+        '/ws/.claude/skills/my-skill/lib.js',
+        'claude',
+        'workspace',
+        'skill'
+      );
       const flat = entry('/ws/.claude/skills/quick-fix.md', 'claude', 'workspace', 'skill');
       const artifacts = linkArtifacts([folder, folderHelper, flat]);
 
@@ -269,8 +274,18 @@ describe('linkArtifacts', () => {
 
     it('handles nested SKILL.md — inner claims its files before outer', () => {
       const outerMd = entry('/ws/.claude/skills/outer/SKILL.md', 'claude', 'workspace', 'skill');
-      const innerMd = entry('/ws/.claude/skills/outer/inner/SKILL.md', 'claude', 'workspace', 'skill');
-      const innerHelper = entry('/ws/.claude/skills/outer/inner/lib.js', 'claude', 'workspace', 'skill');
+      const innerMd = entry(
+        '/ws/.claude/skills/outer/inner/SKILL.md',
+        'claude',
+        'workspace',
+        'skill'
+      );
+      const innerHelper = entry(
+        '/ws/.claude/skills/outer/inner/lib.js',
+        'claude',
+        'workspace',
+        'skill'
+      );
       const artifacts = linkArtifacts([outerMd, innerMd, innerHelper]);
 
       // Inner SKILL.md should claim inner/lib.js; outer gets only itself

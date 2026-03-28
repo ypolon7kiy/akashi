@@ -30,7 +30,7 @@ export class AkashiMetaFileStore {
     }
   }
 
-  async writeMeta(
+  writeMeta(
     locality: SourceLocality,
     workspaceRoot: string,
     userRoot: string,
@@ -39,5 +39,6 @@ export class AkashiMetaFileStore {
     const filePath = resolvePath(locality, workspaceRoot, userRoot);
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, JSON.stringify(meta, null, 2), 'utf-8');
+    return Promise.resolve();
   }
 }

@@ -124,9 +124,7 @@ describe('parseAkashiMeta', () => {
     const raw = {
       version: 1,
       installed: {
-        claude: [
-          { name: 'foo', category: 'skill', originId: 'origin-a', version: '1.0.0' },
-        ],
+        claude: [{ name: 'foo', category: 'skill', originId: 'origin-a', version: '1.0.0' }],
       },
     };
     const meta = parseAkashiMeta(raw);

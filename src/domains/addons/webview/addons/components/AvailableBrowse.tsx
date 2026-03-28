@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import type { CatalogPluginDescriptor, MarketplaceOriginDescriptor } from '../../../../../shared/types/addonsCatalogPayload';
+import type {
+  CatalogPluginDescriptor,
+  MarketplaceOriginDescriptor,
+} from '../../../../../shared/types/addonsCatalogPayload';
 import { AVAILABLE_SECTIONS } from '../hooks/useAddonsState';
 import { PluginGrid } from './PluginGrid';
 import { MarketplaceBar } from './MarketplaceBar';
@@ -58,7 +61,12 @@ export function AvailableBrowse({
                 <span>{section.label}</span>
                 <span className="akashi-addons-section-header__count">({plugins.length})</span>
               </div>
-              <PluginGrid plugins={plugins} onInstall={onInstall} onDelete={onDelete} disabled={disabled} />
+              <PluginGrid
+                plugins={plugins}
+                onInstall={onInstall}
+                onDelete={onDelete}
+                disabled={disabled}
+              />
             </div>
           );
         })

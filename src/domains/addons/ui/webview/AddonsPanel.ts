@@ -11,10 +11,7 @@ export class AddonsPanel {
 
   private snapshotEnv: AddonsPanelEnvironment | null = null;
 
-  public static createOrShow(
-    context: vscode.ExtensionContext,
-    env: AddonsPanelEnvironment
-  ): void {
+  public static createOrShow(context: vscode.ExtensionContext, env: AddonsPanelEnvironment): void {
     const extensionUri = context.extensionUri;
     const column = vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One;
 
@@ -75,7 +72,9 @@ export class AddonsPanel {
         }
         // Origin management
         if (message?.type === AddonsMessageType.AddOrigin) {
-          const p = message.payload as { label?: string; kind?: string; value?: string } | undefined;
+          const p = message.payload as
+            | { label?: string; kind?: string; value?: string }
+            | undefined;
           if (p?.label && p?.kind && p?.value) {
             await this.snapshotEnv?.addOrigin(p.label, { kind: p.kind, value: p.value });
             await this.refreshAfterMutation();
@@ -108,12 +107,16 @@ export class AddonsPanel {
         }
         // Install/Uninstall
         if (message?.type === AddonsMessageType.InstallPlugin) {
-          const p = message.payload as { pluginId?: string; locality?: 'workspace' | 'user' } | undefined;
+          const p = message.payload as
+            | { pluginId?: string; locality?: 'workspace' | 'user' }
+            | undefined;
           if (p?.pluginId) {
             const locality = p.locality === 'user' ? 'user' : 'workspace';
             appendLine(`[Akashi][Addons] Installing plugin=${p.pluginId} locality=${locality}`);
             const result = await this.snapshotEnv?.installPlugin(p.pluginId, locality);
-            appendLine(`[Akashi][Addons] Install result plugin=${p.pluginId} ok=${result?.ok} error=${result?.error ?? 'none'}`);
+            appendLine(
+              `[Akashi][Addons] Install result plugin=${p.pluginId} ok=${result?.ok} error=${result?.error ?? 'none'}`
+            );
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'install', pluginId: p.pluginId, ...result },
@@ -125,7 +128,9 @@ export class AddonsPanel {
         if (message?.type === AddonsMessageType.DeleteAddon) {
           const p = message.payload as { primaryPath?: string; pluginId?: string } | undefined;
           if (p?.primaryPath || p?.pluginId) {
-            appendLine(`[Akashi][Addons] Delete requested path=${p?.primaryPath ?? 'none'} pluginId=${p?.pluginId ?? 'none'}`);
+            appendLine(
+              `[Akashi][Addons] Delete requested path=${p?.primaryPath ?? 'none'} pluginId=${p?.pluginId ?? 'none'}`
+            );
             const confirm = await vscode.window.showWarningMessage(
               'Delete addon? This will remove its files from disk.',
               { modal: true },
@@ -140,7 +145,9 @@ export class AddonsPanel {
               return;
             }
             const result = await this.snapshotEnv?.deleteAddon(p.primaryPath, p.pluginId);
-            appendLine(`[Akashi][Addons] Delete result ok=${result?.ok} error=${result?.error ?? 'none'}`);
+            appendLine(
+              `[Akashi][Addons] Delete result ok=${result?.ok} error=${result?.error ?? 'none'}`
+            );
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'delete', ...result },
@@ -154,7 +161,9 @@ export class AddonsPanel {
           if (p?.addonId) {
             appendLine(`[Akashi][Addons] Moving to global addonId=${p.addonId}`);
             const result = await this.snapshotEnv?.moveToGlobal(p.addonId);
-            appendLine(`[Akashi][Addons] Move result addonId=${p.addonId} ok=${result?.ok} error=${result?.error ?? 'none'}`);
+            appendLine(
+              `[Akashi][Addons] Move result addonId=${p.addonId} ok=${result?.ok} error=${result?.error ?? 'none'}`
+            );
             void this.panel.webview.postMessage({
               type: AddonsMessageType.OperationResult,
               payload: { operation: 'move', addonId: p.addonId, ...result },
