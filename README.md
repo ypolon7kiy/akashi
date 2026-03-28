@@ -27,16 +27,11 @@ AI agent rules are scattered across providers, scopes, and file formats. They in
 
 ### Add-ons Marketplace
 
-Browse, install, and manage community add-ons -- skills, hooks, commands, MCP servers, and agent bundles -- directly from the sidebar. Connect multiple marketplace sources and install to your project or globally with one click.
+Browse and install **Claude skills** from the Anthropic community marketplace directly in the sidebar. Choose between workspace-local or global installation with one click, and remove add-ons just as easily.
 
 ![Add-ons Marketplace](https://raw.githubusercontent.com/ypolon7kiy/akashi-assets/master/media/screenshots/addons.png)
 
-- **Skills** -- Reusable prompt patterns and coding techniques
-- **Hooks** -- Automated actions triggered by tool events
-- **Commands** -- Custom slash commands for common workflows
-- **MCP Servers** -- Model Context Protocol server configurations
-- **Agent Bundles** -- Pre-packaged agent setups combining multiple add-on types
-- **Marketplace Sources** -- Add GitHub repos or custom URLs as plugin registries
+Skills are reusable prompt patterns and coding techniques that extend what Claude Code can do -- think of them as plug-and-play expertise. The built-in marketplace sources pull from Anthropic's curated skill repositories. Support for additional add-on types (hooks, commands, MCP servers, agent bundles) and custom marketplace sources is on the roadmap.
 
 ### Source Index Sidebar
 
@@ -128,6 +123,8 @@ Akashi is under active development. Coming next:
 - **Composed-rule view** -- answer "what does this agent believe?" by composing active rules with provenance
 - **Validation checks** -- lightweight, repo-native checks for guideline structure and coverage
 - **Diff summaries** -- "what changed" overviews to support guideline reviews
+- **Marketplace add-on types** -- install hooks, commands, MCP servers, and agent bundles from community sources
+- **Custom marketplace sources** -- add GitHub repos or URLs as plugin registries
 
 ---
 
