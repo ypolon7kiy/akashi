@@ -10,8 +10,6 @@ import { AkashiMetaFileStore } from './domains/addons/infrastructure/AkashiMetaF
 import { fetchMarketplaceJson } from './domains/addons/infrastructure/MarketplaceFetcher';
 import { installFromMarketplace, installViaCreator, removeTrackedFiles, removeDirectory } from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
-import { SIDEBAR_FILTER_STATE_KEY } from './sidebar/host/SidebarViewProvider';
-import type { SerializedSourceSearchQuery } from './domains/search/domain/model';
 import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
 import { createConfigDomain } from './domains/config';
 import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
@@ -111,14 +109,6 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     metaStore
   );
 
-  // Track sidebar category filter for addons panel sync.
-  // Initialized from persisted state; updated live via onFilterStateSaved.
-  const initFilter = context.globalState.get<SerializedSourceSearchQuery | null>(
-    SIDEBAR_FILTER_STATE_KEY, null
-  );
-  let addonsCategoryFilter: ReadonlySet<string> | null =
-    initFilter?.categories ? new Set(initFilter.categories) : null;
-
   const addonsEnv: AddonsPanelEnvironment = {
     getAddonsCatalog: async () => {
       const roots = config.resolveToolUserRoots(os.homedir());
@@ -127,36 +117,30 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       if (!catalog) {
         return null;
       }
-      const catMatch = (category: string): boolean =>
-        addonsCategoryFilter === null || addonsCategoryFilter.has(category);
-
-      // Map domain types to shared DTOs, filtered by sidebar categories
+      // Map domain types to shared DTOs — no host-side category filtering;
+      // the webview handles its own filtering via useAddonsState.
       const payload: AddonsCatalogPayload = {
         generatedAt: catalog.generatedAt,
         presetId: catalog.presetId,
-        records: catalog.records
-          .filter((r) => catMatch(r.category))
-          .map((r) => ({
-            id: r.id,
-            path: r.path,
-            preset: r.preset,
-            category: r.category,
-            locality: r.locality,
-            tags: [...r.tags],
-            metadata: r.metadata,
-          })),
-        artifacts: catalog.artifacts
-          .filter((a) => catMatch(a.category))
-          .map((a) => ({
-            id: a.id,
-            presetId: a.presetId,
-            category: a.category,
-            locality: a.locality,
-            shape: a.shape,
-            memberRecordIds: [...a.memberRecordIds],
-            primaryPath: a.primaryPath,
-          })),
-        catalogPlugins: catalog.catalogPlugins.filter((p) => catMatch(p.category)),
+        records: catalog.records.map((r) => ({
+          id: r.id,
+          path: r.path,
+          preset: r.preset,
+          category: r.category,
+          locality: r.locality,
+          tags: [...r.tags],
+          metadata: r.metadata,
+        })),
+        artifacts: catalog.artifacts.map((a) => ({
+          id: a.id,
+          presetId: a.presetId,
+          category: a.category,
+          locality: a.locality,
+          shape: a.shape,
+          memberRecordIds: [...a.memberRecordIds],
+          primaryPath: a.primaryPath,
+        })),
+        catalogPlugins: catalog.catalogPlugins,
         origins: catalog.origins,
       };
       return payload;
@@ -356,9 +340,8 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
           void Graph2DPanel.refreshIfOpen(graphEnv);
           void AddonsPanel.refreshIfOpen(addonsEnv);
         },
-        onFilterStateSaved: (query, matchedPaths) => {
+        onFilterStateSaved: (_query, matchedPaths) => {
           Graph2DPanel.pushFilterIfOpen(matchedPaths);
-          addonsCategoryFilter = query.categories ? new Set(query.categories) : null;
           void AddonsPanel.refreshIfOpen(addonsEnv);
         },
       })

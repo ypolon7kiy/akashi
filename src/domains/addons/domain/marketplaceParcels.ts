@@ -6,7 +6,9 @@
  * an explicit hint skips detection.
  */
 
-import { buildCatalogPluginId, type CatalogPlugin, type PluginSourceRef } from './catalogPlugin';
+import { buildCatalogPluginId, type CatalogPlugin, type PluginCategory, type PluginSourceRef } from './catalogPlugin';
+
+const VALID_CATEGORIES = new Set<string>(['skill', 'command', 'hook', 'mcp', 'agent', 'bundle']);
 
 // ── Shared helpers (used by all parcels) ──────────────────────────────
 
@@ -86,7 +88,7 @@ function buildPluginEntry(
     name,
     description: fields.description ?? '',
     version: fields.version ?? '',
-    category: fields.category ?? 'skill',
+    category: (VALID_CATEGORIES.has(fields.category ?? '') ? fields.category! : 'skill') as PluginCategory,
     tags: fields.tags ?? [],
     keywords: fields.keywords ?? [],
     source: fields.source,
