@@ -9,6 +9,8 @@ const viewType = 'akashi.addonsPanel';
 export class AddonsPanel {
   public static currentPanel: AddonsPanel | undefined;
 
+  private static lastMatchedPaths: readonly string[] | null = null;
+
   private snapshotEnv: AddonsPanelEnvironment | null = null;
 
   public static createOrShow(context: vscode.ExtensionContext, env: AddonsPanelEnvironment): void {
@@ -41,6 +43,17 @@ export class AddonsPanel {
     }
   }
 
+  public static pushFilterIfOpen(matchedPaths: readonly string[] | null): void {
+    AddonsPanel.lastMatchedPaths = matchedPaths;
+    const p = AddonsPanel.currentPanel;
+    if (p) {
+      void p.panel.webview.postMessage({
+        type: AddonsMessageType.SidebarFilter,
+        payload: matchedPaths,
+      });
+    }
+  }
+
   private constructor(
     public readonly panel: vscode.WebviewPanel,
     private readonly extensionUri: vscode.Uri,
@@ -55,6 +68,7 @@ export class AddonsPanel {
           if (this.snapshotEnv) {
             await this.pushCatalog(this.snapshotEnv);
           }
+          this.postSavedFilter();
           return;
         }
         if (message?.type === AddonsMessageType.OpenFile) {
@@ -189,6 +203,15 @@ export class AddonsPanel {
       type: AddonsMessageType.Catalog,
       payload,
     });
+  }
+
+  private postSavedFilter(): void {
+    if (AddonsPanel.lastMatchedPaths !== null) {
+      void this.panel.webview.postMessage({
+        type: AddonsMessageType.SidebarFilter,
+        payload: AddonsPanel.lastMatchedPaths,
+      });
+    }
   }
 
   private async refreshAfterMutation(): Promise<void> {

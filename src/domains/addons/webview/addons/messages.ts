@@ -3,6 +3,7 @@ export const AddonsMessageType = {
   // Host -> Webview
   Catalog: 'addons/catalog',
   OperationResult: 'addons/operationResult',
+  SidebarFilter: 'addons/sidebarFilter',
 
   // Webview -> Host
   WebviewReady: 'addons/webviewReady',

@@ -354,7 +354,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
         },
         onFilterStateSaved: (_query, matchedPaths) => {
           Graph2DPanel.pushFilterIfOpen(matchedPaths);
-          void AddonsPanel.refreshIfOpen(addonsEnv);
+          AddonsPanel.pushFilterIfOpen(matchedPaths);
         },
       })
     ),

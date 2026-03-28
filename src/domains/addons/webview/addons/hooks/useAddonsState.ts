@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getVscodeApi } from '../../../../../webview-shared/api';
 import { AddonsMessageType } from '../messages';
 import type {
@@ -10,7 +10,6 @@ import type {
   SourceDescriptor,
 } from '../../../../../shared/types/sourcesSnapshotPayload';
 
-export type CategoryFilter = string | null;
 export type ViewTab = 'installed' | 'available';
 
 export interface AvailableSection {
@@ -32,9 +31,9 @@ export const AVAILABLE_SECTIONS: readonly AvailableSection[] = [
 
 export function useAddonsState() {
   const [catalog, setCatalog] = useState<AddonsCatalogPayload | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>(null);
   const [searchText, setSearchText] = useState('');
   const [activeTab, setActiveTab] = useState<ViewTab>('installed');
+  const [sidebarMatchedPaths, setSidebarMatchedPaths] = useState<readonly string[] | null>(null);
   const [operationMessage, setOperationMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const busyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,6 +71,9 @@ export function useAddonsState() {
       if (msg?.type === AddonsMessageType.Catalog) {
         setCatalog(msg.payload as AddonsCatalogPayload);
       }
+      if (msg?.type === AddonsMessageType.SidebarFilter) {
+        setSidebarMatchedPaths(msg.payload as readonly string[] | null);
+      }
       if (msg?.type === AddonsMessageType.OperationResult) {
         clearBusy();
         const p = msg.payload as
@@ -100,18 +102,17 @@ export function useAddonsState() {
   // Fall back to records if no artifacts available
   const installedItems = catalog ? buildInstalledItems(catalog) : [];
 
-  const filteredInstalled = applyInstalledFilters(installedItems, categoryFilter, searchText);
+  const matchedPathsSet = useMemo(
+    () => (sidebarMatchedPaths !== null ? new Set(sidebarMatchedPaths) : null),
+    [sidebarMatchedPaths]
+  );
+
+  const filteredInstalled = applyInstalledFilters(installedItems, matchedPathsSet);
   const filteredAvailable = catalog
-    ? applyAvailableFilters(catalog.catalogPlugins, categoryFilter, searchText)
+    ? applyAvailableFilters(catalog.catalogPlugins, searchText)
     : [];
 
   const availableSections = groupBySection(filteredAvailable);
-
-  // Build category counts from installed items
-  const categoryCounts = new Map<string, number>();
-  for (const item of installedItems) {
-    categoryCounts.set(item.category, (categoryCounts.get(item.category) ?? 0) + 1);
-  }
 
   const openFile = useCallback((path: string) => {
     getVscodeApi()?.postMessage({ type: AddonsMessageType.OpenFile, payload: { path } });
@@ -175,22 +176,17 @@ export function useAddonsState() {
 
   const switchTab = useCallback((tab: ViewTab) => {
     setActiveTab(tab);
-    setCategoryFilter(null);
   }, []);
 
   return {
     catalog,
     isBusy,
-    categoryFilter,
     searchText,
     activeTab,
     operationMessage,
     filteredInstalled,
-    filteredAvailable,
     availableSections,
-    categoryCounts,
     installedItems,
-    setCategoryFilter,
     setSearchText,
     setActiveTab: switchTab,
     openFile,
@@ -251,41 +247,28 @@ function deriveName(path: string): string {
 
 function applyInstalledFilters(
   items: readonly InstalledItem[],
-  categoryFilter: CategoryFilter,
-  searchText: string
+  matchedPaths: ReadonlySet<string> | null
 ): readonly InstalledItem[] {
-  let result = items;
-  if (categoryFilter) {
-    result = result.filter((a) => a.category === categoryFilter);
+  if (matchedPaths === null) {
+    return items;
   }
-  if (searchText.length > 0) {
-    const lower = searchText.toLowerCase();
-    result = result.filter(
-      (a) => a.name.toLowerCase().includes(lower) || a.category.toLowerCase().includes(lower)
-    );
-  }
-  return result;
+  return items.filter((a) => matchedPaths.has(a.primaryPath));
 }
 
 function applyAvailableFilters(
   plugins: readonly CatalogPluginDescriptor[],
-  categoryFilter: CategoryFilter,
   searchText: string
 ): readonly CatalogPluginDescriptor[] {
-  let result = plugins;
-  if (categoryFilter) {
-    result = result.filter((p) => p.category === categoryFilter);
+  if (searchText.length === 0) {
+    return plugins;
   }
-  if (searchText.length > 0) {
-    const lower = searchText.toLowerCase();
-    result = result.filter(
-      (p) =>
-        p.name.toLowerCase().includes(lower) ||
-        p.description.toLowerCase().includes(lower) ||
-        p.tags.some((t) => t.toLowerCase().includes(lower))
-    );
-  }
-  return result;
+  const lower = searchText.toLowerCase();
+  return plugins.filter(
+    (p) =>
+      p.name.toLowerCase().includes(lower) ||
+      p.description.toLowerCase().includes(lower) ||
+      p.tags.some((t) => t.toLowerCase().includes(lower))
+  );
 }
 
 function groupBySection(

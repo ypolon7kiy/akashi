@@ -7,15 +7,11 @@ export function AddonsApp() {
   const {
     catalog,
     isBusy,
-    categoryFilter,
     searchText,
     activeTab,
     operationMessage,
     filteredInstalled,
     availableSections,
-    categoryCounts,
-    installedItems,
-    setCategoryFilter,
     setSearchText,
     setActiveTab,
     openFile,
@@ -60,7 +56,7 @@ export function AddonsApp() {
             className={`akashi-addons-tab ${activeTab === 'installed' ? 'akashi-addons-tab--active' : ''}`}
             onClick={() => setActiveTab('installed')}
           >
-            Installed ({installedItems.length})
+            Installed ({filteredInstalled.length})
           </button>
           <button
             className={`akashi-addons-tab ${activeTab === 'available' ? 'akashi-addons-tab--active' : ''}`}
@@ -70,17 +66,9 @@ export function AddonsApp() {
           </button>
         </div>
 
-        <SearchBar
-          searchText={searchText}
-          onSearchChange={setSearchText}
-          categoryFilter={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          categoryCounts={categoryCounts}
-          totalCount={
-            activeTab === 'installed' ? installedItems.length : catalog.catalogPlugins.length
-          }
-          showCategoryTabs={activeTab === 'installed'}
-        />
+        {activeTab === 'available' && (
+          <SearchBar searchText={searchText} onSearchChange={setSearchText} />
+        )}
       </header>
 
       <div className="akashi-addons-progress-slot" aria-busy={isBusy}>
