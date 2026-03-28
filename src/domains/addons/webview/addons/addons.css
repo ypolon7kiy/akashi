@@ -754,8 +754,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   font-size: calc(var(--vscode-font-size) * 0.85);
   color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
 }
 
 .akashi-addons-grid-card__category {
@@ -767,7 +769,19 @@ body {
 }
 
 .akashi-addons-grid-card__tags {
-  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.akashi-addons-grid-card__tag {
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-badge-foreground, var(--vscode-descriptionForeground));
+  font-size: calc(var(--vscode-font-size) * 0.82);
+  white-space: nowrap;
 }
 
 .akashi-addons-grid-card__action {

@@ -25,6 +25,19 @@ AI agent rules are scattered across providers, scopes, and file formats. They in
 
 ## Features
 
+### Add-ons Marketplace
+
+Browse, install, and manage community add-ons -- skills, hooks, commands, MCP servers, and agent bundles -- directly from the sidebar. Connect multiple marketplace sources and install to your project or globally with one click.
+
+![Add-ons Marketplace](https://raw.githubusercontent.com/ypolon7kiy/akashi-assets/master/media/screenshots/addons.png)
+
+- **Skills** -- Reusable prompt patterns and coding techniques
+- **Hooks** -- Automated actions triggered by tool events
+- **Commands** -- Custom slash commands for common workflows
+- **MCP Servers** -- Model Context Protocol server configurations
+- **Agent Bundles** -- Pre-packaged agent setups combining multiple add-on types
+- **Marketplace Sources** -- Add GitHub repos or custom URLs as plugin registries
+
 ### Source Index Sidebar
 
 A unified tree view of every guideline file in your workspace and home config directories, organized by provider preset and artifact kind.

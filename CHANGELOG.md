@@ -5,6 +5,15 @@ All notable changes to the Akashi extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-03-28
+
+### Marketplace
+
+- Add-ons screenshot added to extension listing
+- Add-ons Marketplace section featured before Graph View in README
+- Tags in marketplace add-on cards now render as individual badges for better readability
+- Improved meta row alignment in add-on cards (category, version, tags)
+
 ## [1.0.0] - 2026-03-26
 
 First stable, open-source release of Akashi -- the system instructions IDE for teams building AI agents from repository-native guidelines. Licensed under Apache 2.0.
