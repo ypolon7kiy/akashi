@@ -16,6 +16,7 @@ import {
 } from './domains/addons/infrastructure/CreatorBasedInstaller';
 import type { AddonsCatalogPayload } from './shared/types/addonsCatalogPayload';
 import type { OriginSource } from './domains/addons/domain/marketplaceOrigin';
+import type { OriginSourceDescriptor } from './shared/types/addonsCatalogPayload';
 import { createConfigDomain } from './domains/config';
 import { executeCreationPlan } from './domains/sources/infrastructure/executeCreationPlan';
 import { createSourcesService } from './domains/sources/infrastructure/createSourcesService';
@@ -35,6 +36,31 @@ import { runNewArtifactWizard } from './sidebar/host/runNewArtifactWizard';
 /**
  * Registers Akashi commands, webviews, and graph UI. Used by {@link activate} and integration tests.
  */
+function parseOriginSource(kind: string, value: string): OriginSource {
+  if (kind === 'github') {
+    const slashIdx = value.indexOf('/');
+    if (slashIdx < 1 || slashIdx === value.length - 1) {
+      throw new Error(`GitHub source must be in "owner/repo" format, got: "${value}"`);
+    }
+    return { kind: 'github', owner: value.slice(0, slashIdx), repo: value.slice(slashIdx + 1) };
+  }
+  if (kind === 'url') {
+    return { kind: 'url', url: value };
+  }
+  return { kind: 'file', path: value };
+}
+
+function flattenOriginSource(source: OriginSource): OriginSourceDescriptor {
+  switch (source.kind) {
+    case 'github':
+      return { kind: 'github', value: `${source.owner}/${source.repo}` };
+    case 'url':
+      return { kind: 'url', value: source.url };
+    case 'file':
+      return { kind: 'file', value: source.path };
+  }
+}
+
 export function registerAkashiExtension(context: vscode.ExtensionContext): void {
   const config = createConfigDomain(context);
   const sourcesService = createSourcesService(
@@ -148,9 +174,18 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
           shape: a.shape,
           memberRecordIds: [...a.memberRecordIds],
           primaryPath: a.primaryPath,
+          topLevel: a.topLevel,
         })),
         catalogPlugins: catalog.catalogPlugins,
-        origins: catalog.origins,
+        origins: catalog.origins.map((o) => ({
+          id: o.id,
+          label: o.label,
+          source: flattenOriginSource(o.source),
+          builtIn: o.builtIn,
+          enabled: o.enabled,
+          lastFetchedAt: o.lastFetchedAt,
+          lastError: o.lastError,
+        })),
       };
       return payload;
     },
@@ -163,16 +198,14 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       }
     },
     addOrigin: async (label: string, source: { kind: string; value: string }) => {
-      let originSource: OriginSource;
-      if (source.kind === 'github') {
-        const parts = source.value.split('/');
-        originSource = { kind: 'github', owner: parts[0] ?? '', repo: parts[1] ?? '' };
-      } else if (source.kind === 'url') {
-        originSource = { kind: 'url', url: source.value };
-      } else {
-        originSource = { kind: 'file', path: source.value };
-      }
-      await addonsService.addOrigin(label, originSource);
+      await addonsService.addOrigin(label, parseOriginSource(source.kind, source.value));
+    },
+    editOrigin: async (
+      originId: string,
+      label: string,
+      source: { kind: string; value: string }
+    ) => {
+      await addonsService.editOrigin(originId, label, parseOriginSource(source.kind, source.value));
     },
     removeOrigin: async (originId: string) => {
       await addonsService.removeOrigin(originId);

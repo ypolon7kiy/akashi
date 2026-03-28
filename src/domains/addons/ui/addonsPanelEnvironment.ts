@@ -5,6 +5,11 @@ export interface AddonsPanelEnvironment {
   getAddonsCatalog: () => Promise<AddonsCatalogPayload | null>;
   openAddonFile: (path: string) => Promise<void>;
   addOrigin: (label: string, source: { kind: string; value: string }) => Promise<void>;
+  editOrigin: (
+    originId: string,
+    label: string,
+    source: { kind: string; value: string }
+  ) => Promise<void>;
   removeOrigin: (originId: string) => Promise<void>;
   toggleOrigin: (originId: string, enabled: boolean) => Promise<void>;
   fetchOrigin: (originId: string) => Promise<void>;

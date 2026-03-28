@@ -18,9 +18,16 @@ export interface CatalogPluginDescriptor {
   readonly installStatus: 'available' | 'installed';
 }
 
+/** Flattened origin source for webview consumption (kind + single value string). */
+export interface OriginSourceDescriptor {
+  readonly kind: 'github' | 'url' | 'file';
+  readonly value: string;
+}
+
 export interface MarketplaceOriginDescriptor {
   readonly id: string;
   readonly label: string;
+  readonly source: OriginSourceDescriptor;
   readonly builtIn: boolean;
   readonly enabled: boolean;
   readonly lastFetchedAt: string | null;

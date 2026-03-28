@@ -17,6 +17,7 @@ export function AddonsApp() {
     openFile,
     refresh,
     addOrigin,
+    editOrigin,
     removeOrigin,
     toggleOrigin,
     fetchOrigin,
@@ -111,6 +112,7 @@ export function AddonsApp() {
             onToggleOrigin={toggleOrigin}
             onFetchOrigin={fetchOrigin}
             onAddOrigin={addOrigin}
+            onEditOrigin={editOrigin}
             onRemoveOrigin={removeOrigin}
             disabled={isBusy}
           />

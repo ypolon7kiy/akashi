@@ -12,6 +12,7 @@ export const AddonsMessageType = {
 
   // Origin management (Webview -> Host)
   AddOrigin: 'addons/addOrigin',
+  EditOrigin: 'addons/editOrigin',
   RemoveOrigin: 'addons/removeOrigin',
   ToggleOrigin: 'addons/toggleOrigin',
   FetchOrigin: 'addons/fetchOrigin',

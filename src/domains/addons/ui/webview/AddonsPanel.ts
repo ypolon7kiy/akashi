@@ -95,6 +95,28 @@ export class AddonsPanel {
           }
           return;
         }
+        if (message?.type === AddonsMessageType.EditOrigin) {
+          const p = message.payload as
+            | { originId?: string; label?: string; kind?: string; value?: string }
+            | undefined;
+          if (p?.originId && p?.label && p?.kind && p?.value) {
+            try {
+              await this.snapshotEnv?.editOrigin(p.originId, p.label, {
+                kind: p.kind,
+                value: p.value,
+              });
+              await this.refreshAfterMutation();
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : String(err);
+              appendLine(`[Akashi][Addons] Edit origin failed: ${msg}`);
+              void this.panel.webview.postMessage({
+                type: AddonsMessageType.OperationResult,
+                payload: { operation: 'edit', ok: false, error: msg },
+              });
+            }
+          }
+          return;
+        }
         if (message?.type === AddonsMessageType.RemoveOrigin) {
           const p = message.payload as { originId?: string } | undefined;
           if (p?.originId) {

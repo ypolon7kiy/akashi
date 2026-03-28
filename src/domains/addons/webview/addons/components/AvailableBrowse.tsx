@@ -15,6 +15,7 @@ interface AvailableBrowseProps {
   readonly onToggleOrigin: (originId: string, enabled: boolean) => void;
   readonly onFetchOrigin: (originId: string) => void;
   readonly onAddOrigin: (label: string, kind: string, value: string) => void;
+  readonly onEditOrigin: (originId: string, label: string, kind: string, value: string) => void;
   readonly onRemoveOrigin: (originId: string) => void;
   readonly disabled?: boolean;
 }
@@ -27,6 +28,7 @@ export function AvailableBrowse({
   onToggleOrigin,
   onFetchOrigin,
   onAddOrigin,
+  onEditOrigin,
   onRemoveOrigin,
   disabled,
 }: AvailableBrowseProps) {
@@ -39,6 +41,7 @@ export function AvailableBrowse({
         onToggle={onToggleOrigin}
         onFetch={onFetchOrigin}
         onAdd={onAddOrigin}
+        onEdit={onEditOrigin}
         onRemove={onRemoveOrigin}
       />
 
@@ -80,12 +83,14 @@ function SourcesDisclosure({
   onToggle,
   onFetch,
   onAdd,
+  onEdit,
   onRemove,
 }: {
   readonly origins: readonly MarketplaceOriginDescriptor[];
   readonly onToggle: (originId: string, enabled: boolean) => void;
   readonly onFetch: (originId: string) => void;
   readonly onAdd: (label: string, kind: string, value: string) => void;
+  readonly onEdit: (originId: string, label: string, kind: string, value: string) => void;
   readonly onRemove: (originId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -107,6 +112,7 @@ function SourcesDisclosure({
           onToggle={onToggle}
           onFetch={onFetch}
           onAdd={onAdd}
+          onEdit={onEdit}
           onRemove={onRemove}
         />
       )}

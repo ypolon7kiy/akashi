@@ -111,6 +111,48 @@ export class AddonsService {
     await this.store.clearCachedCatalog(originId);
   }
 
+  async editOrigin(
+    originId: string,
+    label: string,
+    source: OriginSource
+  ): Promise<MarketplaceOrigin> {
+    const existing = this.store.getCustomOrigins();
+    const current = existing.find((o) => o.id === originId);
+    if (!current) {
+      throw new Error(`Custom origin '${originId}' not found`);
+    }
+
+    const newId = buildOriginId(source);
+
+    // Prevent collision with a different existing origin
+    if (newId !== originId && existing.some((o) => o.id === newId)) {
+      throw new Error(`An origin with source '${newId}' already exists`);
+    }
+
+    const idChanged = newId !== originId;
+
+    // Replace in-place to preserve list order and enabled state
+    const updated = existing.map((o) =>
+      o.id === originId ? { id: newId, label, source, enabled: o.enabled } : o
+    );
+    await this.store.saveCustomOrigins(updated);
+
+    // Source change invalidates the old cache
+    if (idChanged) {
+      await this.store.clearCachedCatalog(originId);
+    }
+
+    return {
+      id: newId,
+      label,
+      source,
+      builtIn: false,
+      enabled: current.enabled,
+      lastFetchedAt: idChanged ? null : (this.store.getCachedCatalog(newId)?.fetchedAt ?? null),
+      lastError: null,
+    };
+  }
+
   async toggleOrigin(originId: string, enabled: boolean): Promise<void> {
     const builtIn = BUILT_IN_ORIGINS.find((o) => o.id === originId);
     if (builtIn) {

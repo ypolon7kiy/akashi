@@ -129,6 +129,16 @@ export function useAddonsState() {
     });
   }, []);
 
+  const editOrigin = useCallback(
+    (originId: string, label: string, kind: string, value: string) => {
+      getVscodeApi()?.postMessage({
+        type: AddonsMessageType.EditOrigin,
+        payload: { originId, label, kind, value },
+      });
+    },
+    []
+  );
+
   const removeOrigin = useCallback((originId: string) => {
     getVscodeApi()?.postMessage({ type: AddonsMessageType.RemoveOrigin, payload: { originId } });
   }, []);
@@ -192,6 +202,7 @@ export function useAddonsState() {
     openFile,
     refresh,
     addOrigin,
+    editOrigin,
     removeOrigin,
     toggleOrigin,
     fetchOrigin,
@@ -210,16 +221,18 @@ export interface InstalledItem {
   readonly primaryPath: string;
 }
 
-/** Build installed items from snapshot data: prefer artifacts, fall back to records. */
+/** Build installed items from snapshot data: prefer top-level artifacts, fall back to records. */
 function buildInstalledItems(catalog: AddonsCatalogPayload): readonly InstalledItem[] {
   if (catalog.artifacts && catalog.artifacts.length > 0) {
-    return catalog.artifacts.map((a: ArtifactDescriptor) => ({
-      id: a.id,
-      name: deriveName(a.primaryPath),
-      category: a.category,
-      locality: a.locality,
-      primaryPath: a.primaryPath,
-    }));
+    return catalog.artifacts
+      .filter((a: ArtifactDescriptor) => a.topLevel)
+      .map((a: ArtifactDescriptor) => ({
+        id: a.id,
+        name: deriveName(a.primaryPath),
+        category: a.category,
+        locality: a.locality,
+        primaryPath: a.primaryPath,
+      }));
   }
   return catalog.records.map((r: SourceDescriptor) => ({
     id: r.id,
