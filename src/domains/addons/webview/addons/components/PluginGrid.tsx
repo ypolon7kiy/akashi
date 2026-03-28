@@ -49,7 +49,9 @@ export function PluginGrid({ plugins, onInstall, onDelete, disabled }: PluginGri
               {plugin.tags.length > 0 && (
                 <span className="akashi-addons-grid-card__tags">
                   {plugin.tags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="akashi-addons-grid-card__tag">{tag}</span>
+                    <span key={tag} className="akashi-addons-grid-card__tag">
+                      {tag}
+                    </span>
                   ))}
                 </span>
               )}
