@@ -62,6 +62,33 @@ describe('linkArtifacts', () => {
       expect(artifacts).toHaveLength(2);
       expect(artifacts.every((a) => a.shape === 'single-file')).toBe(true);
     });
+
+    it('creates a single-file artifact for a context entry (CLAUDE.md)', () => {
+      const e = entry('/ws/CLAUDE.md', 'claude', 'workspace', 'context');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('context');
+      expect(artifacts[0].primaryPath).toBe(e.path);
+    });
+
+    it('creates a single-file artifact for a command entry', () => {
+      const e = entry('/ws/.claude/commands/deploy.md', 'claude', 'workspace', 'command');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('command');
+      expect(artifacts[0].primaryPath).toBe(e.path);
+    });
+
+    it('creates a single-file artifact for config not claimed by any hook', () => {
+      const e = entry('/ws/.claude/settings.json', 'claude', 'workspace', 'config');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('config');
+      expect(artifacts[0].primaryPath).toBe(e.path);
+    });
   });
 
   describe('file-json compound (hooks)', () => {
@@ -334,6 +361,119 @@ describe('linkArtifacts', () => {
       const artifacts = linkArtifacts([skill]);
       expect(artifacts).toHaveLength(1);
       expect(artifacts[0].shape).toBe('folder-file');
+    });
+  });
+
+  describe('Cursor preset categories', () => {
+    it('creates single-file for AGENTS.md context', () => {
+      const e = entry('/ws/AGENTS.md', 'cursor', 'workspace', 'context');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('context');
+    });
+
+    it('creates single-file for .cursorrules rule', () => {
+      const e = entry('/ws/.cursorrules', 'cursor', 'workspace', 'rule');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('rule');
+    });
+
+    it('creates single-file for .mdc rule in .cursor/rules', () => {
+      const e = entry('/ws/.cursor/rules/coding.mdc', 'cursor', 'workspace', 'rule');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('rule');
+    });
+
+    it('creates single-file for command in .cursor/commands', () => {
+      const e = entry('/ws/.cursor/commands/deploy.md', 'cursor', 'workspace', 'command');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('command');
+    });
+
+    it('creates single-file for hooks.json when no hook scripts exist', () => {
+      const e = entry('/ws/.cursor/hooks.json', 'cursor', 'workspace', 'hook');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('hook');
+    });
+
+    it('creates json-only for .cursor/mcp.json', () => {
+      const e = entry('/ws/.cursor/mcp.json', 'cursor', 'workspace', 'mcp');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('json-only');
+      expect(artifacts[0].category).toBe('mcp');
+    });
+  });
+
+  describe('Codex preset categories', () => {
+    it('creates single-file for AGENTS.md context', () => {
+      const e = entry('/ws/AGENTS.md', 'codex', 'workspace', 'context');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('context');
+    });
+
+    it('creates single-file for .codex/config.toml', () => {
+      const e = entry('/ws/.codex/config.toml', 'codex', 'workspace', 'config');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('config');
+    });
+
+    it('creates single-file for .codex/rules/*.rules', () => {
+      const e = entry('/ws/.codex/rules/coding.rules', 'codex', 'workspace', 'rule');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('rule');
+    });
+
+    it('creates folder-file for .codex/skills SKILL.md with siblings', () => {
+      const skillMd = entry('/ws/.codex/skills/my-skill/SKILL.md', 'codex', 'workspace', 'skill');
+      const helper = entry('/ws/.codex/skills/my-skill/lib.js', 'codex', 'workspace', 'skill');
+      const artifacts = linkArtifacts([skillMd, helper]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('folder-file');
+      expect(artifacts[0].memberRecordIds).toHaveLength(2);
+      expect(artifacts[0].primaryPath).toBe(skillMd.path);
+    });
+  });
+
+  describe('Antigravity preset categories', () => {
+    it('creates single-file for GEMINI.md context', () => {
+      const e = entry('/ws/GEMINI.md', 'antigravity', 'workspace', 'context');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('context');
+    });
+
+    it('creates single-file for .gemini/settings.json config', () => {
+      const e = entry('/ws/.gemini/settings.json', 'antigravity', 'workspace', 'config');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('single-file');
+      expect(artifacts[0].category).toBe('config');
+    });
+
+    it('creates folder-file for .agent/skills SKILL.md (single-member)', () => {
+      const e = entry('/ws/.agent/skills/my-skill/SKILL.md', 'antigravity', 'workspace', 'skill');
+      const artifacts = linkArtifacts([e]);
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0].shape).toBe('folder-file');
+      expect(artifacts[0].memberRecordIds).toHaveLength(1);
+      expect(artifacts[0].primaryPath).toBe(e.path);
     });
   });
 
