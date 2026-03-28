@@ -30,6 +30,8 @@ export interface MarketplaceOriginDescriptor {
 export interface AddonsCatalogPayload {
   readonly generatedAt: string;
   readonly presetId: string;
+  /** Whether the preset required for add-ons is enabled in `akashi.presets`. */
+  readonly presetActive: boolean;
   /** Source records from the snapshot — the single source of truth for installed addons. */
   readonly records: readonly SourceDescriptor[];
   /** Artifact linkage from the snapshot (folder-layout grouping, compound hooks, etc). */

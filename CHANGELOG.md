@@ -5,6 +5,13 @@ All notable changes to the Akashi extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-03-28
+
+### Add-ons
+
+- Show informational message when Claude preset is not enabled in add-ons panel
+- Add `presetActive` flag to addons catalog payload
+
 ## [1.0.3] - 2026-03-28
 
 ### Docs

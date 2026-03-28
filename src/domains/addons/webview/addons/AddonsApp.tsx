@@ -36,6 +36,22 @@ export function AddonsApp() {
     );
   }
 
+  if (!catalog.presetActive) {
+    return (
+      <div className="akashi-addons-app">
+        <div className="akashi-addons-empty">
+          <span className="codicon codicon-warning" />
+          <p>Claude preset is not enabled</p>
+          <p className="akashi-addons-empty__hint">
+            The Add-ons Marketplace currently supports Claude skills only. Enable the{' '}
+            <strong>Claude</strong> preset in <code>akashi.presets</code> to browse and install
+            add-ons.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const availableCount = catalog.catalogPlugins.filter(
     (p) => p.installStatus === 'available'
   ).length;

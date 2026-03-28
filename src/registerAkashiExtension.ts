@@ -118,6 +118,8 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     getAddonsCatalog: async () => {
       const roots = config.resolveToolUserRoots(os.homedir());
       const workspaceRoot = inferWorkspaceRoot();
+      const activePresets = config.getActiveSourcePresets();
+      const claudeActive = activePresets.has('claude');
       const catalog = await addonsService.getCatalog('claude', workspaceRoot, roots);
       if (!catalog) {
         return null;
@@ -127,6 +129,7 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
       const payload: AddonsCatalogPayload = {
         generatedAt: catalog.generatedAt,
         presetId: catalog.presetId,
+        presetActive: claudeActive,
         records: catalog.records.map((r) => ({
           id: r.id,
           path: r.path,
