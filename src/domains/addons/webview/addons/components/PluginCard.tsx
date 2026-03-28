@@ -81,9 +81,9 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }
 function shortenPath(path: string, shape?: string): string {
   const norm = path.replace(/\\/g, '/');
   const parts = norm.split('/');
-  if (parts.length <= 3) return norm;
   if (shape === 'folder-file') {
-    return '.../' + parts.slice(-3).join('/');
+    // Show folder name (parent of SKILL.md), matching graph behavior
+    return parts.length >= 2 ? parts[parts.length - 2] : parts[parts.length - 1];
   }
-  return parts.slice(-1)[0];
+  return parts[parts.length - 1];
 }
