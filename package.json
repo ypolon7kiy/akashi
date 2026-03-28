@@ -2,7 +2,7 @@
   "name": "akashi",
   "displayName": "Akashi — AI Prompt, Rules, Add-ons, Skills & Message Visualizer (Built using Claude with ❤️ )",
   "description": "Manage AI agent rules, prompts, and instructions across Claude, Cursor, Codex, and Gemini — all in one view. Visualize how guidelines connect, find conflicts, and keep your team's AI behavior consistent.",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "publisher": "akashi",
   "license": "Apache-2.0",
   "repository": {
