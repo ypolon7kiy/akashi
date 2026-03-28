@@ -1,4 +1,4 @@
-# Akashi -- AI Prompt & Rules Visualizer
+# Akashi -- AI Prompt, Rules, Add-ons, Skills & Message Visualizer
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
