@@ -40,7 +40,7 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }
           </div>
           <div className="akashi-addons-card__meta">
             <span className="akashi-addons-card__category">{addon.category}</span>
-            <span className="akashi-addons-card__path">{shortenPath(addon.primaryPath)}</span>
+            <span className="akashi-addons-card__path">{shortenPath(addon.primaryPath, addon.shape)}</span>
           </div>
         </div>
       </button>
@@ -76,9 +76,12 @@ export function PluginCard({ addon, onOpen, onDelete, onMoveToGlobal, disabled }
   );
 }
 
-function shortenPath(path: string): string {
+function shortenPath(path: string, shape?: string): string {
   const norm = path.replace(/\\/g, '/');
   const parts = norm.split('/');
   if (parts.length <= 3) return norm;
-  return '.../' + parts.slice(-3).join('/');
+  if (shape === 'folder-file') {
+    return '.../' + parts.slice(-3).join('/');
+  }
+  return parts.slice(-1)[0];
 }

@@ -219,19 +219,21 @@ export interface InstalledItem {
   readonly category: string;
   readonly locality: 'workspace' | 'user';
   readonly primaryPath: string;
+  readonly shape?: string;
 }
 
 /** Build installed items from snapshot data: prefer top-level artifacts, fall back to records. */
 function buildInstalledItems(catalog: AddonsCatalogPayload): readonly InstalledItem[] {
   if (catalog.artifacts && catalog.artifacts.length > 0) {
     return catalog.artifacts
-      .filter((a: ArtifactDescriptor) => a.topLevel)
+      .filter((a: ArtifactDescriptor) => a.topLevel !== false)
       .map((a: ArtifactDescriptor) => ({
         id: a.id,
         name: deriveName(a.primaryPath),
         category: a.category,
         locality: a.locality,
         primaryPath: a.primaryPath,
+        shape: a.shape,
       }));
   }
   return catalog.records.map((r: SourceDescriptor) => ({
