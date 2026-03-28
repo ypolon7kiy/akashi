@@ -1,5 +1,7 @@
 import type { JSX } from 'react';
+import { useRef, useState } from 'react';
 import type { SourceSearchQuery } from '../domain/model';
+import { FilterDropdown } from './FilterDropdown';
 
 export interface SearchFacetBarProps {
   readonly query: SourceSearchQuery;
@@ -20,47 +22,6 @@ export interface SearchFacetBarProps {
   readonly categoryItemClassName?: (id: string) => string;
 }
 
-function defaultLabel(id: string): string {
-  return id.charAt(0).toUpperCase() + id.slice(1);
-}
-
-function FacetRow(props: {
-  ids: readonly string[];
-  enabledSet: ReadonlySet<string> | null;
-  onToggle: (id: string) => void;
-  label: (id: string) => string;
-  ariaLabel: string;
-  itemClassName?: (id: string) => string;
-}): JSX.Element | null {
-  if (props.ids.length === 0) {
-    return null;
-  }
-  return (
-    <div className="akashi-search-bar__facets" role="group" aria-label={props.ariaLabel}>
-      {props.ids.map((id) => {
-        const on = props.enabledSet === null || props.enabledSet.has(id);
-        const extra = props.itemClassName?.(id) ?? '';
-        return (
-          <button
-            key={id}
-            type="button"
-            className={
-              (on
-                ? 'akashi-search-bar__toggle akashi-search-bar__toggle--on'
-                : 'akashi-search-bar__toggle') + (extra ? ` ${extra}` : '')
-            }
-            aria-pressed={on}
-            title={id}
-            onClick={() => props.onToggle(id)}
-          >
-            {props.label(id)}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export function SearchFacetBar(props: SearchFacetBarProps): JSX.Element {
   const {
     query,
@@ -68,21 +29,29 @@ export function SearchFacetBar(props: SearchFacetBarProps): JSX.Element {
     onToggleCategory,
     onTogglePreset,
     onToggleLocality,
+    onResetAll,
     isActive,
     matchCount,
     totalRecords,
     categoryIds,
     presetIds,
     localityIds,
-    labelForCategory = defaultLabel,
-    labelForPreset = defaultLabel,
-    labelForLocality = defaultLabel,
+    labelForCategory,
+    labelForPreset,
+    labelForLocality,
     categoryItemClassName,
   } = props;
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const inputRowRef = useRef<HTMLDivElement>(null);
+
+  const hasFilters = categoryIds.length > 0 || presetIds.length > 0 || localityIds.length > 0;
+  const hasActiveFilters =
+    query.categories !== null || query.presets !== null || query.localities !== null;
+
   return (
     <div className="akashi-search-bar" role="search" aria-label="Search sources">
-      <div className="akashi-search-bar__input-row">
+      <div className="akashi-search-bar__input-row" ref={inputRowRef}>
         <span className="akashi-search-bar__icon codicon codicon-search" aria-hidden="true" />
         <input
           type="text"
@@ -105,47 +74,38 @@ export function SearchFacetBar(props: SearchFacetBarProps): JSX.Element {
             {matchCount} / {totalRecords}
           </span>
         ) : null}
+        {hasFilters ? (
+          <button
+            type="button"
+            className={`akashi-search-bar__filter-toggle${hasActiveFilters ? ' akashi-search-bar__filter-toggle--active' : ''}`}
+            aria-label={dropdownOpen ? 'Close filters' : 'Open filters'}
+            aria-expanded={dropdownOpen}
+            aria-haspopup="dialog"
+            onClick={() => setDropdownOpen((prev) => !prev)}
+          >
+            <span
+              className={`codicon ${hasActiveFilters ? 'codicon-filter-filled' : 'codicon-filter'}`}
+              aria-hidden="true"
+            />
+          </button>
+        ) : null}
       </div>
-      {presetIds.length > 0 || localityIds.length > 0 ? (
-        <div
-          className="akashi-search-bar__facet-combo"
-          role="group"
-          aria-label="Filter by preset and locality"
-        >
-          {presetIds.length > 0 ? (
-            <FacetRow
-              ids={presetIds}
-              enabledSet={query.presets}
-              onToggle={onTogglePreset}
-              label={labelForPreset}
-              ariaLabel="Filter by preset"
-            />
-          ) : null}
-          {presetIds.length > 0 && localityIds.length > 0 ? (
-            <div
-              className="akashi-search-bar__facet-sep"
-              role="separator"
-              aria-orientation="vertical"
-            />
-          ) : null}
-          {localityIds.length > 0 ? (
-            <FacetRow
-              ids={localityIds}
-              enabledSet={query.localities}
-              onToggle={onToggleLocality}
-              label={labelForLocality}
-              ariaLabel="Filter by locality"
-            />
-          ) : null}
-        </div>
-      ) : null}
-      <FacetRow
-        ids={categoryIds}
-        enabledSet={query.categories}
-        onToggle={onToggleCategory}
-        label={labelForCategory}
-        ariaLabel="Filter by category"
-        itemClassName={categoryItemClassName}
+      <FilterDropdown
+        isOpen={dropdownOpen}
+        onClose={() => setDropdownOpen(false)}
+        anchorRef={inputRowRef}
+        query={query}
+        onToggleCategory={onToggleCategory}
+        onTogglePreset={onTogglePreset}
+        onToggleLocality={onToggleLocality}
+        onResetAll={onResetAll}
+        categoryIds={categoryIds}
+        presetIds={presetIds}
+        localityIds={localityIds}
+        labelForCategory={labelForCategory}
+        labelForPreset={labelForPreset}
+        labelForLocality={labelForLocality}
+        categoryItemClassName={categoryItemClassName}
       />
     </div>
   );

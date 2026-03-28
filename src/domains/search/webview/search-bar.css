@@ -3,6 +3,7 @@
   flex-direction: column;
   gap: var(--akashi-space-1);
   padding: var(--akashi-space-2);
+  position: relative;
 }
 
 /* ── Input row ────────────────────────────────── */
@@ -149,6 +150,109 @@
   color: var(--vscode-button-foreground);
 }
 
+/* ── Filter toggle button ────────────────────── */
+
+.akashi-search-bar__filter-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--akashi-text-muted);
+  font-size: 14px;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: var(--akashi-radius-sm);
+  position: relative;
+}
+
+.akashi-search-bar__filter-toggle:hover {
+  color: var(--akashi-text);
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.akashi-search-bar__filter-toggle:focus-visible {
+  outline: 1px solid var(--akashi-focus);
+  outline-offset: 1px;
+}
+
+.akashi-search-bar__filter-toggle--active {
+  color: var(--akashi-accent);
+}
+
+.akashi-search-bar__filter-toggle--active:hover {
+  color: var(--akashi-accent-hover, var(--akashi-accent));
+}
+
+/* ── Filter dropdown panel ───────────────────── */
+
+.akashi-filter-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--akashi-surface-1);
+  border: 1px solid var(--akashi-border);
+  border-radius: var(--akashi-radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  padding: var(--akashi-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-1);
+}
+
+.akashi-filter-dropdown__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-1);
+  padding-bottom: var(--akashi-space-2);
+  border-bottom: 1px solid var(--akashi-border);
+}
+
+.akashi-filter-dropdown__section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.akashi-filter-dropdown__heading {
+  margin: 0;
+  color: var(--akashi-text-muted);
+  font-size: calc(var(--vscode-font-size) * 0.8);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.akashi-filter-dropdown__footer {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--akashi-space-1);
+  border-top: 1px solid var(--akashi-border);
+}
+
+.akashi-filter-dropdown__reset {
+  font-family: var(--vscode-font-family);
+  font-size: calc(var(--vscode-font-size) * 0.85);
+  color: var(--akashi-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--akashi-space-1) var(--akashi-space-2);
+  border-radius: var(--akashi-radius-sm);
+  transition: color 100ms ease, background 100ms ease;
+}
+
+.akashi-filter-dropdown__reset:hover {
+  color: var(--akashi-text);
+  background: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.2));
+}
+
+.akashi-filter-dropdown__reset:focus-visible {
+  outline: 1px solid var(--akashi-focus);
+  outline-offset: 1px;
+}
+
 /* ── High contrast ────────────────────────────── */
 
 body.vscode-high-contrast .akashi-search-bar__toggle {
@@ -157,4 +261,16 @@ body.vscode-high-contrast .akashi-search-bar__toggle {
 
 body.vscode-high-contrast .akashi-search-bar__facet-sep {
   width: 2px;
+}
+
+body.vscode-high-contrast .akashi-filter-dropdown {
+  border-width: 2px;
+}
+
+body.vscode-high-contrast .akashi-filter-dropdown__section {
+  border-bottom-width: 2px;
+}
+
+body.vscode-high-contrast .akashi-filter-dropdown__footer {
+  border-top-width: 2px;
 }
