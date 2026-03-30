@@ -16,5 +16,7 @@ export class VscodeSourcesSnapshotStore implements SourcesSnapshotStorePort {
 
   public async save(snapshot: SourceIndexSnapshot): Promise<void> {
     await this.context.globalState.update(SOURCES_SNAPSHOT_KEY, snapshot);
+    // Clean up stale v6 key left behind when the snapshot contract was bumped to v7.
+    await this.context.globalState.update('sources.lastSnapshot.v6', undefined);
   }
 }

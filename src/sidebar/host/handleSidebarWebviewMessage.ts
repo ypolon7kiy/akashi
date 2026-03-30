@@ -35,8 +35,10 @@ export interface HandleSidebarWebviewMessageContext {
   sourcesService: SourcesService;
   configDomain: ConfigDomain;
   actions: SidebarSourcesHostActions;
-  notifyFilterChanged?: (matchedPaths: readonly string[] | null) => void;
-  saveFilterState?: (query: SerializedSourceSearchQuery) => void;
+  saveFilterState?: (
+    query: SerializedSourceSearchQuery,
+    matchedPaths: readonly string[] | null
+  ) => void;
   getSavedFilterState?: () => SerializedSourceSearchQuery | null;
 }
 
@@ -76,18 +78,13 @@ export async function handleSidebarWebviewMessage(
     return;
   }
 
-  if (typedMessage?.type === SidebarMessageType.SourcesFilterChanged) {
-    const p = typedMessage.payload;
-    if (p === null || Array.isArray(p)) {
-      ctx.notifyFilterChanged?.(p);
-    }
-    return;
-  }
-
   if (typedMessage?.type === SidebarMessageType.SourcesSaveFilterState) {
     const p = typedMessage.payload;
     if (p !== null && typeof p === 'object' && !Array.isArray(p)) {
-      ctx.saveFilterState?.(p);
+      const { matchedPaths, ...query } = p as SerializedSourceSearchQuery & {
+        matchedPaths: readonly string[] | null;
+      };
+      ctx.saveFilterState?.(query, matchedPaths);
     }
     return;
   }

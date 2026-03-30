@@ -1,8 +1,9 @@
-# Akashi -- AI Prompt & Rules Visualizer
+# Akashi -- AI Prompt, Rules, Add-ons, Skills & Message Visualizer
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%3E%3D1.85.0-blue)](https://code.visualstudio.com/)
+[![Open VSX](https://img.shields.io/open-vsx/v/akashi/akashi)](https://open-vsx.org/extension/akashi/akashi)
 
 **Manage AI agent rules, prompts, and instructions across Claude, Cursor, Codex, and Gemini -- all in one view.**
 
@@ -23,6 +24,14 @@ AI agent rules are scattered across providers, scopes, and file formats. They in
 ---
 
 ## Features
+
+### Add-ons Marketplace
+
+Browse and install **Claude skills** from the Anthropic community marketplace directly in the sidebar. Choose between workspace-local or global installation with one click, and remove add-ons just as easily.
+
+![Add-ons Marketplace](https://raw.githubusercontent.com/ypolon7kiy/akashi-assets/master/media/screenshots/addons.png)
+
+Skills are reusable prompt patterns and coding techniques that extend what Claude Code can do -- think of them as plug-and-play expertise. The built-in marketplace sources pull from Anthropic's curated skill repositories. Support for additional add-on types (hooks, commands, MCP servers, agent bundles) and custom marketplace sources is on the roadmap.
 
 ### Source Index Sidebar
 
@@ -77,7 +86,7 @@ File system watchers detect changes to guideline files in real time. The source 
 
 ## Getting Started
 
-1. **Install** Akashi from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
+1. **Install** Akashi from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=akashi.akashi) or [Open VSX](https://open-vsx.org/extension/akashi/akashi) (Cursor)
 2. **Open** a workspace that contains AI agent guidelines (e.g., a repo with `CLAUDE.md` or `.cursor/rules/`)
 3. **Click** the Akashi icon in the Activity Bar -- your source index loads automatically
 4. **Explore** -- open the graph view with `Akashi: Show graph` or create new artifacts with `Akashi: New source artifact...`
@@ -114,13 +123,16 @@ Akashi is under active development. Coming next:
 - **Composed-rule view** -- answer "what does this agent believe?" by composing active rules with provenance
 - **Validation checks** -- lightweight, repo-native checks for guideline structure and coverage
 - **Diff summaries** -- "what changed" overviews to support guideline reviews
+- **Marketplace add-on types** -- install hooks, commands, MCP servers, and agent bundles from community sources
+- **Custom marketplace sources** -- add GitHub repos or URLs as plugin registries
 
 ---
 
 ## Requirements
 
-- VS Code 1.85.0 or later (also works in Cursor)
+- VS Code 1.85.0 or later
+- Cursor (install from the built-in Extensions panel or [Open VSX](https://open-vsx.org/extension/akashi/akashi))
 
 ## License
 
-See [LICENSE](LICENSE).
+Apache 2.0 -- see [LICENSE](LICENSE).

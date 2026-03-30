@@ -112,6 +112,12 @@ vi.mock('vscode', () => ({
       this.fn();
     }
   },
+  RelativePattern: class {
+    constructor(
+      public base: unknown,
+      public pattern: string
+    ) {}
+  },
 }));
 
 import * as vscode from 'vscode';

@@ -6,7 +6,7 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', '.vscode-test/**', 'tests/e2e/**'],
+    ignores: ['dist/**', 'node_modules/**', '.vscode-test/**', 'tests/e2e/**', '.claude/**'],
   },
   // Root .mjs config files run in Node; provide Node globals
   {

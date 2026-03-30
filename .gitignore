@@ -1,3 +1,6 @@
+
+.claude/worktrees
+coverage
 node_modules
 dist
 out

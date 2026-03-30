@@ -27,8 +27,8 @@
 
 .akashi-graph2d-view-controls-float {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: var(--akashi-space-2);
+  left: var(--akashi-space-2);
   z-index: 20;
   max-width: min(360px, calc(100% - 16px));
   pointer-events: none;

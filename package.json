@@ -1,11 +1,10 @@
 {
   "name": "akashi",
-  "displayName": "Akashi — AI Prompt & Rules Visualizer",
+  "displayName": "Akashi — AI Prompt, Rules, Add-ons, Skills & Message Visualizer (Built using Claude with ❤️ )",
   "description": "Manage AI agent rules, prompts, and instructions across Claude, Cursor, Codex, and Gemini — all in one view. Visualize how guidelines connect, find conflicts, and keep your team's AI behavior consistent.",
-  "version": "0.1.5",
+  "version": "1.0.11",
   "publisher": "akashi",
-  "preview": true,
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/ypolon7kiy/akashi"
@@ -45,13 +44,14 @@
   "categories": [
     "AI",
     "Visualization",
-    "Other"
+    "Machine Learning"
   ],
   "activationEvents": [
     "onCommand:akashi.graph.showPanel",
     "onCommand:akashi.sources.refresh",
     "onCommand:akashi.sources.newArtifact",
-    "onCommand:akashi.composition.showComposedView",
+"onCommand:akashi.addons.showPanel",
+    "onCommand:akashi.pulse.showPanel",
     "onView:akashi.sidebar",
     "onStartupFinished"
   ],
@@ -95,16 +95,37 @@
         "icon": "$(add)"
       },
       {
-        "command": "akashi.composition.showComposedView",
-        "title": "Show composed view…",
+        "command": "akashi.addons.showPanel",
+        "title": "Show addons",
         "category": "Akashi",
-        "icon": "$(book)"
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "akashi.pulse.showPanel",
+        "title": "Show sessions",
+        "category": "Akashi",
+        "icon": "$(pulse)"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "akashi.pulse.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-5"
+        },
+        {
+          "command": "akashi.addons.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-4"
+        },
+        {
           "command": "akashi.graph.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-3"
+        },
+        {
+          "command": "akashi.sources.newArtifact",
           "when": "view == akashi.sidebar",
           "group": "navigation@-2"
         },
@@ -112,16 +133,6 @@
           "command": "akashi.sources.refresh",
           "when": "view == akashi.sidebar",
           "group": "navigation@-1"
-        },
-        {
-          "command": "akashi.sources.newArtifact",
-          "when": "view == akashi.sidebar",
-          "group": "navigation@0"
-        },
-        {
-          "command": "akashi.composition.showComposedView",
-          "when": "view == akashi.sidebar",
-          "group": "navigation@1"
         }
       ]
     },
@@ -196,6 +207,33 @@
             "cursor": "",
             "gemini": ""
           }
+        },
+        "akashi.addons.marketplaceSources": {
+          "type": "array",
+          "order": 60,
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Display name for this marketplace"
+              },
+              "github": {
+                "type": "string",
+                "description": "GitHub owner/repo (e.g. anthropics/skills)"
+              },
+              "url": {
+                "type": "string",
+                "description": "URL to a marketplace.json file"
+              },
+              "file": {
+                "type": "string",
+                "description": "Local path to a marketplace.json file"
+              }
+            }
+          },
+          "default": [],
+          "description": "Marketplace sources for addon discovery. Each entry specifies a GitHub repo (owner/repo), a URL, or a local file path."
         },
         "akashi.sidebar.fileColors": {
           "type": "object",
@@ -273,7 +311,8 @@
     "test:quick": "vitest run",
     "test:watch": "vitest",
     "package": "vsce package --no-dependencies",
-    "vsce:publish": "vsce publish --no-dependencies"
+    "vsce:publish": "vsce publish --no-dependencies",
+    "ovsx:publish": "ovsx publish --no-dependencies"
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.45",
@@ -296,6 +335,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
+    "ovsx": "^0.10.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",

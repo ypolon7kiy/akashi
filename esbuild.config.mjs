@@ -62,6 +62,38 @@ async function main() {
     loader: { '.tsx': 'tsx' },
   };
 
+  const addonsWebviewOptions = {
+    ...common,
+    platform: 'browser',
+    target: 'es2020',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(isProdBuild ? 'production' : 'development'),
+    },
+    entryPoints: {
+      'addons-main': join(__dirname, 'src', 'domains', 'addons', 'webview', 'addons', 'index.tsx'),
+    },
+    outdir: join(__dirname, 'dist', 'webview', 'addons'),
+    format: 'esm',
+    splitting: true,
+    loader: { '.tsx': 'tsx' },
+  };
+
+  const pulseWebviewOptions = {
+    ...common,
+    platform: 'browser',
+    target: 'es2020',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(isProdBuild ? 'production' : 'development'),
+    },
+    entryPoints: {
+      'pulse-main': join(__dirname, 'src', 'domains', 'pulse', 'webview', 'pulse', 'index.tsx'),
+    },
+    outdir: join(__dirname, 'dist', 'webview', 'pulse'),
+    format: 'esm',
+    splitting: true,
+    loader: { '.tsx': 'tsx' },
+  };
+
   // Copy codicon CSS + font into dist so the VSIX includes them
   // (node_modules is excluded from the packaged extension).
   const codiconsSrc = join(__dirname, 'node_modules', '@vscode', 'codicons', 'dist');
@@ -74,13 +106,23 @@ async function main() {
     const extCtx = await context(extensionOptions);
     const sidebarCtx = await context(sidebarWebviewOptions);
     const graph2dCtx = await context(graph2dWebviewOptions);
+    const addonsCtx = await context(addonsWebviewOptions);
+    const pulseCtx = await context(pulseWebviewOptions);
 
     console.log('Watching for changes...');
-    await Promise.all([extCtx.watch(), sidebarCtx.watch(), graph2dCtx.watch()]);
+    await Promise.all([
+      extCtx.watch(),
+      sidebarCtx.watch(),
+      graph2dCtx.watch(),
+      addonsCtx.watch(),
+      pulseCtx.watch(),
+    ]);
   } else {
     await build(extensionOptions);
     await build(sidebarWebviewOptions);
     await build(graph2dWebviewOptions);
+    await build(addonsWebviewOptions);
+    await build(pulseWebviewOptions);
   }
 }
 

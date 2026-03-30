@@ -1,0 +1,967 @@
+@import '../../../../webview-shared/vscode-tokens.css';
+@import '../../../../webview-shared/webview-controls.css';
+
+html,
+body {
+  margin: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+#root {
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ───────── App layout ───────── */
+
+.akashi-addons-app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+/* ───────── Loading state ───────── */
+
+.akashi-addons-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--akashi-space-2);
+  padding: var(--akashi-space-4);
+  text-align: center;
+}
+
+.akashi-addons-loading__text {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  font-size: var(--akashi-font-size-lg);
+}
+
+.akashi-addons-loading__hint {
+  color: var(--vscode-descriptionForeground);
+  font-size: var(--akashi-font-size-sm);
+}
+
+/* ───────── Header ───────── */
+
+.akashi-addons-header {
+  flex-shrink: 0;
+  padding: var(--akashi-space-3) var(--akashi-space-4);
+  border-bottom: 2px solid var(--akashi-brand);
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--akashi-brand) 4%, var(--vscode-sideBar-background, var(--vscode-editor-background))),
+      var(--vscode-sideBar-background, var(--vscode-editor-background))
+    );
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.akashi-addons-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.akashi-addons-header__title-row > .codicon {
+  font-size: 18px;
+  color: var(--akashi-brand);
+}
+
+.akashi-addons-header__title {
+  margin: 0;
+  font-size: var(--akashi-font-size-lg);
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  flex: 1;
+}
+
+.akashi-addons-header__refresh {
+  font: inherit;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.akashi-addons-header__refresh:hover {
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-header__refresh:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+/* ───────── Search bar ───────── */
+
+.akashi-addons-search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-2);
+}
+
+.akashi-addons-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--akashi-space-1) var(--akashi-space-2);
+  border-radius: 4px;
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.4)));
+  background: var(--vscode-input-background, var(--vscode-editor-background));
+}
+
+.akashi-addons-search-icon {
+  color: var(--vscode-descriptionForeground);
+  font-size: 14px;
+}
+
+.akashi-addons-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  font: inherit;
+  font-size: var(--vscode-font-size);
+  outline: none;
+}
+
+.akashi-addons-search-input::placeholder {
+  color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+}
+
+.akashi-addons-search-clear {
+  font: inherit;
+  padding: 2px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.akashi-addons-search-clear:hover {
+  color: var(--vscode-foreground);
+}
+
+/* ───────── Category tabs ───────── */
+
+.akashi-addons-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--akashi-space-1);
+}
+
+.akashi-addons-category-tab {
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  padding: var(--akashi-space-1) 10px;
+  border-radius: var(--akashi-radius-sm);
+  border: 1px solid var(--vscode-button-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.45)));
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.12));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+  text-transform: capitalize;
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    color var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-fast) var(--akashi-ease),
+    transform var(--akashi-duration-fast) var(--akashi-ease-spring);
+}
+
+.akashi-addons-category-tab:active {
+  transform: scale(0.94);
+}
+
+.akashi-addons-category-tab:hover {
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-category-tab:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-addons-category-tab--active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-border, transparent);
+}
+
+.akashi-addons-category-tab--active:hover {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+  color: var(--vscode-button-foreground);
+}
+
+/* ───────── Main content ───────── */
+
+.akashi-addons-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--akashi-space-2) var(--akashi-space-4) var(--akashi-space-4);
+  min-height: 0;
+}
+
+/* ───────── Addon list ───────── */
+
+.akashi-addons-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-1);
+}
+
+/* ───────── Addon card ───────── */
+
+.akashi-addons-card {
+  display: flex;
+  align-items: center;
+  border-radius: var(--akashi-radius-md);
+  background: transparent;
+  width: 100%;
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    transform var(--akashi-duration-normal) var(--akashi-ease),
+    box-shadow var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-addons-card:hover {
+  background: var(--akashi-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--akashi-shadow-sm);
+}
+
+.akashi-addons-card__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.akashi-addons-card__main:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.akashi-addons-card__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--akashi-radius-md);
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-badge-foreground, var(--vscode-foreground));
+  font-size: 14px;
+  transition: background var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-addons-card:hover .akashi-addons-card__icon {
+  background: var(--akashi-brand-subtle);
+  color: var(--akashi-brand);
+}
+
+.akashi-addons-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.akashi-addons-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.akashi-addons-card__name {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.akashi-addons-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-2);
+  font-size: var(--akashi-font-size-sm);
+  color: var(--vscode-descriptionForeground);
+}
+
+.akashi-addons-card__category {
+  text-transform: capitalize;
+}
+
+.akashi-addons-card__desc {
+  font-size: var(--akashi-font-size-sm);
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.akashi-addons-card__version {
+  opacity: 0.7;
+}
+
+.akashi-addons-card__marketplace {
+  opacity: 0.7;
+}
+
+.akashi-addons-card__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.akashi-addons-card__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+  opacity: 0;
+  transition: opacity var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-addons-card:hover .akashi-addons-card__actions {
+  opacity: 1;
+}
+
+.akashi-addons-card__action-btn {
+  font: inherit;
+  padding: 4px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.akashi-addons-card__action-btn:hover {
+  color: var(--vscode-foreground);
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-card__action-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-addons-card__action-btn--danger:hover {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+/* ───────── Badge ───────── */
+
+.akashi-addons-badge {
+  font-size: var(--akashi-font-size-xs);
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-badge-foreground, var(--vscode-descriptionForeground));
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 500;
+}
+
+/* ───────── Empty state ───────── */
+
+.akashi-addons-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px var(--akashi-space-6);
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+  gap: var(--akashi-space-3);
+  animation: akashi-empty-enter var(--akashi-duration-slow) var(--akashi-ease-out);
+}
+
+@keyframes akashi-empty-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.akashi-addons-empty > .codicon {
+  font-size: 36px;
+  color: var(--akashi-brand-dim);
+  opacity: 0.7;
+}
+
+.akashi-addons-empty p {
+  margin: 0;
+  font-size: var(--akashi-font-size-base);
+  font-weight: 500;
+}
+
+.akashi-addons-empty__hint {
+  font-size: var(--akashi-font-size-sm);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ───────── View tabs ───────── */
+
+.akashi-addons-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  margin: 0 calc(-1 * var(--akashi-space-4));
+  padding: 0 var(--akashi-space-4);
+}
+
+.akashi-addons-tab {
+  font: inherit;
+  font-size: var(--akashi-font-size-base);
+  padding: 6px var(--akashi-space-4);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  transition:
+    color var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-addons-tab:hover {
+  color: var(--vscode-foreground);
+}
+
+.akashi-addons-tab--active {
+  color: var(--vscode-foreground);
+  border-bottom-color: var(--akashi-brand);
+  font-weight: 600;
+}
+
+/* ───────── Toast ───────── */
+
+.akashi-addons-toast {
+  flex-shrink: 0;
+  padding: 6px var(--akashi-space-4);
+  background: var(--vscode-notifications-background, var(--vscode-editorWidget-background));
+  color: var(--vscode-notifications-foreground, var(--vscode-foreground));
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  border-left: 2px solid var(--akashi-brand);
+  font-size: var(--akashi-font-size-sm);
+  animation: akashi-toast-enter var(--akashi-duration-slow) var(--akashi-ease-out);
+}
+
+@keyframes akashi-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ───────── Marketplace origins ───────── */
+
+.akashi-addons-origins {
+  margin-bottom: var(--akashi-space-4);
+  border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.akashi-addons-origins__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--akashi-space-2) 10px;
+  background: var(--vscode-sideBarSectionHeader-background, var(--vscode-editor-background));
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.25));
+  border-left: 2px solid var(--akashi-brand);
+}
+
+.akashi-addons-origins__title {
+  font-weight: 600;
+  font-size: var(--akashi-font-size-sm);
+}
+
+.akashi-addons-origins__add-btn {
+  font: inherit;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+}
+
+.akashi-addons-origins__add-btn:hover {
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-origins__add-form {
+  padding: var(--akashi-space-2) 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.25));
+  background: var(--vscode-editor-background);
+}
+
+.akashi-addons-origins__add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.akashi-addons-origins__input {
+  font: inherit;
+  font-size: var(--vscode-font-size);
+  padding: var(--akashi-space-1) var(--akashi-space-2);
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.4)));
+  border-radius: 2px;
+  background: var(--vscode-input-background, var(--vscode-editor-background));
+  color: var(--vscode-input-foreground, var(--vscode-foreground));
+  outline: none;
+}
+
+.akashi-addons-origins__input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.akashi-addons-origins__input--flex {
+  flex: 1;
+  min-width: 0;
+}
+
+.akashi-addons-origins__select {
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.4)));
+  border-radius: 2px;
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+}
+
+.akashi-addons-origins__action-btn {
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  padding: var(--akashi-space-1) var(--akashi-space-3);
+  border: none;
+  border-radius: 2px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+}
+
+.akashi-addons-origins__action-btn:hover {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+}
+
+.akashi-addons-origins__list {
+  padding: var(--akashi-space-1) 0;
+}
+
+.akashi-addons-origin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+}
+
+.akashi-addons-origin-item:hover {
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-origin-item__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
+.akashi-addons-origin-item__toggle input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--vscode-widget-border, rgba(128, 128, 128, 0.45));
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+  margin: 0;
+}
+
+.akashi-addons-origin-item__toggle input[type='checkbox']::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vscode-editor-background, #fff);
+  transition: transform 0.2s ease;
+}
+
+.akashi-addons-origin-item__toggle input[type='checkbox']:checked {
+  background: rgba(0, 122, 204, 0.45);
+}
+
+.akashi-addons-origin-item__toggle input[type='checkbox']:checked::before {
+  transform: translateX(16px);
+}
+
+.akashi-addons-origin-item__toggle input[type='checkbox']:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.akashi-addons-origin-item__label {
+  font-size: var(--akashi-font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.akashi-addons-origin-item__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-1);
+  flex-shrink: 0;
+}
+
+.akashi-addons-origin-item__fetched {
+  color: var(--vscode-testing-iconPassed, #73c991);
+  font-size: 12px;
+}
+
+.akashi-addons-origin-item__btn {
+  font: inherit;
+  padding: 2px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.akashi-addons-origin-item__btn:hover {
+  color: var(--vscode-foreground);
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-origin-item__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.akashi-addons-origin-item__btn--danger:hover {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+/* ───────── Available section headers ───────── */
+
+.akashi-addons-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-2);
+  padding: var(--akashi-space-3) 0 6px;
+  font-weight: 600;
+  font-size: var(--akashi-font-size-lg);
+  color: var(--vscode-foreground);
+  border-bottom: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.2));
+  margin-bottom: var(--akashi-space-2);
+  position: relative;
+}
+
+.akashi-addons-section-header::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: var(--akashi-space-5);
+  height: 2px;
+  background: var(--akashi-brand);
+  border-radius: 1px;
+}
+
+.akashi-addons-section-header:first-child {
+  padding-top: var(--akashi-space-1);
+}
+
+.akashi-addons-section-header__count {
+  font-weight: 400;
+  font-size: var(--akashi-font-size-sm);
+  color: var(--vscode-descriptionForeground);
+}
+
+/* ───────── Collapsible sources ───────── */
+
+.akashi-addons-sources-disclosure {
+  margin-bottom: var(--akashi-space-3);
+}
+
+.akashi-addons-sources-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-1);
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.akashi-addons-sources-toggle:hover {
+  background: var(--akashi-hover);
+}
+
+.akashi-addons-sources-toggle:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.akashi-addons-sources-toggle > .codicon {
+  font-size: 14px;
+}
+
+/* ───────── Plugin grid ───────── */
+
+.akashi-addons-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--akashi-space-1);
+}
+
+.akashi-addons-grid-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--akashi-radius-lg);
+  border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.2));
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-fast) var(--akashi-ease),
+    transform var(--akashi-duration-normal) var(--akashi-ease),
+    box-shadow var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-addons-grid-card:hover {
+  background: var(--akashi-hover);
+  border-color: var(--akashi-brand-dim);
+  transform: translateY(-1px);
+  box-shadow: var(--akashi-shadow-sm);
+}
+
+.akashi-addons-grid-card__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--akashi-radius-md);
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-badge-foreground, var(--vscode-foreground));
+  font-size: 16px;
+  transition: background var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-addons-grid-card:hover .akashi-addons-grid-card__icon {
+  background: var(--akashi-brand-subtle);
+  color: var(--akashi-brand);
+}
+
+.akashi-addons-grid-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.akashi-addons-grid-card__name {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.akashi-addons-grid-card__desc {
+  font-size: var(--akashi-font-size-sm);
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.akashi-addons-grid-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--akashi-space-2);
+  flex-wrap: wrap;
+  font-size: var(--akashi-font-size-sm);
+  color: var(--vscode-descriptionForeground);
+  margin-top: 2px;
+}
+
+.akashi-addons-grid-card__category {
+  text-transform: capitalize;
+}
+
+.akashi-addons-grid-card__version {
+  opacity: 0.7;
+}
+
+.akashi-addons-grid-card__tags {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--akashi-space-1);
+  flex-wrap: wrap;
+}
+
+.akashi-addons-grid-card__tag {
+  padding: 1px 6px;
+  border-radius: 2px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.15));
+  color: var(--vscode-badge-foreground, var(--vscode-descriptionForeground));
+  font-size: var(--akashi-font-size-xs);
+  white-space: nowrap;
+}
+
+.akashi-addons-grid-card__action {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.akashi-addons-grid-card__btn {
+  font: inherit;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.akashi-addons-grid-card__btn--install {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.akashi-addons-grid-card__btn--install:hover {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+}
+
+.akashi-addons-grid-card__btn--uninstall {
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
+}
+
+.akashi-addons-grid-card__btn--uninstall:hover {
+  color: var(--vscode-errorForeground, #f14c4c);
+  border-color: var(--vscode-errorForeground, #f14c4c);
+}
+
+/* ───────── Install button group ───────── */
+
+.akashi-addons-grid-card__install-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.akashi-addons-grid-card__install-group .akashi-addons-grid-card__btn {
+  padding: 3px 8px;
+  font-size: var(--akashi-font-size-xs, 11px);
+  justify-content: flex-start;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.akashi-addons-grid-card__btn--install-alt {
+  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+}
+
+.akashi-addons-grid-card__btn--install-alt:hover {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.3));
+}
+
+/* ───────── Progress indicator ───────── */
+
+.akashi-addons-progress-slot {
+  flex-shrink: 0;
+  height: 2px;
+}
+
+.akashi-addons-grid-card__btn:disabled,
+.akashi-addons-card__action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ───────── High contrast ───────── */
+
+body.vscode-high-contrast .akashi-addons-card:hover {
+  outline: 1px solid var(--vscode-contrastActiveBorder, var(--vscode-focusBorder));
+}
+
+body.vscode-high-contrast .akashi-addons-category-tab {
+  border-width: 2px;
+}

@@ -24,7 +24,6 @@ export {
 } from './fs';
 
 export {
-  type SourcesFilterChangedMessage,
   type SourcesGetFilterStateRequestMessage,
   type SourcesGetSnapshotRequestMessage,
   type SourcesIndexingStateMessage,

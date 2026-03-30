@@ -33,25 +33,25 @@ export interface SourceFacetTag {
 /** One indexed source path: catalog entry only (no file body read into the index). */
 export interface IndexedSourceEntry {
   /** Stable row id (`sourceRecordId` in `shared/sourceRecordId`); same `path` may appear on multiple rows. */
-  id: string;
-  path: string;
+  readonly id: string;
+  readonly path: string;
   /** Preset that owns the discovery rule for this path. */
-  preset: SourcePresetId;
-  category: SourceCategory;
+  readonly preset: SourcePresetId;
+  readonly category: SourceCategory;
   /** Workspace-local vs user-home. */
-  locality: SourceLocality;
+  readonly locality: SourceLocality;
   /** Facet tags: locality, category, preset (see `sourceTags.ts`). */
-  tags: readonly SourceFacetTag[];
-  metadata: {
-    byteLength: number;
-    updatedAt: string;
+  readonly tags: readonly SourceFacetTag[];
+  readonly metadata: {
+    readonly byteLength: number;
+    readonly updatedAt: string;
   };
 }
 
 export interface SourceIndexSnapshot {
-  generatedAt: string;
-  sourceCount: number;
-  records: IndexedSourceEntry[];
+  readonly generatedAt: string;
+  readonly sourceCount: number;
+  readonly records: readonly IndexedSourceEntry[];
   /** Artifact linkage computed post-indexing. Absent in v6 snapshots. */
-  artifacts?: readonly IndexedArtifact[];
+  readonly artifacts?: readonly IndexedArtifact[];
 }

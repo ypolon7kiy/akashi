@@ -358,30 +358,114 @@ describe('buildGraphFromSourcesPayload', () => {
     expect(large!.size).toBeGreaterThan(small!.size);
   });
 
-  it('sets graphArtifactId on file nodes when artifacts are provided', () => {
-    const r = record('/ws/CLAUDE.md', 'claude', 'workspace', 'project');
-    const artifactId = 'artifact:single-file:test-id';
+  it('top-level artifacts connect directly to category with no folder nodes', () => {
+    const skillMd = record(
+      '/ws/.claude/skills/xlsx/SKILL.md',
+      'claude',
+      'workspace',
+      'project',
+      'skill'
+    );
+    const helper = record(
+      '/ws/.claude/skills/xlsx/lib.js',
+      'claude',
+      'workspace',
+      'project',
+      'skill'
+    );
+    const fileBased = record(
+      '/ws/.claude/skills/atlassian.md',
+      'claude',
+      'workspace',
+      'project',
+      'skill'
+    );
+    const other = record('/ws/CLAUDE.md', 'claude', 'workspace', 'project', 'context');
     const payload: SourcesSnapshotPayload = {
       ...basePayload(),
-      sourceCount: 1,
-      records: [r],
+      sourceCount: 4,
+      records: [skillMd, helper, fileBased, other],
       artifacts: [
         {
-          id: artifactId,
+          id: 'artifact:folder-file:xlsx',
+          presetId: 'claude',
+          category: 'skill',
+          locality: 'workspace',
+          shape: 'folder-file',
+          memberRecordIds: [skillMd.id, helper.id],
+          primaryPath: '/ws/.claude/skills/xlsx/SKILL.md',
+          topLevel: true,
+        },
+        {
+          id: 'artifact:single-file:atlassian',
+          presetId: 'claude',
+          category: 'skill',
+          locality: 'workspace',
+          shape: 'single-file',
+          memberRecordIds: [fileBased.id],
+          primaryPath: '/ws/.claude/skills/atlassian.md',
+          topLevel: true,
+        },
+        {
+          id: 'artifact:single-file:claude-md',
           presetId: 'claude',
           category: 'context',
           locality: 'workspace',
           shape: 'single-file',
-          memberRecordIds: [r.id],
+          memberRecordIds: [other.id],
           primaryPath: '/ws/CLAUDE.md',
+          topLevel: true,
         },
       ],
     };
-    const { nodes } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
-    const fileNode = nodes.find(
-      (n) => n.id === graphFileNodeId('claude', 'project', '/ws/CLAUDE.md')
+    const { nodes, edges } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
+    const fileNodes = nodes.filter((n) => n.type === 'note');
+    // Subordinate helper is hidden; only primaries survive
+    expect(fileNodes).toHaveLength(3);
+    expect(
+      fileNodes.find((n) => n.filesystemPath === '/ws/.claude/skills/xlsx/SKILL.md')
+    ).toBeDefined();
+    expect(
+      fileNodes.find((n) => n.filesystemPath === '/ws/.claude/skills/atlassian.md')
+    ).toBeDefined();
+    expect(fileNodes.find((n) => n.filesystemPath === '/ws/CLAUDE.md')).toBeDefined();
+    expect(
+      fileNodes.find((n) => n.filesystemPath === '/ws/.claude/skills/xlsx/lib.js')
+    ).toBeUndefined();
+
+    // No folder nodes should exist for skill artifacts — primaries connect directly to category
+    const folderNodes = nodes.filter((n) => n.type === 'folder');
+    const skillFolders = folderNodes.filter((n) => n.graphCategoryId === 'skill');
+    expect(skillFolders).toHaveLength(0);
+
+    // Folder-file primary uses folder name as label, not SKILL.md
+    const xlsxNode = fileNodes.find((n) => n.filesystemPath === '/ws/.claude/skills/xlsx/SKILL.md');
+    expect(xlsxNode!.label).toBe('xlsx');
+
+    // Single-file artifact keeps its own filename
+    const atlassianNode = fileNodes.find(
+      (n) => n.filesystemPath === '/ws/.claude/skills/atlassian.md'
     );
-    expect(fileNode?.graphArtifactId).toBe(artifactId);
+    expect(atlassianNode!.label).toBe('atlassian.md');
+
+    // Both skill file nodes should have edges from the skill category node
+    const skillCatId = graphCategoryNodeId('claude', 'project', 'skill');
+    const skillFileNodeId1 = graphFileNodeId(
+      'claude',
+      'project',
+      '/ws/.claude/skills/xlsx/SKILL.md'
+    );
+    const skillFileNodeId2 = graphFileNodeId(
+      'claude',
+      'project',
+      '/ws/.claude/skills/atlassian.md'
+    );
+    expect(
+      edges.find((e) => e.source === skillCatId && e.target === skillFileNodeId1)
+    ).toBeDefined();
+    expect(
+      edges.find((e) => e.source === skillCatId && e.target === skillFileNodeId2)
+    ).toBeDefined();
   });
 
   it('matchedPaths filter excludes empty category nodes', () => {
@@ -407,14 +491,5 @@ describe('buildGraphFromSourcesPayload', () => {
     const filteredCatNodes = withFilter.nodes.filter((n) => n.type === 'category');
     expect(filteredCatNodes).toHaveLength(1);
     expect(filteredCatNodes[0].graphCategoryId).toBe('context');
-  });
-
-  it('leaves graphArtifactId undefined when no artifacts are provided', () => {
-    const payload = basePayload();
-    const { nodes } = buildGraphFromSourcesPayload(payload, { applyGridLayout: false });
-    const fileNode = nodes.find(
-      (n) => n.id === graphFileNodeId('claude', 'project', '/ws/src/CLAUDE.md')
-    );
-    expect(fileNode?.graphArtifactId).toBeUndefined();
   });
 });

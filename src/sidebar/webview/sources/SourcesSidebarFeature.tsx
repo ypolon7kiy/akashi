@@ -94,17 +94,7 @@ function SourcesSidebarFeatureInner(props: {
   const { isIndexing, records, workspaceFolders, initialFilter } = props;
   const search = useSourceSearch(records, initialFilter);
 
-  // Relay filter result (matched paths) to graph (immediate).
-  useEffect(() => {
-    const vscode = getVscodeApi();
-    if (!vscode) return;
-    vscode.postMessage({
-      type: SidebarCoreMessageType.SourcesFilterChanged,
-      payload: search.isActive ? [...search.result.matchedPaths] : null,
-    });
-  }, [search.isActive, search.result.matchedPaths]);
-
-  // Persist filter state to globalState (debounced 300ms).
+  // Persist filter state and relay matched paths to host (debounced 300ms).
   const skipInitialSaveRef = useRef(true);
   useEffect(() => {
     if (skipInitialSaveRef.current) {
@@ -116,11 +106,14 @@ function SourcesSidebarFeatureInner(props: {
     const t = window.setTimeout(() => {
       vscode.postMessage({
         type: SidebarCoreMessageType.SourcesSaveFilterState,
-        payload: serializeSearchQuery(search.query),
+        payload: {
+          ...serializeSearchQuery(search.query),
+          matchedPaths: search.isActive ? [...search.result.matchedPaths] : null,
+        },
       });
     }, 300);
     return () => window.clearTimeout(t);
-  }, [search.query]);
+  }, [search.query, search.isActive, search.result.matchedPaths]);
 
   const fullTree = useMemo(
     () => buildSourceTree(records, workspaceFolders),

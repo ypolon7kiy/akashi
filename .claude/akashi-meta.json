@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "installed": {
+    "claude": [
+      {
+        "name": "webapp-testing",
+        "category": "skill",
+        "originId": "github:anthropics/skills",
+        "version": "",
+        "installedPaths": [
+          "/home/ubuntu/dev/akashi/.claude/skills/webapp-testing/LICENSE.txt",
+          "/home/ubuntu/dev/akashi/.claude/skills/webapp-testing/SKILL.md",
+          "/home/ubuntu/dev/akashi/.claude/skills/webapp-testing/examples/console_logging.py",
+          "/home/ubuntu/dev/akashi/.claude/skills/webapp-testing/examples/element_discovery.py",
+          "/home/ubuntu/dev/akashi/.claude/skills/webapp-testing/examples/static_html_automation.py",
+          "/home/ubuntu/dev/akashi/.claude/skills/webapp-testing/scripts/with_server.py"
+        ]
+      }
+    ]
+  }
+}

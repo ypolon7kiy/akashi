@@ -270,6 +270,17 @@ describe('sources indexing pipeline (matrix)', () => {
       expect(r.preset).toBe(src!.preset);
       expect(r.category).toBe(src!.category);
     }
+
+    // Artifact filtering: every artifact preset must be active, every memberRecordId must resolve.
+    if (payload!.artifacts) {
+      const payloadRecordIds = new Set(payload!.records.map((r) => r.id));
+      for (const a of payload!.artifacts) {
+        expect(row.activePresets.has(a.presetId as SourcePresetId)).toBe(true);
+        for (const rid of a.memberRecordIds) {
+          expect(payloadRecordIds.has(rid)).toBe(true);
+        }
+      }
+    }
   });
 });
 
@@ -375,5 +386,41 @@ describe('sources indexing pipeline (edge cases)', () => {
     const [a, b] = await Promise.all([p1, p2]);
     expect(a).toBe(b);
     expect(snapshotStore.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('payload artifacts are filtered by active presets', async () => {
+    const mockDiscovered: DiscoveredSource[] = [
+      discovered('/ws/CLAUDE.md', 'claude', SourceCategoryId.LlmGuideline, 'workspace'),
+      discovered('/ws/.cursor/rules/x.mdc', 'cursor', SourceCategoryId.Rule, 'workspace'),
+      discovered('/ws/.codex/config.toml', 'codex', SourceCategoryId.Config, 'workspace'),
+    ];
+    const activePresets = new Set<SourcePresetId>(['cursor']);
+    const { service, payloadFor } = createPipeline({
+      activePresets,
+      mockDiscovered,
+      workspaceFolders: [],
+    });
+
+    const snap = await service.indexWorkspace();
+
+    // Raw snapshot has artifacts for all 3 presets.
+    expect(snap.artifacts).toBeDefined();
+    expect(snap.artifacts!.length).toBe(3);
+
+    // Payload should only have cursor artifacts.
+    const payload = payloadFor(snap);
+    expect(payload).not.toBeNull();
+    expect(payload!.records.length).toBe(1);
+    expect(payload!.artifacts).toBeDefined();
+    expect(payload!.artifacts!.length).toBe(1);
+    expect(payload!.artifacts![0].presetId).toBe('cursor');
+
+    // Every memberRecordId must resolve to a record in the payload.
+    const payloadRecordIds = new Set(payload!.records.map((r) => r.id));
+    for (const a of payload!.artifacts!) {
+      for (const rid of a.memberRecordIds) {
+        expect(payloadRecordIds.has(rid)).toBe(true);
+      }
+    }
   });
 });

@@ -1,0 +1,280 @@
+/* Task components — embedded in pulse panel */
+
+/* ───────── Scrollable content ───────── */
+
+.akashi-tasks-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--akashi-space-2) 0;
+}
+
+/* ───────── Loading / Empty / Error states ───────── */
+
+.akashi-tasks-loading,
+.akashi-tasks-empty,
+.akashi-tasks-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: var(--akashi-space-2);
+  padding: var(--akashi-space-6);
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
+
+.akashi-tasks-empty .codicon {
+  font-size: 32px;
+  opacity: 0.4;
+  color: var(--akashi-brand-dim);
+}
+
+/* ───────── Toast ───────── */
+
+.akashi-tasks-toast {
+  padding: 6px var(--akashi-space-3);
+  font-size: var(--akashi-font-size-sm);
+  background: color-mix(in srgb, var(--vscode-charts-green) 10%, var(--vscode-sideBar-background));
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-green) 30%, var(--vscode-panel-border));
+  border-radius: var(--akashi-radius-md);
+  margin-bottom: var(--akashi-space-2);
+  animation: toast-slide 0.25s var(--akashi-ease-spring);
+}
+
+@keyframes toast-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ───────── Group card ───────── */
+
+.akashi-tasks-group {
+  margin-bottom: var(--akashi-space-3);
+  max-width: 560px;
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--akashi-radius-lg);
+  overflow: hidden;
+  transition: box-shadow var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.akashi-tasks-group:hover {
+  box-shadow: var(--akashi-shadow-sm);
+}
+
+.akashi-tasks-group__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--akashi-space-2) var(--akashi-space-3);
+  background: var(--vscode-sideBar-background);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-group__header:hover {
+  background: var(--akashi-hover);
+}
+
+.akashi-tasks-group__name {
+  font-weight: 600;
+  font-size: var(--akashi-font-size-sm);
+  flex: 1;
+}
+
+.akashi-tasks-group__meta {
+  font-size: var(--akashi-font-size-xs);
+  color: var(--vscode-descriptionForeground);
+  font-variant-numeric: tabular-nums;
+}
+
+.akashi-tasks-group__actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0.5;
+  transition: opacity var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-group__header:hover .akashi-tasks-group__actions {
+  opacity: 1;
+}
+
+.akashi-tasks-group__body {
+  padding: var(--akashi-space-1) 0;
+  border-top: 1px solid color-mix(in srgb, var(--vscode-panel-border) 50%, transparent);
+}
+
+.akashi-tasks-group__empty {
+  padding: var(--akashi-space-2) var(--akashi-space-5);
+  font-size: var(--akashi-font-size-xs);
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+/* ───────── Task item ───────── */
+
+.akashi-tasks-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--akashi-space-1) var(--akashi-space-3) var(--akashi-space-1) var(--akashi-space-5);
+  border-left: 2px solid transparent;
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    border-left-color var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-item:hover {
+  background: var(--akashi-hover);
+  border-left-color: var(--akashi-brand-dim);
+}
+
+.akashi-tasks-item__name {
+  flex: 1;
+  font-size: var(--akashi-font-size-sm);
+}
+
+.akashi-tasks-item__desc {
+  font-size: var(--akashi-font-size-xs);
+  color: var(--vscode-descriptionForeground);
+  margin-left: 4px;
+}
+
+.akashi-tasks-item__actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-item:hover .akashi-tasks-item__actions {
+  opacity: 1;
+}
+
+/* ───────── Status badge ───────── */
+
+.akashi-tasks-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.akashi-tasks-status--new {
+  color: var(--vscode-foreground);
+  background: var(--vscode-badge-background);
+}
+
+.akashi-tasks-status--in_progress {
+  color: var(--vscode-editorInfo-foreground, #3794ff);
+  background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #3794ff) 15%, transparent);
+}
+
+.akashi-tasks-status--completed {
+  color: var(--vscode-testing-iconPassed, #73c991);
+  background: color-mix(in srgb, var(--vscode-testing-iconPassed, #73c991) 15%, transparent);
+}
+
+.akashi-tasks-status--paused {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+  background: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 15%, transparent);
+}
+
+.akashi-tasks-status--cancelled {
+  color: var(--vscode-errorForeground, #f48771);
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f48771) 15%, transparent);
+}
+
+/* ───────── Status picker ───────── */
+
+.akashi-tasks-status-picker {
+  font-size: 11px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--akashi-radius-sm);
+  padding: 1px 4px;
+  cursor: pointer;
+}
+
+/* ───────── Inline forms ───────── */
+
+.akashi-tasks-form {
+  display: flex;
+  gap: 6px;
+  padding: var(--akashi-space-2) 0;
+  align-items: center;
+  max-width: 480px;
+}
+
+.akashi-tasks-form input {
+  flex: 1;
+  min-width: 0;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: var(--akashi-radius-sm);
+  padding: 4px var(--akashi-space-2);
+  font-size: var(--akashi-font-size-sm);
+  font-family: var(--vscode-font-family);
+  transition: border-color var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-form input:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vscode-focusBorder) 30%, transparent);
+}
+
+.akashi-tasks-form button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: var(--akashi-radius-sm);
+  padding: 4px var(--akashi-space-3);
+  font-size: var(--akashi-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-form button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+/* ───────── Icon button (small) ───────── */
+
+.akashi-tasks-icon-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: var(--akashi-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition:
+    opacity var(--akashi-duration-fast) var(--akashi-ease),
+    background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.akashi-tasks-icon-btn:hover {
+  opacity: 1;
+  background: var(--akashi-hover);
+}
