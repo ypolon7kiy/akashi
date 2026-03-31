@@ -4,6 +4,9 @@
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/akashi.akashi)](https://marketplace.visualstudio.com/items?itemName=akashi.akashi)
 [![VS Code](https://img.shields.io/badge/VS%20Code-%3E%3D1.85.0-blue)](https://code.visualstudio.com/)
 [![Open VSX](https://img.shields.io/open-vsx/v/akashi/akashi)](https://open-vsx.org/extension/akashi/akashi)
+[![License](https://img.shields.io/github/license/ypolon7kiy/akashi)](LICENSE)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/yurrra)
 
 **Manage AI agent rules, prompts, and instructions across Claude, Cursor, Codex, and Gemini -- all in one view.**
 
@@ -82,6 +85,23 @@ Create new guideline artifacts directly from the sidebar or command palette. Aka
 
 File system watchers detect changes to guideline files in real time. The source index updates automatically as you add, rename, or remove files -- no manual refresh needed.
 
+### Pulse Analytics Dashboard
+
+Pulse reads your `~/.claude/projects/` session data and turns it into a visual analytics dashboard -- right inside VS Code.
+
+<!-- TODO: Add Pulse screenshot once available -->
+<!-- ![Pulse dashboard](https://raw.githubusercontent.com/ypolon7kiy/akashi-assets/master/media/screenshots/pulse.png) -->
+
+- **Session browser** -- Browse all Claude Code sessions grouped by project, with search and date filtering
+- **Conversation replay** -- Step through full conversations: user prompts, AI responses, and tool calls
+- **Tool-execution Gantt chart** -- See exactly when Read, Write, Bash, and other tools fired, which ran in parallel, and where bottlenecks are
+- **Subagent tree** -- Visualize how subagents spawned and what each one did
+- **Activity heatmaps** -- Spot usage patterns across days and hours
+- **Infographics** -- Token usage breakdowns, tool-call frequency, and session duration charts
+- **Task management** -- View task groups and status tracking from your sessions
+
+Open it with `Akashi: Show Pulse dashboard` from the command palette.
+
 ---
 
 ## Getting Started
@@ -112,6 +132,7 @@ Works immediately -- no configuration required.
 | `Akashi: Refresh source index` | Re-scan workspace and home directories |
 | `Akashi: Show graph` | Open the force-directed graph panel |
 | `Akashi: New source artifact...` | Create a new guideline file from templates |
+| `Akashi: Show Pulse dashboard` | Open the Pulse session analytics panel |
 
 ---
 
@@ -132,6 +153,22 @@ Akashi is under active development. Coming next:
 
 - VS Code 1.85.0 or later
 - Cursor (install from the built-in Extensions panel or [Open VSX](https://open-vsx.org/extension/akashi/akashi))
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, architecture overview, and PR workflow.
+
+Check out the [good first issues](https://github.com/ypolon7kiy/akashi/labels/good%20first%20issue) if you're looking for a place to start.
+
+## Support
+
+If Akashi saves you time, consider buying me a coffee. It helps keep the project maintained and new features coming.
+
+<a href="https://buymeacoffee.com/yurrra" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48"></a>
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ypolon7kiy/akashi&type=Date)](https://star-history.com/#ypolon7kiy/akashi&Date)
 
 ## License
 
