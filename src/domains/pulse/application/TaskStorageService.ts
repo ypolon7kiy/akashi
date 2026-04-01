@@ -30,7 +30,6 @@ export class TaskStorageService {
         appendLine('[Akashi][Tasks] Invalid tasks.json structure — returning empty data.');
         return { groups: [] };
       }
-      appendLine(`[Akashi][Tasks] Loaded ${parsed.groups.length} group(s).`);
       return parsed as TaskData;
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {

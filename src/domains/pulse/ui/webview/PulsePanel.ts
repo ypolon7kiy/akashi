@@ -246,11 +246,6 @@ export class PulsePanel {
   public async pushDashboardData(env: PulsePanelEnvironment): Promise<void> {
     this.snapshotEnv = env;
     const payload = await env.getDashboardData();
-    const projectCount = payload?.projects?.length ?? 0;
-    const sessionCount = payload?.sessions?.length ?? 0;
-    appendLine(
-      `[Akashi][Pulse] postMessage dashboard projects=${projectCount} sessions=${sessionCount}`
-    );
     await this.panel.webview.postMessage({
       type: PulseMessageType.DashboardData,
       payload,

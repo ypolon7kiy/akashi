@@ -23,7 +23,6 @@ export function createTaskFileWatcher(options: TaskFileWatcherOptions): vscode.D
     }
     timer = setTimeout(() => {
       timer = null;
-      appendLine('[Akashi][Tasks] File change detected — refreshing.');
       options.onTasksChanged();
     }, debounceMs);
   };

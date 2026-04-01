@@ -34,7 +34,6 @@ export function createPulseSessionWatcher(options: PulseSessionWatcherOptions): 
       filePath,
       setTimeout(() => {
         pendingTimers.delete(filePath);
-        appendLine(`[Akashi][Pulse][Watcher] Session changed: ${filePath}`);
         options.onSessionChanged(filePath);
       }, debounceMs)
     );
