@@ -9,7 +9,12 @@ import {
   type PluginSourceRef,
   isValidPluginCategory,
 } from './catalogPlugin';
-import type { CliAvailablePlugin, CliInstalledPlugin, CliMarketplace, CliScope } from './cliTypes';
+import type {
+  CliAvailablePlugin,
+  CliInstalledPlugin,
+  CliMarketplace,
+  CliScope,
+} from './cliTypes';
 import type { MarketplaceOrigin, OriginSource } from './marketplaceOrigin';
 import type { SourceLocality } from '../../sources/domain/artifactKind';
 
@@ -59,6 +64,32 @@ export function mapCliAvailableToCatalog(plugin: CliAvailablePlugin): CatalogPlu
     source: parseCliSource(plugin.source),
     installStatus: 'available',
     installCount: plugin.installCount,
+  };
+}
+
+/**
+ * Build a synthetic CatalogPlugin from a CLI installed plugin entry.
+ *
+ * Used to surface installed-but-uncataloged plugins in the Available tab.
+ * Metadata is minimal (no description, generic category) because the full
+ * catalog data isn't available — it will be replaced by real catalog data
+ * once the marketplace is fetched.
+ */
+export function mapCliInstalledToSyntheticCatalog(plugin: CliInstalledPlugin): CatalogPlugin {
+  const name = parseCliPluginName(plugin.id);
+  const marketplace = parseCliPluginMarketplace(plugin.id);
+
+  return {
+    id: plugin.id,
+    originId: `${CLI_ORIGIN_ID_PREFIX}${marketplace}`,
+    name,
+    description: '',
+    version: plugin.version !== 'unknown' ? plugin.version : '',
+    category: 'plugin',
+    tags: [],
+    keywords: [],
+    source: { kind: 'relative', path: '' },
+    installStatus: 'installed',
   };
 }
 

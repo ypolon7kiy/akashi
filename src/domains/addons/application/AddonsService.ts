@@ -49,6 +49,7 @@ import {
   isCliOrigin,
   stripCliPrefix,
   mapCliAvailableToCatalog,
+  mapCliInstalledToSyntheticCatalog,
   mapCliMarketplaceToOrigin,
   localityToCliScope,
   isCliTracked,
@@ -85,7 +86,13 @@ export class AddonsService {
     if (this.cli && (await this.cli.isAvailable())) {
       try {
         const marketplaces = await this.cli.listMarketplaces();
-        return marketplaces.map(mapCliMarketplaceToOrigin);
+        const origins = marketplaces.map(mapCliMarketplaceToOrigin);
+        const overrides = this.store.getOriginOverrides();
+        const overrideMap = new Map(overrides.map((o) => [o.id, o.enabled]));
+        return origins.map((o) => ({
+          ...o,
+          enabled: overrideMap.get(o.id) ?? o.enabled,
+        }));
       } catch {
         // CLI failed — fall through to legacy path
       }
@@ -243,7 +250,7 @@ export class AddonsService {
 
   async toggleOrigin(originId: string, enabled: boolean): Promise<void> {
     const builtIn = BUILT_IN_ORIGINS.find((o) => o.id === originId);
-    if (builtIn) {
+    if (builtIn || isCliOrigin(originId)) {
       const overrides = this.store.getOriginOverrides().filter((o) => o.id !== originId);
       await this.store.saveOriginOverrides([...overrides, { id: originId, enabled }]);
       return;
@@ -350,11 +357,34 @@ export class AddonsService {
     const artifacts = (snapshot.artifacts ?? []).filter((a) => a.presetId === presetId);
     const origins = await this.getOrigins();
 
-    // Collect raw catalog plugins from enabled origins
+    // Collect raw catalog plugins from enabled origins.
+    // CLI-primary: call listAvailable() live — no catalog cache.
+    // Legacy fallback: read from cached catalogs (URL-based marketplace.json).
     const rawPlugins: CatalogPlugin[] = [];
-    for (const origin of origins) {
-      if (!origin.enabled) continue;
-      rawPlugins.push(...this.getCachedPlugins(origin.id));
+    const enabledOriginNames = new Set(
+      origins
+        .filter((o) => o.enabled)
+        .map((o) => (isCliOrigin(o.id) ? stripCliPrefix(o.id) : o.label))
+    );
+
+    if (this.cli && (await this.cli.isAvailable())) {
+      try {
+        const cliResult = await this.cli.listAvailable();
+        for (const p of cliResult.available) {
+          if (enabledOriginNames.has(p.marketplaceName)) {
+            rawPlugins.push(mapCliAvailableToCatalog(p));
+          }
+        }
+      } catch {
+        // CLI failed — fall through to cache-based path
+      }
+    }
+
+    if (rawPlugins.length === 0) {
+      for (const origin of origins) {
+        if (!origin.enabled) continue;
+        rawPlugins.push(...this.getCachedPlugins(origin.id));
+      }
     }
 
     // Determine installed names — CLI-primary or meta-based fallback
@@ -365,6 +395,18 @@ export class AddonsService {
       ...plugin,
       installStatus: (resolved.names.has(plugin.name) ? 'installed' : 'available') as InstallStatus,
     }));
+
+    // Inject synthetic entries for installed plugins not in any cached catalog.
+    // This ensures CLI-installed plugins from unfetched marketplaces still
+    // appear in the Available tab with an "installed" badge.
+    const catalogNames = new Set(catalogPlugins.map((p) => p.name));
+    for (const cliPlugin of resolved.cliPlugins) {
+      const name = parseCliPluginName(cliPlugin.id);
+      if (!catalogNames.has(name)) {
+        catalogPlugins.push(mapCliInstalledToSyntheticCatalog(cliPlugin));
+        catalogNames.add(name);
+      }
+    }
 
     return {
       generatedAt: snapshot.generatedAt,

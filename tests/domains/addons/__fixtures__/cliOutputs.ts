@@ -167,6 +167,28 @@ export const CLI_AVAILABLE_RESULT_AFTER_INSTALL: CliAvailableResult = {
   available: [CLI_AVAILABLE_AGENT_SDK, CLI_AVAILABLE_ADSPIRER, CLI_AVAILABLE_AI_FIRSTIFY],
 };
 
+// ── Third-party marketplace (installed but not in cached catalog) ─────
+
+/** Third-party marketplace origin — not one of the built-in origins. */
+export const CLI_MARKETPLACE_THIRD_PARTY: CliMarketplace = {
+  name: 'codex-plugin-cc',
+  source: 'github',
+  repo: 'openai/codex-plugin-cc',
+  installLocation: '/home/ubuntu/.claude/plugins/marketplaces/codex-plugin-cc',
+};
+
+/** Plugin from a third-party marketplace, installed project-scoped. */
+export const CLI_INSTALLED_CODEX: CliInstalledPlugin = {
+  id: 'openai-codex@codex-plugin-cc',
+  version: 'unknown',
+  scope: 'project',
+  enabled: true,
+  installPath: '/home/ubuntu/.claude/plugins/cache/codex-plugin-cc/openai-codex/unknown',
+  installedAt: '2026-03-29T10:00:00.000Z',
+  lastUpdated: '2026-03-29T10:00:00.000Z',
+  projectPath: '/home/ubuntu/dev/akashi',
+};
+
 // ── Install/uninstall stdout ──────────────────────────────────────────
 
 export const CLI_INSTALL_STDOUT =

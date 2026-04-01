@@ -4,19 +4,22 @@ import {
   isCliTracked,
   localityToCliScope,
   mapCliAvailableToCatalog,
+  mapCliInstalledToSyntheticCatalog,
   mapCliMarketplaceToOrigin,
   parseCliPluginName,
   parseCliSource,
 } from '@src/domains/addons/domain/cliMappings';
-import type { CliAvailablePlugin, CliMarketplace } from '@src/domains/addons/domain/cliTypes';
+import type { CliAvailablePlugin, CliInstalledPlugin, CliMarketplace } from '@src/domains/addons/domain/cliTypes';
 import type { OriginSource } from '@src/domains/addons/domain/marketplaceOrigin';
 import {
   CLI_AVAILABLE_ADSPIRER,
   CLI_AVAILABLE_AGENT_SDK,
   CLI_AVAILABLE_AI_FIRSTIFY,
+  CLI_INSTALLED_CODEX,
   CLI_INSTALLED_COMMIT_COMMANDS,
   CLI_INSTALLED_EXPLANATORY,
   CLI_INSTALLED_LIST,
+  CLI_INSTALLED_TYPESCRIPT_LSP,
   CLI_MARKETPLACE_OFFICIAL,
 } from '../__fixtures__/cliOutputs';
 
@@ -187,6 +190,58 @@ describe('mapCliAvailableToCatalog', () => {
     const plugin: CliAvailablePlugin = { ...CLI_AVAILABLE_AGENT_SDK, category: 'unknown-type' };
 
     expect(mapCliAvailableToCatalog(plugin).category).toBe('plugin');
+  });
+});
+
+// ── mapCliInstalledToSyntheticCatalog ──────────────────────────────
+
+describe('mapCliInstalledToSyntheticCatalog', () => {
+  it('parses name and marketplace from the CLI plugin id', () => {
+    const result = mapCliInstalledToSyntheticCatalog(CLI_INSTALLED_CODEX);
+
+    expect(result.name).toBe('openai-codex');
+    expect(result.originId).toBe('cli:codex-plugin-cc');
+    expect(result.id).toBe('openai-codex@codex-plugin-cc');
+  });
+
+  it('sets installStatus to installed', () => {
+    const result = mapCliInstalledToSyntheticCatalog(CLI_INSTALLED_CODEX);
+
+    expect(result.installStatus).toBe('installed');
+  });
+
+  it('filters version "unknown" to empty string', () => {
+    const result = mapCliInstalledToSyntheticCatalog(CLI_INSTALLED_CODEX);
+
+    expect(result.version).toBe('');
+  });
+
+  it('passes through real semver version', () => {
+    const result = mapCliInstalledToSyntheticCatalog(CLI_INSTALLED_TYPESCRIPT_LSP);
+
+    expect(result.version).toBe('1.0.0');
+  });
+
+  it('sets safe defaults for missing metadata', () => {
+    const result = mapCliInstalledToSyntheticCatalog(CLI_INSTALLED_CODEX);
+
+    expect(result.description).toBe('');
+    expect(result.category).toBe('plugin');
+    expect(result.tags).toEqual([]);
+    expect(result.keywords).toEqual([]);
+    expect(result.source).toEqual({ kind: 'relative', path: '' });
+  });
+
+  it('handles plugin id without @ separator', () => {
+    const plugin: CliInstalledPlugin = {
+      ...CLI_INSTALLED_CODEX,
+      id: 'standalone-plugin',
+    };
+
+    const result = mapCliInstalledToSyntheticCatalog(plugin);
+
+    expect(result.name).toBe('standalone-plugin');
+    expect(result.originId).toBe('cli:');
   });
 });
 

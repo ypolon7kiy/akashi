@@ -19,6 +19,7 @@ import type {
 import { emptyMeta, addEntry, type AkashiMeta } from '@src/domains/addons/domain/akashiMeta';
 import {
   CLI_INSTALLED_COMMIT_COMMANDS,
+  CLI_INSTALLED_CODEX,
   CLI_INSTALLED_LIST,
   CLI_INSTALLED_PR_REVIEW,
   CLI_INSTALLED_WITH_PR_REVIEW,
@@ -26,6 +27,7 @@ import {
   CLI_AVAILABLE_PR_REVIEW,
   CLI_AVAILABLE_RESULT_AFTER_INSTALL,
   CLI_MARKETPLACE_LIST,
+  CLI_MARKETPLACE_THIRD_PARTY,
 } from '../__fixtures__/cliOutputs';
 
 // ── Factories ──────────────────────────────────────────────────────
@@ -72,6 +74,17 @@ function catalogPlugin(name: string, originId = 'origin-a'): CatalogPlugin {
     keywords: [],
     source: { kind: 'relative', path: `./${name}` },
     installStatus: 'available',
+  };
+}
+
+function cliAvailable(name: string, marketplace = 'claude-plugins-official'): CliAvailablePlugin {
+  return {
+    pluginId: `${name}@${marketplace}`,
+    name,
+    description: `Desc of ${name}`,
+    marketplaceName: marketplace,
+    source: `./${name}`,
+    installCount: 0,
   };
 }
 
@@ -254,6 +267,70 @@ describe('AddonsService CLI-primary: getOrigins', () => {
     expect(listMarketplacesSpy).toHaveBeenCalled();
     // Legacy path returns built-in origins; exact count depends on BUILT_IN_ORIGINS
     expect(Array.isArray(origins)).toBe(true);
+  });
+
+  it('applies stored overrides to CLI origins', async () => {
+    const { cli, listMarketplacesSpy } = createMockCli();
+    listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    const ports = createMockPorts();
+    // Pre-set an override that disables the CLI origin
+    ports.store.getOriginOverrides = () => [
+      { id: 'cli:claude-plugins-official', enabled: false },
+    ];
+    const service = createServiceWithCli(ports, cli);
+
+    const origins = await service.getOrigins();
+
+    expect(origins).toHaveLength(1);
+    expect(origins[0].id).toBe('cli:claude-plugins-official');
+    expect(origins[0].enabled).toBe(false);
+  });
+
+  it('defaults to enabled when no override exists for CLI origin', async () => {
+    const { cli, listMarketplacesSpy } = createMockCli();
+    listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    const ports = createMockPorts();
+    // No overrides stored
+    const service = createServiceWithCli(ports, cli);
+
+    const origins = await service.getOrigins();
+
+    expect(origins).toHaveLength(1);
+    expect(origins[0].enabled).toBe(true);
+  });
+});
+
+// ── 2. toggleOrigin with CLI origins ──────────────────────────────
+
+describe('AddonsService CLI-primary: toggleOrigin', () => {
+  it('persists CLI origin toggle via originOverrides store', async () => {
+    const { cli } = createMockCli();
+    const ports = createMockPorts();
+    const service = createServiceWithCli(ports, cli);
+
+    await service.toggleOrigin('cli:claude-plugins-official', false);
+
+    expect(ports.store.saveOriginOverrides).toHaveBeenCalledWith([
+      { id: 'cli:claude-plugins-official', enabled: false },
+    ]);
+    // Should NOT touch custom origins
+    expect(ports.saveCustomOriginsSpy).not.toHaveBeenCalled();
+  });
+
+  it('re-enables a previously disabled CLI origin', async () => {
+    const { cli } = createMockCli();
+    const ports = createMockPorts();
+    // Simulate existing disabled override
+    ports.store.getOriginOverrides = () => [
+      { id: 'cli:claude-plugins-official', enabled: false },
+    ];
+    const service = createServiceWithCli(ports, cli);
+
+    await service.toggleOrigin('cli:claude-plugins-official', true);
+
+    expect(ports.store.saveOriginOverrides).toHaveBeenCalledWith([
+      { id: 'cli:claude-plugins-official', enabled: true },
+    ]);
   });
 });
 
@@ -475,27 +552,20 @@ describe('AddonsService CLI-primary: deleteAddon', () => {
 
 describe('AddonsService CLI-primary: getCatalog', () => {
   it('uses cli.listInstalled to determine installed names', async () => {
-    const { cli, listInstalledSpy, listMarketplacesSpy } = createMockCli();
+    const { cli, listInstalledSpy, listMarketplacesSpy, listAvailableSpy } = createMockCli();
     listInstalledSpy.mockResolvedValue([...CLI_INSTALLED_LIST]);
     listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    // getCatalog now calls listAvailable() live instead of reading from cache
+    listAvailableSpy.mockResolvedValue({
+      installed: [...CLI_INSTALLED_LIST],
+      available: [
+        cliAvailable('commit-commands'),
+        cliAvailable('agent-sdk-dev'),
+        cliAvailable('ai-firstify'),
+      ],
+    });
     const ports = createMockPorts({
       snap: snapshot([snapshotRecord('/ws/.claude/skills/commit-commands/SKILL.md')]),
-    });
-    // Override getCachedCatalog to return plugins for the CLI origin id.
-    // commit-commands matches a real installed plugin; the others remain available.
-    ports.getCachedCatalogSpy.mockImplementation((originId: string) => {
-      if (originId === 'cli:claude-plugins-official') {
-        return {
-          originId: 'cli:claude-plugins-official',
-          fetchedAt: new Date().toISOString(),
-          plugins: [
-            catalogPlugin('commit-commands', 'cli:claude-plugins-official'),
-            catalogPlugin('agent-sdk-dev', 'cli:claude-plugins-official'),
-            catalogPlugin('ai-firstify', 'cli:claude-plugins-official'),
-          ],
-        };
-      }
-      return null;
     });
     const service = createServiceWithCli(ports, cli);
 
@@ -504,6 +574,7 @@ describe('AddonsService CLI-primary: getCatalog', () => {
     expect(result).not.toBeNull();
     expect(result!.cliAvailable).toBe(true);
     expect(listInstalledSpy).toHaveBeenCalled();
+    expect(listAvailableSpy).toHaveBeenCalled();
 
     // commit-commands is in CLI_INSTALLED_LIST, so it should be 'installed'
     const commitPlugin = result!.catalogPlugins.find((p) => p.name === 'commit-commands');
@@ -516,6 +587,36 @@ describe('AddonsService CLI-primary: getCatalog', () => {
     // ai-firstify is NOT in CLI_INSTALLED_LIST, so it should be 'available'
     const aiFirstifyPlugin = result!.catalogPlugins.find((p) => p.name === 'ai-firstify');
     expect(aiFirstifyPlugin?.installStatus).toBe('available');
+  });
+
+  it('excludes plugins from disabled CLI origins', async () => {
+    const { cli, listInstalledSpy, listMarketplacesSpy, listAvailableSpy } = createMockCli();
+    listInstalledSpy.mockResolvedValue([]);
+    listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    // listAvailable returns plugins for the marketplace — but origin is disabled
+    listAvailableSpy.mockResolvedValue({
+      installed: [],
+      available: [
+        cliAvailable('agent-sdk-dev'),
+        cliAvailable('pr-review-toolkit'),
+      ],
+    });
+    const ports = createMockPorts({ snap: snapshot([]) });
+    // Disable the CLI origin via stored override
+    ports.store.getOriginOverrides = () => [
+      { id: 'cli:claude-plugins-official', enabled: false },
+    ];
+    const service = createServiceWithCli(ports, cli);
+
+    const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
+
+    expect(result).not.toBeNull();
+    // Plugins from the disabled origin should be excluded
+    expect(result!.catalogPlugins).toHaveLength(0);
+    // Origin should still appear in the list (so the user can re-enable it)
+    const disabledOrigin = result!.origins.find((o) => o.id === 'cli:claude-plugins-official');
+    expect(disabledOrigin).toBeDefined();
+    expect(disabledOrigin!.enabled).toBe(false);
   });
 
   it('falls back to meta-based install status when CLI listInstalled fails', async () => {
@@ -544,6 +645,93 @@ describe('AddonsService CLI-primary: getCatalog', () => {
     expect(result!.cliAvailable).toBe(false);
     const fooPlugin = result!.catalogPlugins.find((p) => p.name === 'foo');
     expect(fooPlugin?.installStatus).toBe('installed');
+  });
+});
+
+// ── 9b. getCatalog: installed-but-uncataloged plugins ────────────────
+
+describe('AddonsService CLI-primary: installed-but-uncataloged plugins', () => {
+  it('injects synthetic catalog entry for installed plugin from unfetched marketplace', async () => {
+    const { cli, listInstalledSpy, listMarketplacesSpy } = createMockCli();
+    // Plugin installed from a third-party marketplace whose catalog was never fetched
+    listInstalledSpy.mockResolvedValue([CLI_INSTALLED_CODEX]);
+    listMarketplacesSpy.mockResolvedValue([CLI_MARKETPLACE_THIRD_PARTY]);
+    const ports = createMockPorts({ snap: snapshot([]) });
+    // No cached catalog for the third-party marketplace
+    ports.getCachedCatalogSpy.mockReturnValue(null);
+    const service = createServiceWithCli(ports, cli);
+
+    const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
+
+    expect(result).not.toBeNull();
+    const codexPlugin = result!.catalogPlugins.find((p) => p.name === 'openai-codex');
+    expect(codexPlugin).toBeDefined();
+    expect(codexPlugin!.installStatus).toBe('installed');
+  });
+
+  it('synthetic entry has correct originId format', async () => {
+    const { cli, listInstalledSpy, listMarketplacesSpy } = createMockCli();
+    listInstalledSpy.mockResolvedValue([CLI_INSTALLED_CODEX]);
+    listMarketplacesSpy.mockResolvedValue([CLI_MARKETPLACE_THIRD_PARTY]);
+    const ports = createMockPorts({ snap: snapshot([]) });
+    ports.getCachedCatalogSpy.mockReturnValue(null);
+    const service = createServiceWithCli(ports, cli);
+
+    const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
+
+    const codexPlugin = result!.catalogPlugins.find((p) => p.name === 'openai-codex');
+    expect(codexPlugin!.originId).toBe('cli:codex-plugin-cc');
+  });
+
+  it('does not duplicate when plugin exists in both CLI installed and available list', async () => {
+    const { cli, listInstalledSpy, listMarketplacesSpy, listAvailableSpy } = createMockCli();
+    listInstalledSpy.mockResolvedValue([CLI_INSTALLED_COMMIT_COMMANDS]);
+    listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    // Plugin appears in both installed and available
+    listAvailableSpy.mockResolvedValue({
+      installed: [CLI_INSTALLED_COMMIT_COMMANDS],
+      available: [cliAvailable('commit-commands')],
+    });
+    const ports = createMockPorts({ snap: snapshot([]) });
+    const service = createServiceWithCli(ports, cli);
+
+    const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
+
+    // Should have exactly one entry for commit-commands, not two
+    const commitPlugins = result!.catalogPlugins.filter((p) => p.name === 'commit-commands');
+    expect(commitPlugins).toHaveLength(1);
+    expect(commitPlugins[0].installStatus).toBe('installed');
+  });
+
+  it('synthetic entries have generic metadata', async () => {
+    const { cli, listInstalledSpy, listMarketplacesSpy } = createMockCli();
+    listInstalledSpy.mockResolvedValue([CLI_INSTALLED_CODEX]);
+    listMarketplacesSpy.mockResolvedValue([CLI_MARKETPLACE_THIRD_PARTY]);
+    const ports = createMockPorts({ snap: snapshot([]) });
+    ports.getCachedCatalogSpy.mockReturnValue(null);
+    const service = createServiceWithCli(ports, cli);
+
+    const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
+
+    const codexPlugin = result!.catalogPlugins.find((p) => p.name === 'openai-codex');
+    expect(codexPlugin!.description).toBe('');
+    expect(codexPlugin!.category).toBe('plugin');
+    expect(codexPlugin!.tags).toEqual([]);
+    expect(codexPlugin!.keywords).toEqual([]);
+  });
+
+  it('filters version "unknown" to empty string in synthetic entry', async () => {
+    const { cli, listInstalledSpy, listMarketplacesSpy } = createMockCli();
+    listInstalledSpy.mockResolvedValue([CLI_INSTALLED_CODEX]); // version: 'unknown'
+    listMarketplacesSpy.mockResolvedValue([CLI_MARKETPLACE_THIRD_PARTY]);
+    const ports = createMockPorts({ snap: snapshot([]) });
+    ports.getCachedCatalogSpy.mockReturnValue(null);
+    const service = createServiceWithCli(ports, cli);
+
+    const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
+
+    const codexPlugin = result!.catalogPlugins.find((p) => p.name === 'openai-codex');
+    expect(codexPlugin!.version).toBe('');
   });
 });
 
@@ -644,20 +832,10 @@ describe('AddonsService CLI-primary: pr-review-toolkit lifecycle', () => {
     const { cli, listInstalledSpy, listMarketplacesSpy, listAvailableSpy } = createMockCli();
     listInstalledSpy.mockResolvedValue([]); // nothing installed
     listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    // getCatalog now calls listAvailable() live
     listAvailableSpy.mockResolvedValue({ installed: [], available: [...CLI_AVAILABLE_LIST] });
 
     const ports = createMockPorts({ snap: snapshot([]) });
-    // Seed the cache with the CLI available list mapped to catalog plugins
-    ports.getCachedCatalogSpy.mockImplementation((originId: string) => {
-      if (originId === 'cli:claude-plugins-official') {
-        return {
-          originId: 'cli:claude-plugins-official',
-          fetchedAt: new Date().toISOString(),
-          plugins: [catalogPlugin('pr-review-toolkit', 'cli:claude-plugins-official')],
-        };
-      }
-      return null;
-    });
     const service = createServiceWithCli(ports, cli);
 
     const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
@@ -686,25 +864,17 @@ describe('AddonsService CLI-primary: pr-review-toolkit lifecycle', () => {
   });
 
   it('shows pr-review-toolkit as installed after install', async () => {
-    const { cli, listInstalledSpy, listMarketplacesSpy } = createMockCli();
+    const { cli, listInstalledSpy, listMarketplacesSpy, listAvailableSpy } = createMockCli();
     // After install: pr-review-toolkit appears in installed list
     listInstalledSpy.mockResolvedValue([...CLI_INSTALLED_WITH_PR_REVIEW]);
     listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
+    // getCatalog calls listAvailable() live — pr-review-toolkit still appears as available
+    listAvailableSpy.mockResolvedValue({
+      installed: [...CLI_INSTALLED_WITH_PR_REVIEW],
+      available: [cliAvailable('pr-review-toolkit'), cliAvailable('agent-sdk-dev')],
+    });
 
     const ports = createMockPorts({ snap: snapshot([]) });
-    ports.getCachedCatalogSpy.mockImplementation((originId: string) => {
-      if (originId === 'cli:claude-plugins-official') {
-        return {
-          originId: 'cli:claude-plugins-official',
-          fetchedAt: new Date().toISOString(),
-          plugins: [
-            catalogPlugin('pr-review-toolkit', 'cli:claude-plugins-official'),
-            catalogPlugin('agent-sdk-dev', 'cli:claude-plugins-official'),
-          ],
-        };
-      }
-      return null;
-    });
     const service = createServiceWithCli(ports, cli);
 
     const result = await service.getCatalog('claude', WS_ROOT, ROOTS);
