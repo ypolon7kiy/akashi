@@ -1,0 +1,1114 @@
+@import '../../../../webview-shared/vscode-tokens.css';
+@import '../../../../webview-shared/webview-controls.css';
+
+/* ══════════════════════════════════════════════════════════════════
+   AKASHI DIFF — "Precision Instrument" aesthetic
+   ══════════════════════════════════════════════════════════════════
+   Design language: engineering oscilloscope meets modern terminal.
+   Dark, information-dense, meticulous spatial rhythm.
+   Brand vermillion (#E84025) as dramatic accent.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --diff-add: var(--vscode-diffEditor-insertedTextBackground, rgba(35, 184, 90, 0.22));
+  --diff-add-line: var(--vscode-diffEditor-insertedLineBackground, rgba(35, 184, 90, 0.10));
+  --diff-add-fg: var(--vscode-gitDecoration-addedResourceForeground, #23b85a);
+  --diff-del: var(--vscode-diffEditor-removedTextBackground, rgba(229, 72, 77, 0.22));
+  --diff-del-line: var(--vscode-diffEditor-removedLineBackground, rgba(229, 72, 77, 0.10));
+  --diff-del-fg: var(--vscode-gitDecoration-deletedResourceForeground, #e5484d);
+  --diff-modified: #7eb8da;
+  --diff-surface-raised: color-mix(in srgb, var(--akashi-text) 4%, var(--akashi-surface-0));
+  --diff-glass: color-mix(in srgb, var(--akashi-text) 5%, transparent);
+}
+
+/* ── Reset ──────────────────────────────────── */
+
+html, body {
+  margin: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── App shell ──────────────────────────────── */
+
+.diff-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--akashi-surface-0);
+  color: var(--akashi-text);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════ */
+
+.diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  flex-shrink: 0;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--akashi-brand) 3%, var(--akashi-surface-1)) 0%,
+      var(--akashi-surface-1) 100%
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--akashi-brand) 12%, var(--akashi-border));
+  position: relative;
+}
+
+/* Subtle top accent line */
+.diff-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--akashi-brand) 30%,
+    var(--akashi-brand) 70%,
+    transparent 100%
+  );
+  opacity: 0.5;
+}
+
+.diff-header__left,
+.diff-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ═══════════════════════════════════════════════
+   SEGMENTED CONTROL
+   ═══════════════════════════════════════════════ */
+
+.diff-segment {
+  display: flex;
+  position: relative;
+  background: var(--diff-glass);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 8%, transparent);
+}
+
+/* Animated sliding indicator */
+.diff-segment__indicator {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  border-radius: 4px;
+  background: var(--akashi-accent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--akashi-accent) 30%, transparent);
+  transition: transform var(--akashi-duration-normal) var(--akashi-ease-spring);
+  z-index: 0;
+}
+
+.diff-segment__btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--akashi-text-muted);
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--akashi-duration-fast) var(--akashi-ease);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.diff-segment__btn .codicon {
+  font-size: 13px;
+}
+
+.diff-segment__btn:hover:not(.diff-segment__btn--active) {
+  color: var(--akashi-text);
+}
+
+.diff-segment__btn--active {
+  color: var(--akashi-accent-text);
+}
+
+/* ═══════════════════════════════════════════════
+   STATS CHIP
+   ═══════════════════════════════════════════════ */
+
+.diff-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: var(--diff-glass);
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 6%, transparent);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--akashi-font-size-xs);
+  letter-spacing: 0.3px;
+  animation: diff-stats-enter 0.4s var(--akashi-ease-out) both;
+}
+
+@keyframes diff-stats-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+.diff-stats__files {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--akashi-text-muted);
+}
+
+.diff-stats__files .codicon {
+  font-size: 12px;
+}
+
+.diff-stats__divider {
+  width: 1px;
+  height: 12px;
+  background: color-mix(in srgb, var(--akashi-text) 12%, transparent);
+}
+
+.diff-stats__additions {
+  color: var(--diff-add-fg);
+  font-weight: 600;
+}
+
+.diff-stats__deletions {
+  color: var(--diff-del-fg);
+  font-weight: 600;
+}
+
+/* Proportional bar */
+.diff-stats__bar {
+  display: flex;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.diff-stats__bar-add {
+  background: var(--diff-add-fg);
+  border-radius: 2px 0 0 2px;
+  min-width: 2px;
+  transition: width var(--akashi-duration-slow) var(--akashi-ease);
+}
+
+.diff-stats__bar-del {
+  background: var(--diff-del-fg);
+  border-radius: 0 2px 2px 0;
+  min-width: 2px;
+  transition: width var(--akashi-duration-slow) var(--akashi-ease);
+}
+
+/* ═══════════════════════════════════════════════
+   VIEW TOGGLE + ACTION BUTTONS
+   ═══════════════════════════════════════════════ */
+
+.diff-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 8%, transparent);
+  border-radius: 4px;
+  background: var(--diff-glass);
+  color: var(--akashi-text-muted);
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  cursor: pointer;
+  transition:
+    color var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-fast) var(--akashi-ease),
+    background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.diff-view-toggle:hover {
+  color: var(--akashi-text);
+  border-color: color-mix(in srgb, var(--akashi-text) 16%, transparent);
+  background: color-mix(in srgb, var(--akashi-text) 8%, transparent);
+}
+
+.diff-view-toggle__label {
+  letter-spacing: 0.2px;
+}
+
+.diff-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--akashi-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--akashi-duration-fast) var(--akashi-ease),
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    transform var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.diff-action-btn:hover {
+  color: var(--akashi-text);
+  background: var(--diff-glass);
+}
+
+.diff-action-btn:active {
+  transform: rotate(-90deg);
+}
+
+/* ═══════════════════════════════════════════════
+   STATE SCREENS (loading / empty / error)
+   ═══════════════════════════════════════════════ */
+
+.diff-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.diff-state__title {
+  margin: 0;
+  font-size: var(--akashi-font-size-lg);
+  font-weight: 600;
+  color: var(--akashi-text);
+  letter-spacing: -0.2px;
+}
+
+.diff-state__detail {
+  margin: 0;
+  font-size: var(--akashi-font-size-sm);
+  color: var(--akashi-text-muted);
+  letter-spacing: 0.2px;
+}
+
+/* Icon ring */
+.diff-state__icon-ring {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.diff-state__icon-ring .codicon {
+  font-size: 24px;
+}
+
+.diff-state__icon-ring--success {
+  background: color-mix(in srgb, var(--diff-add-fg) 10%, transparent);
+  color: var(--diff-add-fg);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--diff-add-fg) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--diff-add-fg) 8%, transparent);
+  animation: diff-ring-pulse 2.4s ease-in-out infinite;
+}
+
+.diff-state__icon-ring--error {
+  background: color-mix(in srgb, var(--diff-del-fg) 10%, transparent);
+  color: var(--diff-del-fg);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--diff-del-fg) 20%, transparent),
+    0 0 24px color-mix(in srgb, var(--diff-del-fg) 8%, transparent);
+}
+
+@keyframes diff-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--diff-add-fg) 20%, transparent), 0 0 24px color-mix(in srgb, var(--diff-add-fg) 8%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--diff-add-fg) 30%, transparent), 0 0 36px color-mix(in srgb, var(--diff-add-fg) 14%, transparent); }
+}
+
+/* Animated checkmark SVG */
+.diff-state__check {
+  width: 28px;
+  height: 28px;
+}
+
+.diff-state__check-path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: diff-check-draw 0.6s 0.3s var(--akashi-ease-out) forwards;
+}
+
+@keyframes diff-check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Scanning animation for loading */
+.diff-state__scan {
+  width: 120px;
+  height: 56px;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--akashi-text) 4%, transparent) 0px,
+      color-mix(in srgb, var(--akashi-text) 4%, transparent) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 8%, transparent);
+}
+
+.diff-state__scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--akashi-brand) 20%,
+    var(--akashi-brand) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 12px var(--akashi-brand);
+  animation: diff-scan 1.6s ease-in-out infinite;
+}
+
+@keyframes diff-scan {
+  0% { top: -2px; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: calc(100% + 2px); opacity: 0; }
+}
+
+.diff-state--loading .diff-state__title {
+  animation: pulse-fade 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-fade {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════
+   DIFF CONTENT AREA
+   ═══════════════════════════════════════════════ */
+
+.diff-content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px 24px;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+.diff-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.diff-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.diff-content::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--akashi-text) 15%, transparent);
+  border-radius: 4px;
+}
+
+.diff-content::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--akashi-text) 25%, transparent);
+}
+
+.diff-content::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ═══════════════════════════════════════════════
+   DIFF2HTML OVERRIDES
+   ═══════════════════════════════════════════════ */
+
+/* Base typography */
+.d2h-wrapper {
+  font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
+  font-size: var(--vscode-editor-font-size, 13px);
+  line-height: 1.5;
+}
+
+/* ── File wrapper ──────────────────────────── */
+
+.d2h-file-wrapper {
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 8%, transparent);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: var(--akashi-surface-0);
+  box-shadow: var(--akashi-shadow-sm);
+  animation: diff-file-enter 0.35s var(--akashi-ease-out) both;
+}
+
+/* Stagger file block entries */
+.d2h-file-wrapper:nth-child(1) { animation-delay: 0.05s; }
+.d2h-file-wrapper:nth-child(2) { animation-delay: 0.10s; }
+.d2h-file-wrapper:nth-child(3) { animation-delay: 0.15s; }
+.d2h-file-wrapper:nth-child(4) { animation-delay: 0.20s; }
+.d2h-file-wrapper:nth-child(5) { animation-delay: 0.25s; }
+.d2h-file-wrapper:nth-child(n+6) { animation-delay: 0.30s; }
+
+@keyframes diff-file-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ── File list (summary at top) ────────────── */
+
+.d2h-file-list-wrapper {
+  background: var(--diff-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 8%, transparent);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.d2h-file-list-wrapper .d2h-file-list-header {
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: var(--akashi-font-size-sm);
+  color: var(--akashi-text);
+  border-bottom: 1px solid color-mix(in srgb, var(--akashi-text) 6%, transparent);
+  letter-spacing: 0.2px;
+}
+
+.d2h-file-list-line {
+  color: var(--akashi-text);
+  padding: 4px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--akashi-text) 4%, transparent);
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.d2h-file-list-line:last-child {
+  border-bottom: none;
+}
+
+.d2h-file-list-line:hover {
+  background: var(--akashi-hover);
+}
+
+.d2h-file-list-line a {
+  color: var(--akashi-text);
+  text-decoration: none;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--akashi-font-size-sm);
+}
+
+.d2h-file-list-line a:hover {
+  color: var(--akashi-accent);
+}
+
+/* Hide diff2html's built-in "Viewed" checkbox — replaced by our own toggle */
+.d2h-file-collapse {
+  display: none;
+}
+
+/* ── Akashi viewed toggle on file headers ──── */
+
+.diff-header-viewed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 10%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--akashi-text-muted);
+  font: inherit;
+  font-size: var(--akashi-font-size-xs);
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    color var(--akashi-duration-fast) var(--akashi-ease),
+    border-color var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.diff-header-viewed:hover {
+  background: var(--akashi-hover);
+  color: var(--akashi-text);
+  border-color: color-mix(in srgb, var(--akashi-text) 18%, transparent);
+}
+
+.diff-header-viewed:active {
+  transform: scale(0.97);
+}
+
+.diff-header-viewed__icon {
+  font-size: 14px;
+}
+
+.diff-header-viewed__label {
+  font-weight: 500;
+}
+
+.diff-header-viewed--checked {
+  background: color-mix(in srgb, var(--diff-add-fg) 10%, transparent);
+  color: var(--diff-add-fg);
+  border-color: color-mix(in srgb, var(--diff-add-fg) 25%, transparent);
+}
+
+.diff-header-viewed--checked:hover {
+  background: color-mix(in srgb, var(--diff-add-fg) 16%, transparent);
+  color: var(--diff-add-fg);
+  border-color: color-mix(in srgb, var(--diff-add-fg) 35%, transparent);
+}
+
+/* ── File name wrapper ─────────────────────── */
+
+.d2h-file-name-wrapper {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--akashi-font-size-sm);
+}
+
+/* Status tags */
+.d2h-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.d2h-changed-tag {
+  background: color-mix(in srgb, var(--diff-modified) 15%, transparent);
+  color: var(--diff-modified);
+}
+
+.d2h-added-tag {
+  background: color-mix(in srgb, var(--diff-add-fg) 15%, transparent);
+  color: var(--diff-add-fg);
+}
+
+.d2h-deleted-tag {
+  background: color-mix(in srgb, var(--diff-del-fg) 15%, transparent);
+  color: var(--diff-del-fg);
+}
+
+.d2h-renamed-tag {
+  background: color-mix(in srgb, var(--akashi-info) 15%, transparent);
+  color: var(--akashi-info);
+}
+
+/* ── Line numbers ──────────────────────────── */
+
+.d2h-code-linenumber {
+  color: var(--akashi-text-muted);
+  background: var(--diff-surface-raised);
+  border-right: 1px solid color-mix(in srgb, var(--akashi-text) 6%, transparent);
+  font-size: var(--akashi-font-size-xs);
+  opacity: 0.7;
+  user-select: none;
+}
+
+/* ── Code lines ────────────────────────────── */
+
+.d2h-code-line {
+  color: var(--akashi-text);
+  padding-left: 8px;
+}
+
+/* Hover highlight on individual lines */
+.d2h-code-line-ctn {
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+tr:hover .d2h-code-line-ctn {
+  background: color-mix(in srgb, var(--akashi-text) 3%, transparent) !important;
+}
+
+/* ── Deletion styling ──────────────────────── */
+
+.d2h-del {
+  background-color: var(--diff-del-line);
+  border-color: transparent;
+  border-left: 3px solid var(--diff-del-fg);
+}
+
+.d2h-del .d2h-code-line-ctn {
+  background: none;
+}
+
+del {
+  background-color: var(--diff-del);
+  text-decoration: none;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── Addition styling ──────────────────────── */
+
+.d2h-ins {
+  background-color: var(--diff-add-line);
+  border-color: transparent;
+  border-left: 3px solid var(--diff-add-fg);
+}
+
+.d2h-ins .d2h-code-line-ctn {
+  background: none;
+}
+
+ins {
+  background-color: var(--diff-add);
+  text-decoration: none;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── Hunk info / separator ─────────────────── */
+
+.d2h-info {
+  background: color-mix(in srgb, var(--akashi-brand) 3%, var(--akashi-surface-0));
+  border-color: transparent;
+  color: var(--akashi-text-muted);
+  font-size: var(--akashi-font-size-xs);
+  font-style: italic;
+  border-left: 3px solid color-mix(in srgb, var(--akashi-brand) 40%, transparent);
+}
+
+/* ── Context (unchanged) lines ─────────────── */
+
+.d2h-cntx {
+  background: var(--akashi-surface-0);
+  border-color: transparent;
+  border-left: 3px solid transparent;
+}
+
+/* ── Empty placeholder (side-by-side) ──────── */
+
+.d2h-code-side-emptyplaceholder {
+  background: color-mix(in srgb, var(--akashi-text) 2%, var(--akashi-surface-0));
+  border-color: transparent;
+}
+
+/* ── Remove diff2html's default border colors ── */
+
+.d2h-file-diff .d2h-del.d2h-change,
+.d2h-file-diff .d2h-ins.d2h-change {
+  border-color: transparent;
+}
+
+/* ── Stats in file list ────────────────────── */
+
+.d2h-file-stats-wrapper {
+  color: var(--akashi-text-muted);
+  font-size: var(--akashi-font-size-xs);
+}
+
+/* ── Side-by-side table ────────────────────── */
+
+.d2h-file-side-diff {
+  width: 50%;
+}
+
+/* ── diff2html table borders ───────────────── */
+
+.d2h-diff-table {
+  border-collapse: collapse;
+}
+
+.d2h-diff-tbody tr {
+  border-top: none;
+}
+
+.d2h-diff-tbody tr td {
+  border-top: none;
+}
+
+/* ═══════════════════════════════════════════════
+   FILE DRAWER (collapsible file list above diffs)
+   ═══════════════════════════════════════════════ */
+
+.diff-drawer {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--akashi-border);
+  background: var(--akashi-surface-0);
+}
+
+.diff-drawer__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 14px;
+  border: none;
+  background: var(--diff-surface-raised);
+  color: var(--akashi-text);
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0.2px;
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.diff-drawer__toggle:hover {
+  background: color-mix(in srgb, var(--akashi-text) 6%, var(--akashi-surface-0));
+}
+
+.diff-drawer__toggle .codicon {
+  font-size: 12px;
+  color: var(--akashi-text-muted);
+  transition: transform var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.diff-drawer__title {
+  flex: 1;
+}
+
+.diff-drawer__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--akashi-text) 10%, transparent);
+  color: var(--akashi-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.diff-drawer__reviewed {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  height: 18px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--diff-add-fg) 12%, transparent);
+  color: var(--diff-add-fg);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+.diff-drawer__reviewed .codicon {
+  font-size: 11px;
+  color: var(--diff-add-fg);
+}
+
+.diff-drawer__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  animation: diff-drawer-open 0.2s var(--akashi-ease-out);
+}
+
+@keyframes diff-drawer-open {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; }
+}
+
+.diff-drawer__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.diff-drawer__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.diff-drawer__list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--akashi-text) 12%, transparent);
+  border-radius: 3px;
+}
+
+/* ── File card (inside drawer) ─────────────── */
+
+.diff-file-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--akashi-text);
+  font: inherit;
+  font-size: var(--akashi-font-size-sm);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition:
+    background var(--akashi-duration-fast) var(--akashi-ease),
+    opacity var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.diff-file-card:hover {
+  background: var(--akashi-hover);
+}
+
+.diff-file-card--viewed {
+  opacity: 0.45;
+}
+
+.diff-file-card--viewed:hover {
+  opacity: 0.7;
+}
+
+.diff-file-card--viewed .diff-file-card__path {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--akashi-text) 25%, transparent);
+}
+
+.diff-file-card__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.diff-file-card__status-icon {
+  font-size: 14px;
+}
+
+.diff-file-card__status-icon--viewed {
+  color: var(--diff-add-fg);
+}
+
+.diff-file-card__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.diff-file-card__path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--akashi-font-size-xs);
+  direction: rtl;
+  text-align: left;
+}
+
+.diff-file-card__stats {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--akashi-font-size-xs);
+}
+
+.diff-file-card__add {
+  color: var(--diff-add-fg);
+  font-weight: 600;
+}
+
+.diff-file-card__del {
+  color: var(--diff-del-fg);
+  font-weight: 600;
+}
+
+
+
+/* ═══════════════════════════════════════════════
+   FILE VIEWED STATE — collapse diff body
+   ═══════════════════════════════════════════════ */
+
+.d2h-file--viewed .d2h-file-diff,
+.d2h-file--viewed .d2h-file-side-diff {
+  display: none;
+}
+
+.d2h-file--viewed {
+  opacity: 0.6;
+  transition: opacity var(--akashi-duration-normal) var(--akashi-ease);
+}
+
+.d2h-file--viewed:hover {
+  opacity: 0.85;
+}
+
+.d2h-file--viewed .d2h-file-header {
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════
+   CARD-STYLE FILE HEADERS
+   ═══════════════════════════════════════════════ */
+
+.d2h-file-header {
+  background:
+    linear-gradient(
+      90deg,
+      var(--diff-surface-raised) 0%,
+      color-mix(in srgb, var(--akashi-text) 3%, var(--akashi-surface-0)) 100%
+    );
+  border-bottom: 1px solid color-mix(in srgb, var(--akashi-text) 6%, transparent);
+  color: var(--akashi-text);
+  padding: 10px 14px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+  transition: background var(--akashi-duration-fast) var(--akashi-ease);
+}
+
+.d2h-file-header:hover {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--akashi-text) 6%, var(--akashi-surface-0)) 0%,
+      color-mix(in srgb, var(--akashi-text) 4%, var(--akashi-surface-0)) 100%
+    );
+}
+
+/* File icon indicator dot */
+.d2h-file-name-wrapper::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background: var(--diff-modified);
+  vertical-align: middle;
+  flex-shrink: 0;
+  box-shadow: none;
+}
+
+/* Color the dot based on file status */
+.d2h-file-wrapper:has(.d2h-added-tag) .d2h-file-name-wrapper::before {
+  background: var(--diff-add-fg);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--diff-add-fg) 40%, transparent);
+}
+
+.d2h-file-wrapper:has(.d2h-deleted-tag) .d2h-file-name-wrapper::before {
+  background: var(--diff-del-fg);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--diff-del-fg) 40%, transparent);
+}
+
+.d2h-file-wrapper:has(.d2h-renamed-tag) .d2h-file-name-wrapper::before {
+  background: var(--akashi-info);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--akashi-info) 40%, transparent);
+}
+
+/* ═══════════════════════════════════════════════
+   ACCESSIBILITY — high contrast
+   ═══════════════════════════════════════════════ */
+
+body.vscode-high-contrast .diff-segment {
+  border-width: 2px;
+}
+
+body.vscode-high-contrast .d2h-file-wrapper {
+  border-width: 2px;
+}
+
+body.vscode-high-contrast .d2h-del {
+  border-left-width: 4px;
+}
+
+body.vscode-high-contrast .d2h-ins {
+  border-left-width: 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   ACCESSIBILITY — reduced motion
+   ═══════════════════════════════════════════════ */
+
+body.vscode-reduce-motion .diff-segment__indicator {
+  transition: none;
+}
+
+body.vscode-reduce-motion .diff-state__check-path {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+body.vscode-reduce-motion .diff-state__scan-line {
+  animation: none;
+}
+
+body.vscode-reduce-motion .diff-state--loading .diff-state__title {
+  animation: none;
+}
+
+body.vscode-reduce-motion .d2h-file-wrapper {
+  animation: none;
+}
+
+body.vscode-reduce-motion .diff-stats {
+  animation: none;
+}
+
+body.vscode-reduce-motion .diff-action-btn:active {
+  transform: none;
+}
+
+body.vscode-reduce-motion .diff-state__icon-ring--success {
+  animation: none;
+}
+
+body.vscode-reduce-motion .d2h-file--viewed {
+  transition: none;
+}
+
+body.vscode-reduce-motion .diff-header-viewed {
+  transition: none;
+}
+
+body.vscode-reduce-motion .diff-header-viewed:active {
+  transform: none;
+}
+
+body.vscode-reduce-motion .diff-drawer__list {
+  animation: none;
+}

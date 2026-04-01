@@ -7,6 +7,9 @@ import type { AddonsPanelEnvironment } from './domains/addons/ui/addonsPanelEnvi
 import { AddonsPanel, registerAddonsUi } from './domains/addons/ui/register';
 import type { PulsePanelEnvironment } from './domains/pulse/ui/pulsePanelEnvironment';
 import { PulsePanel, registerPulseUi } from './domains/pulse/ui/register';
+import type { DiffPanelEnvironment } from './domains/diff/ui/diffPanelEnvironment';
+import { registerDiffUi } from './domains/diff/ui/register';
+import { DiffService } from './domains/diff/application/DiffService';
 import { PulseService } from './domains/pulse/application/PulseService';
 import { NodePulseFileReader } from './domains/pulse/infrastructure/NodePulseFileReader';
 import { createPulseSessionWatcher } from './domains/pulse/infrastructure/pulseSessionWatcher';
@@ -461,10 +464,23 @@ export function registerAkashiExtension(context: vscode.ExtensionContext): void 
     })
   );
 
+  // ── Diff domain wiring ──────────────────────────────────────────
+  const diffCwd = inferWorkspaceRoot() ?? '';
+  const diffService = diffCwd ? new DiffService(diffCwd) : null;
+  const diffEnv: DiffPanelEnvironment = {
+    getDiff: async (target) => {
+      if (!diffService) {
+        return { target, raw: '', isEmpty: true };
+      }
+      return diffService.getDiff(target);
+    },
+  };
+
   const disposables = [
     ...registerGraphUi(context, graphEnv, config.generalConfig),
     ...registerAddonsUi(context, addonsEnv),
     ...registerPulseUi(context, pulseEnv),
+    ...registerDiffUi(context, diffEnv),
     vscode.commands.registerCommand(
       'akashi.sources.createArtifact',
       async (args: {

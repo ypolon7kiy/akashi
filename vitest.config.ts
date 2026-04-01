@@ -26,6 +26,8 @@ export default defineConfig({
         'src/sidebar/webview/**',
         'src/domains/graph/webview/**',
         'src/domains/graph/ui/webview/**',
+        'src/domains/diff/webview/**',
+        'src/domains/diff/ui/webview/**',
         'src/webview-shared/**',
       ],
     },

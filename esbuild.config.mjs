@@ -94,6 +94,22 @@ async function main() {
     loader: { '.tsx': 'tsx' },
   };
 
+  const diffWebviewOptions = {
+    ...common,
+    platform: 'browser',
+    target: 'es2020',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(isProdBuild ? 'production' : 'development'),
+    },
+    entryPoints: {
+      'diff-main': join(__dirname, 'src', 'domains', 'diff', 'webview', 'diff', 'index.tsx'),
+    },
+    outdir: join(__dirname, 'dist', 'webview', 'diff'),
+    format: 'esm',
+    splitting: true,
+    loader: { '.tsx': 'tsx' },
+  };
+
   // Copy codicon CSS + font into dist so the VSIX includes them
   // (node_modules is excluded from the packaged extension).
   const codiconsSrc = join(__dirname, 'node_modules', '@vscode', 'codicons', 'dist');
@@ -108,6 +124,7 @@ async function main() {
     const graph2dCtx = await context(graph2dWebviewOptions);
     const addonsCtx = await context(addonsWebviewOptions);
     const pulseCtx = await context(pulseWebviewOptions);
+    const diffCtx = await context(diffWebviewOptions);
 
     console.log('Watching for changes...');
     await Promise.all([
@@ -116,6 +133,7 @@ async function main() {
       graph2dCtx.watch(),
       addonsCtx.watch(),
       pulseCtx.watch(),
+      diffCtx.watch(),
     ]);
   } else {
     await build(extensionOptions);
@@ -123,6 +141,7 @@ async function main() {
     await build(graph2dWebviewOptions);
     await build(addonsWebviewOptions);
     await build(pulseWebviewOptions);
+    await build(diffWebviewOptions);
   }
 }
 

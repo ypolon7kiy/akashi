@@ -50,8 +50,9 @@
     "onCommand:akashi.graph.showPanel",
     "onCommand:akashi.sources.refresh",
     "onCommand:akashi.sources.newArtifact",
-"onCommand:akashi.addons.showPanel",
+    "onCommand:akashi.addons.showPanel",
     "onCommand:akashi.pulse.showPanel",
+    "onCommand:akashi.diff.showPanel",
     "onView:akashi.sidebar",
     "onStartupFinished"
   ],
@@ -105,12 +106,23 @@
         "title": "Show sessions",
         "category": "Akashi",
         "icon": "$(pulse)"
+      },
+      {
+        "command": "akashi.diff.showPanel",
+        "title": "Show diff viewer",
+        "category": "Akashi",
+        "icon": "$(diff)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "akashi.pulse.showPanel",
+          "when": "view == akashi.sidebar",
+          "group": "navigation@-6"
+        },
+        {
+          "command": "akashi.diff.showPanel",
           "when": "view == akashi.sidebar",
           "group": "navigation@-5"
         },
@@ -320,6 +332,7 @@
     "d3-force": "^3.0.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "diff2html": "^3.4.56",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -335,13 +348,13 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
-    "ovsx": "^0.10.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "globals": "^15.0.0",
     "mocha": "^10.8.2",
+    "ovsx": "^0.10.0",
     "prettier": "^3.4.2",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.15.0",
