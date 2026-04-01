@@ -9,12 +9,7 @@ import {
   type PluginSourceRef,
   isValidPluginCategory,
 } from './catalogPlugin';
-import type {
-  CliAvailablePlugin,
-  CliInstalledPlugin,
-  CliMarketplace,
-  CliScope,
-} from './cliTypes';
+import type { CliAvailablePlugin, CliInstalledPlugin, CliMarketplace, CliScope } from './cliTypes';
 import type { MarketplaceOrigin, OriginSource } from './marketplaceOrigin';
 import type { SourceLocality } from '../../sources/domain/artifactKind';
 

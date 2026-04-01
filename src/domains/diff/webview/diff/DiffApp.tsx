@@ -42,7 +42,7 @@ function parseFileSummaries(raw: string): readonly FileSummary[] {
     if (!chunk.startsWith('diff --git')) continue;
 
     const firstLine = chunk.split('\n')[0];
-    const match = firstLine.match(/diff --git a\/(.+?) b\/(.+)/);
+    const match = /diff --git a\/(.+?) b\/(.+)/.exec(firstLine);
     const path = match ? match[2] : 'unknown';
 
     let status: FileSummary['status'] = 'modified';
@@ -84,7 +84,10 @@ function StatsChip({ stats }: { stats: DiffStats }) {
   const addPct = total > 0 ? (stats.additions / total) * 100 : 50;
 
   return (
-    <div className="diff-stats" aria-label={`${stats.filesChanged} files, ${stats.additions} additions, ${stats.deletions} deletions`}>
+    <div
+      className="diff-stats"
+      aria-label={`${stats.filesChanged} files, ${stats.additions} additions, ${stats.deletions} deletions`}
+    >
       <span className="diff-stats__files">
         <span className="codicon codicon-file" />
         <span>{stats.filesChanged}</span>
@@ -131,13 +134,7 @@ function SegmentedControl({
   );
 }
 
-function ViewToggle({
-  format,
-  onToggle,
-}: {
-  format: DiffOutputFormat;
-  onToggle: () => void;
-}) {
+function ViewToggle({ format, onToggle }: { format: DiffOutputFormat; onToggle: () => void }) {
   const isUnified = format === 'line-by-line';
   return (
     <button
@@ -231,15 +228,8 @@ function FileDrawer({
    ═══════════════════════════════════════════════ */
 
 export function DiffApp() {
-  const {
-    diffResult,
-    error,
-    outputFormat,
-    activeTarget,
-    requestDiff,
-    refresh,
-    toggleFormat,
-  } = useDiffState();
+  const { diffResult, error, outputFormat, activeTarget, requestDiff, refresh, toggleFormat } =
+    useDiffState();
 
   const contentRef = useRef<HTMLDivElement>(null);
   const [viewedFiles, setViewedFiles] = useState<ReadonlySet<string>>(new Set());
@@ -303,10 +293,11 @@ export function DiffApp() {
     if (!container) return;
 
     const handleClick = (e: Event) => {
-      const btn = (e.target as Element).closest('.diff-header-viewed') as HTMLElement | null;
-      if (!btn?.dataset.fileIdx) return;
+      const btn = (e.target as Element).closest('.diff-header-viewed');
+      const fileIdx = (btn as HTMLElement | null)?.dataset?.fileIdx;
+      if (!fileIdx) return;
       e.stopPropagation();
-      const idx = Number(btn.dataset.fileIdx);
+      const idx = Number(fileIdx);
       const path = fileSummaries[idx]?.path;
       if (path) {
         setViewedFiles((prev) => {
@@ -411,10 +402,13 @@ export function DiffApp() {
           {stats && !diffResult.isEmpty && <StatsChip stats={stats} />}
         </div>
         <div className="diff-header__right">
-          {!diffResult.isEmpty && (
-            <ViewToggle format={outputFormat} onToggle={toggleFormat} />
-          )}
-          <button className="diff-action-btn" onClick={refresh} title="Refresh" aria-label="Refresh diff">
+          {!diffResult.isEmpty && <ViewToggle format={outputFormat} onToggle={toggleFormat} />}
+          <button
+            className="diff-action-btn"
+            onClick={refresh}
+            title="Refresh"
+            aria-label="Refresh diff"
+          >
             <span className="codicon codicon-refresh" />
           </button>
         </div>

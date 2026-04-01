@@ -274,9 +274,7 @@ describe('AddonsService CLI-primary: getOrigins', () => {
     listMarketplacesSpy.mockResolvedValue([...CLI_MARKETPLACE_LIST]);
     const ports = createMockPorts();
     // Pre-set an override that disables the CLI origin
-    ports.store.getOriginOverrides = () => [
-      { id: 'cli:claude-plugins-official', enabled: false },
-    ];
+    ports.store.getOriginOverrides = () => [{ id: 'cli:claude-plugins-official', enabled: false }];
     const service = createServiceWithCli(ports, cli);
 
     const origins = await service.getOrigins();
@@ -310,6 +308,7 @@ describe('AddonsService CLI-primary: toggleOrigin', () => {
 
     await service.toggleOrigin('cli:claude-plugins-official', false);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(ports.store.saveOriginOverrides).toHaveBeenCalledWith([
       { id: 'cli:claude-plugins-official', enabled: false },
     ]);
@@ -321,13 +320,12 @@ describe('AddonsService CLI-primary: toggleOrigin', () => {
     const { cli } = createMockCli();
     const ports = createMockPorts();
     // Simulate existing disabled override
-    ports.store.getOriginOverrides = () => [
-      { id: 'cli:claude-plugins-official', enabled: false },
-    ];
+    ports.store.getOriginOverrides = () => [{ id: 'cli:claude-plugins-official', enabled: false }];
     const service = createServiceWithCli(ports, cli);
 
     await service.toggleOrigin('cli:claude-plugins-official', true);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(ports.store.saveOriginOverrides).toHaveBeenCalledWith([
       { id: 'cli:claude-plugins-official', enabled: true },
     ]);
@@ -596,16 +594,11 @@ describe('AddonsService CLI-primary: getCatalog', () => {
     // listAvailable returns plugins for the marketplace — but origin is disabled
     listAvailableSpy.mockResolvedValue({
       installed: [],
-      available: [
-        cliAvailable('agent-sdk-dev'),
-        cliAvailable('pr-review-toolkit'),
-      ],
+      available: [cliAvailable('agent-sdk-dev'), cliAvailable('pr-review-toolkit')],
     });
     const ports = createMockPorts({ snap: snapshot([]) });
     // Disable the CLI origin via stored override
-    ports.store.getOriginOverrides = () => [
-      { id: 'cli:claude-plugins-official', enabled: false },
-    ];
+    ports.store.getOriginOverrides = () => [{ id: 'cli:claude-plugins-official', enabled: false }];
     const service = createServiceWithCli(ports, cli);
 
     const result = await service.getCatalog('claude', WS_ROOT, ROOTS);

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { DiffTarget, DiffResult, DiffOutputFormat } from '../../../../src/domains/diff/domain/model';
+import type {
+  DiffTarget,
+  DiffResult,
+  DiffOutputFormat,
+} from '../../../../src/domains/diff/domain/model';
 
 describe('Diff domain model types', () => {
   it('DiffTarget supports working tree', () => {

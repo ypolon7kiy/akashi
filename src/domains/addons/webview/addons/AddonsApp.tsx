@@ -64,7 +64,12 @@ export function AddonsApp() {
         <div className="akashi-addons-header__title-row">
           <span className="codicon codicon-extensions" />
           <h1 className="akashi-addons-header__title">Claude Addons</h1>
-          <button className="akashi-addons-header__refresh" onClick={refresh} title="Refresh" disabled={isBusy}>
+          <button
+            className="akashi-addons-header__refresh"
+            onClick={refresh}
+            title="Refresh"
+            disabled={isBusy}
+          >
             <span className="codicon codicon-refresh" />
           </button>
         </div>

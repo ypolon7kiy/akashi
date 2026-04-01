@@ -9,7 +9,11 @@ import {
   parseCliPluginName,
   parseCliSource,
 } from '@src/domains/addons/domain/cliMappings';
-import type { CliAvailablePlugin, CliInstalledPlugin, CliMarketplace } from '@src/domains/addons/domain/cliTypes';
+import type {
+  CliAvailablePlugin,
+  CliInstalledPlugin,
+  CliMarketplace,
+} from '@src/domains/addons/domain/cliTypes';
 import type { OriginSource } from '@src/domains/addons/domain/marketplaceOrigin';
 import {
   CLI_AVAILABLE_ADSPIRER,
