@@ -113,6 +113,11 @@ body {
   outline-offset: 1px;
 }
 
+.akashi-addons-header__refresh:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ───────── Search bar ───────── */
 
 .akashi-addons-search-bar {
@@ -697,6 +702,15 @@ body {
 .akashi-addons-origin-item__btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.akashi-addons-origin-item__btn--spinning .codicon {
+  animation: akashi-origin-spin 1s linear infinite;
+}
+
+@keyframes akashi-origin-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .akashi-addons-origin-item__btn--danger:hover {

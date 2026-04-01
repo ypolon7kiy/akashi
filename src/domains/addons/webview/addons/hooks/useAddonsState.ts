@@ -36,6 +36,7 @@ export function useAddonsState() {
   const [sidebarMatchedPaths, setSidebarMatchedPaths] = useState<readonly string[] | null>(null);
   const [operationMessage, setOperationMessage] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [fetchingOrigins, setFetchingOrigins] = useState<ReadonlySet<string>>(new Set());
   const busyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startBusy = useCallback(() => {
@@ -70,6 +71,8 @@ export function useAddonsState() {
       const msg = event.data as { type?: string; payload?: unknown };
       if (msg?.type === AddonsMessageType.Catalog) {
         setCatalog(msg.payload as AddonsCatalogPayload);
+        clearBusy();
+        setFetchingOrigins(new Set());
       }
       if (msg?.type === AddonsMessageType.SidebarFilter) {
         setSidebarMatchedPaths(msg.payload as readonly string[] | null);
@@ -119,8 +122,9 @@ export function useAddonsState() {
   }, []);
 
   const refresh = useCallback(() => {
+    startBusy();
     getVscodeApi()?.postMessage({ type: AddonsMessageType.RefreshRequest });
-  }, []);
+  }, [startBusy]);
 
   const addOrigin = useCallback((kind: string, value: string) => {
     getVscodeApi()?.postMessage({
@@ -148,6 +152,7 @@ export function useAddonsState() {
   }, []);
 
   const fetchOrigin = useCallback((originId: string) => {
+    setFetchingOrigins((prev) => new Set([...prev, originId]));
     getVscodeApi()?.postMessage({ type: AddonsMessageType.FetchOrigin, payload: { originId } });
   }, []);
 
@@ -184,6 +189,7 @@ export function useAddonsState() {
   return {
     catalog,
     isBusy,
+    fetchingOrigins,
     searchText,
     activeTab,
     operationMessage,

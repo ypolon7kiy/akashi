@@ -118,6 +118,10 @@ body.vscode-reduce-motion .akashi-progress::before {
   transform: translateX(0);
 }
 
+body.vscode-reduce-motion .akashi-addons-origin-item__btn--spinning .codicon {
+  animation: none;
+}
+
 /* ── Shared motion utilities ─────────────── */
 
 body.vscode-reduce-motion * {

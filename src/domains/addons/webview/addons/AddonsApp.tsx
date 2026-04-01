@@ -7,6 +7,7 @@ export function AddonsApp() {
   const {
     catalog,
     isBusy,
+    fetchingOrigins,
     searchText,
     activeTab,
     operationMessage,
@@ -63,7 +64,7 @@ export function AddonsApp() {
         <div className="akashi-addons-header__title-row">
           <span className="codicon codicon-extensions" />
           <h1 className="akashi-addons-header__title">Claude Addons</h1>
-          <button className="akashi-addons-header__refresh" onClick={refresh} title="Refresh">
+          <button className="akashi-addons-header__refresh" onClick={refresh} title="Refresh" disabled={isBusy}>
             <span className="codicon codicon-refresh" />
           </button>
         </div>
@@ -107,6 +108,7 @@ export function AddonsApp() {
           <AvailableBrowse
             sections={availableSections}
             origins={catalog.origins}
+            fetchingOrigins={fetchingOrigins}
             onInstall={installPlugin}
             onDelete={(pluginId) => deleteAddon(undefined, pluginId)}
             onToggleOrigin={toggleOrigin}

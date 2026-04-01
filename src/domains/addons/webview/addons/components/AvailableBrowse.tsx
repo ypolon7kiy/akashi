@@ -11,6 +11,7 @@ import { MarketplaceBar } from './MarketplaceBar';
 interface AvailableBrowseProps {
   readonly sections: ReadonlyMap<string, readonly CatalogPluginDescriptor[]>;
   readonly origins: readonly MarketplaceOriginDescriptor[];
+  readonly fetchingOrigins: ReadonlySet<string>;
   readonly onInstall: (pluginId: string, locality: AddonLocality) => void;
   readonly onDelete: (pluginId: string) => void;
   readonly onToggleOrigin: (originId: string, enabled: boolean) => void;
@@ -24,6 +25,7 @@ interface AvailableBrowseProps {
 export function AvailableBrowse({
   sections,
   origins,
+  fetchingOrigins,
   onInstall,
   onDelete,
   onToggleOrigin,
@@ -39,6 +41,7 @@ export function AvailableBrowse({
     <>
       <SourcesDisclosure
         origins={origins}
+        fetchingOrigins={fetchingOrigins}
         onToggle={onToggleOrigin}
         onFetch={onFetchOrigin}
         onAdd={onAddOrigin}
@@ -81,6 +84,7 @@ export function AvailableBrowse({
 
 function SourcesDisclosure({
   origins,
+  fetchingOrigins,
   onToggle,
   onFetch,
   onAdd,
@@ -88,6 +92,7 @@ function SourcesDisclosure({
   onRemove,
 }: {
   readonly origins: readonly MarketplaceOriginDescriptor[];
+  readonly fetchingOrigins: ReadonlySet<string>;
   readonly onToggle: (originId: string, enabled: boolean) => void;
   readonly onFetch: (originId: string) => void;
   readonly onAdd: (kind: string, value: string) => void;
@@ -110,6 +115,7 @@ function SourcesDisclosure({
       {open && (
         <MarketplaceBar
           origins={origins}
+          fetchingOrigins={fetchingOrigins}
           onToggle={onToggle}
           onFetch={onFetch}
           onAdd={onAdd}

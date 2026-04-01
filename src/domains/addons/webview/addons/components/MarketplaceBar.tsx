@@ -5,6 +5,7 @@ type SourceKind = 'github' | 'url' | 'file';
 
 interface MarketplaceBarProps {
   readonly origins: readonly MarketplaceOriginDescriptor[];
+  readonly fetchingOrigins: ReadonlySet<string>;
   readonly onToggle: (originId: string, enabled: boolean) => void;
   readonly onFetch: (originId: string) => void;
   readonly onAdd: (kind: string, value: string) => void;
@@ -30,6 +31,7 @@ function kindPlaceholder(kind: SourceKind): string {
 
 export function MarketplaceBar({
   origins,
+  fetchingOrigins,
   onToggle,
   onFetch,
   onAdd,
@@ -138,6 +140,7 @@ export function MarketplaceBar({
       <div className="akashi-addons-origins__list">
         {origins.map((origin) => {
           const isEnabled = localToggles[origin.id] ?? origin.enabled;
+          const isFetching = fetchingOrigins.has(origin.id);
           const isEditing = editingId === origin.id;
           return (
             <div key={origin.id}>
@@ -165,10 +168,10 @@ export function MarketplaceBar({
                     </span>
                   )}
                   <button
-                    className="akashi-addons-origin-item__btn"
+                    className={`akashi-addons-origin-item__btn${isFetching ? ' akashi-addons-origin-item__btn--spinning' : ''}`}
                     onClick={() => onFetch(origin.id)}
                     title="Refresh catalog"
-                    disabled={!isEnabled}
+                    disabled={!isEnabled || isFetching}
                   >
                     <span className="codicon codicon-sync" />
                   </button>
