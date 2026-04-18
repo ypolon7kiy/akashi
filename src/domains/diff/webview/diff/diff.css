@@ -473,7 +473,7 @@ html, body {
   border: 1px solid color-mix(in srgb, var(--akashi-text) 8%, transparent);
   border-radius: 8px;
   margin-bottom: 16px;
-  overflow: hidden;
+  overflow: clip;
   background: var(--akashi-surface-0);
   box-shadow: var(--akashi-shadow-sm);
   animation: diff-file-enter 0.35s var(--akashi-ease-out) both;
@@ -551,7 +551,6 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
   padding: 3px 10px;
   border: 1px solid color-mix(in srgb, var(--akashi-text) 10%, transparent);
   border-radius: 4px;
@@ -583,7 +582,7 @@ html, body {
 }
 
 .diff-header-viewed__label {
-  font-weight: 500;
+  display: none;
 }
 
 .diff-header-viewed--checked {
@@ -616,8 +615,7 @@ html, body {
 }
 
 .d2h-changed-tag {
-  background: color-mix(in srgb, var(--diff-modified) 15%, transparent);
-  color: var(--diff-modified);
+  display: none;
 }
 
 .d2h-added-tag {
@@ -975,7 +973,7 @@ ins {
 }
 
 .d2h-file--viewed .d2h-file-header {
-  border-bottom: none;
+  border-bottom-color: transparent;
 }
 
 /* ═══════════════════════════════════════════════
@@ -983,13 +981,15 @@ ins {
    ═══════════════════════════════════════════════ */
 
 .d2h-file-header {
-  background:
-    linear-gradient(
-      90deg,
-      var(--diff-surface-raised) 0%,
-      color-mix(in srgb, var(--akashi-text) 3%, var(--akashi-surface-0)) 100%
-    );
-  border-bottom: 1px solid color-mix(in srgb, var(--akashi-text) 6%, transparent);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  width: fit-content;
+  margin-left: auto;
+  background: var(--diff-surface-raised);
+  border: 1px solid color-mix(in srgb, var(--akashi-text) 6%, transparent);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
   color: var(--akashi-text);
   padding: 10px 14px;
   font-weight: 500;
@@ -1002,26 +1002,12 @@ ins {
 }
 
 .d2h-file-header:hover {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--akashi-text) 6%, var(--akashi-surface-0)) 0%,
-      color-mix(in srgb, var(--akashi-text) 4%, var(--akashi-surface-0)) 100%
-    );
+  background: color-mix(in srgb, var(--akashi-text) 5%, var(--diff-surface-raised));
 }
 
-/* File icon indicator dot */
+/* File icon indicator dot — hidden, replaced by Review button position */
 .d2h-file-name-wrapper::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-right: 8px;
-  background: var(--diff-modified);
-  vertical-align: middle;
-  flex-shrink: 0;
-  box-shadow: none;
+  display: none;
 }
 
 /* Color the dot based on file status */

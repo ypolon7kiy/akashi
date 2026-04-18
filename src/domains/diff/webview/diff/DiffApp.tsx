@@ -283,7 +283,7 @@ export function DiffApp() {
       btn.innerHTML =
         '<span class="diff-header-viewed__icon codicon codicon-eye"></span>' +
         '<span class="diff-header-viewed__label">Review</span>';
-      header.appendChild(btn);
+      header.prepend(btn);
     });
   }, [renderedHtml]);
 
