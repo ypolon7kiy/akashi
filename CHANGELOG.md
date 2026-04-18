@@ -5,6 +5,91 @@ All notable changes to the Akashi extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.15] - 2026-04-19
+
+### Changelog
+
+- Backfill release history for v1.0.5 – v1.0.14
+
+## [1.0.14] - 2026-04-01
+
+### Add-ons
+
+- Show installed plugins in the Available tab alongside catalog entries
+- Remove stale CLI catalog cache on refresh
+- Add loading feedback for add-ons refresh and per-origin fetch
+
+### Diff Viewer
+
+- Add diff viewer domain with diff2html integration, file drawer, and reviewed-state tracking
+- Fix lint errors in diff viewer and add-ons tests
+
+### Pulse
+
+- Remove excessive Pulse domain logging on session/task file changes
+
+## [1.0.13] - 2026-03-31
+
+### Docs
+
+- Add contributor-readiness scaffolding, Pulse documentation, and marketplace marketing templates
+
+## [1.0.12] - 2026-03-30
+
+- Internal build bump (no user-facing changes)
+
+## [1.0.11] - 2026-03-30
+
+### Core
+
+- Rebrand extension description: AI Prompt, Rules, Add-ons, Skills & Message Visualizer
+
+## [1.0.10] - 2026-03-29
+
+### Graph View
+
+- Add `topLevel` artifact flag; connect primary artifacts directly to category nodes
+- Show top-level artifact name in installed add-ons view
+
+### Add-ons
+
+- Add edit functionality for custom marketplace connector origins
+- Auto-fetch catalog after adding or editing a connector origin
+- Only show `.../prefix` path shortening for folder-type add-ons
+
+### Tests
+
+- Add linker coverage for all preset categories (Claude, Cursor, Codex, Antigravity)
+
+## [1.0.9] - 2026-03-28
+
+### UI
+
+- Elevate frontend design system with brand identity, motion, and typography
+
+## [1.0.8] - 2026-03-28
+
+- Internal build bump (no user-facing changes)
+
+## [1.0.7] - 2026-03-28
+
+### Add-ons
+
+- Add Claude Skills preset support
+- Fix: update `akashi-meta.json` when moving an add-on to global scope
+
+## [1.0.6] - 2026-03-28
+
+### Sidebar
+
+- Move sidebar filter toggles into a collapsible dropdown panel
+
+## [1.0.5] - 2026-03-28
+
+### Docs
+
+- Update extension title to include Add-ons, Skills & Message Visualizer
+
 ## [1.0.4] - 2026-03-28
 
 ### Add-ons
